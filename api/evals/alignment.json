@@ -1,0 +1,173 @@
+{
+  "about": "Labelled to-dos for the AI alignment check. Re-run with `node ace align:eval` whenever the prompt or model changes. To-dos match goals only; projects appear under their goal as evidence (a project with no goal is not shown). `expect` is what the to-do list should show: \"aligned\" (no red; `match` lists acceptable goal chips) or \"flagged\" (red). Add your own real to-dos here.",
+  "passRate": 0.9,
+  "context": {
+    "goals": [
+      {
+        "id": 1,
+        "title": "Run a half marathon in May",
+        "details": "Finish under 2 hours. Train 3–4 times a week.",
+        "sub_goals": [
+          "Run 3x a week",
+          "Build the long run to 18 km",
+          "Sign up for the Bay half"
+        ],
+        "projects": [
+          {
+            "title": "Spring race plan",
+            "details": "Training block and race logistics.",
+            "pending_tasks": [
+              "Pick a 16-week training plan",
+              "Book a physio check-up"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Ship the Focus app",
+        "details": "A planning app that caps active goals. v1 deployed and in daily use.",
+        "sub_goals": [
+          "API",
+          "Web app",
+          "AI alignment check",
+          "Deploy"
+        ],
+        "projects": [
+          {
+            "title": "Focus app v1",
+            "details": "AdonisJS API, React web app, Neon Postgres.",
+            "pending_tasks": [
+              "Write the README",
+              "Deploy the API",
+              "Set up nightly backups"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Hold a 20-minute conversation in Spanish",
+        "details": "By summer. A2 course plus weekly tutoring.",
+        "sub_goals": [
+          "Finish the A2 course",
+          "20 italki lessons"
+        ],
+        "projects": []
+      }
+    ]
+  },
+  "cases": [
+    {
+      "title": "Buy new running shoes",
+      "expect": "aligned",
+      "match": [
+        "goal:1"
+      ]
+    },
+    {
+      "title": "Long run, 14 km on Sunday",
+      "expect": "aligned",
+      "match": [
+        "goal:1"
+      ]
+    },
+    {
+      "title": "Email the physio to book a check-up",
+      "expect": "aligned",
+      "match": [
+        "goal:1"
+      ]
+    },
+    {
+      "title": "Register for the Bay half marathon",
+      "expect": "aligned",
+      "match": [
+        "goal:1"
+      ]
+    },
+    {
+      "title": "Write the deploy checklist for the API",
+      "expect": "aligned",
+      "match": [
+        "goal:2"
+      ]
+    },
+    {
+      "title": "Fix the login rate-limit bug",
+      "notes": "Focus returns 500 instead of 429.",
+      "expect": "aligned",
+      "match": [
+        "goal:2"
+      ]
+    },
+    {
+      "title": "Set up nightly Postgres backups",
+      "expect": "aligned",
+      "match": [
+        "goal:2"
+      ]
+    },
+    {
+      "title": "Book an italki lesson for Thursday",
+      "expect": "aligned",
+      "match": [
+        "goal:3"
+      ]
+    },
+    {
+      "title": "Review Spanish flashcards",
+      "expect": "aligned",
+      "match": [
+        "goal:3"
+      ]
+    },
+    {
+      "title": "Watch a Spanish film without subtitles",
+      "expect": "aligned",
+      "match": [
+        "goal:3"
+      ]
+    },
+    {
+      "title": "Call the contractor about the countertop quote",
+      "expect": "flagged"
+    },
+    {
+      "title": "Measure the kitchen for cabinets",
+      "expect": "flagged"
+    },
+    {
+      "title": "Reorganize the bookmarks folder",
+      "expect": "flagged"
+    },
+    {
+      "title": "Research a new video game to play",
+      "expect": "flagged"
+    },
+    {
+      "title": "Binge the new season of a TV show",
+      "expect": "flagged"
+    },
+    {
+      "title": "Clean out the garage",
+      "expect": "flagged"
+    },
+    {
+      "title": "Browse deals on a new TV",
+      "expect": "flagged"
+    },
+    {
+      "title": "Learn to bake sourdough",
+      "expect": "flagged"
+    },
+    {
+      "title": "Rearrange the living room furniture",
+      "expect": "flagged"
+    },
+    {
+      "title": "Scroll photography forums",
+      "expect": "flagged"
+    }
+  ]
+}
