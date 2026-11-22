@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/core'
 import {
   arrayMove,
+  rectSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -31,12 +32,16 @@ type Props<T extends Item> = {
   as?: 'div' | 'article'
   itemClassName?: (item: T) => string
   itemStyle?: (item: T) => CSSProperties
+  /** DOM id for each item's wrapper (e.g. so another page can scroll to it). */
+  itemId?: (item: T) => string
   /** e.g. "goal" → "Reorder goal (drag, or use arrow keys)" */
   noun?: string
   className?: string
   style?: CSSProperties
   /** Items that can't be dragged yet (e.g. not saved). */
   isLocked?: (item: T) => boolean
+  /** "grid" for cards laid out in rows (goal cards): the drop line runs down the side. */
+  layout?: 'list' | 'grid'
 }
 
 /**
@@ -88,7 +93,10 @@ export default function SortableList<T extends Item>(props: Props<T>) {
       onDragEnd={onDragEnd}
       onDragCancel={reset}
     >
-      <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={items.map((i) => i.id)}
+        strategy={props.layout === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
+      >
         <div className={className} style={style}>
           {items.map((item, index) => {
             let dropEdge: 'top' | 'bottom' | null = null
@@ -153,11 +161,16 @@ function SortableItem<T extends Item>({
   })
   const Tag = props.as ?? 'div'
 
+  const grid = props.layout === 'grid'
   const lineShadow =
     dropEdge === 'top'
-      ? 'inset 0 2px 0 var(--color-accent)'
+      ? grid
+        ? 'inset 3px 0 0 var(--color-accent)'
+        : 'inset 0 2px 0 var(--color-accent)'
       : dropEdge === 'bottom'
-        ? 'inset 0 -2px 0 var(--color-accent)'
+        ? grid
+          ? 'inset -3px 0 0 var(--color-accent)'
+          : 'inset 0 -2px 0 var(--color-accent)'
         : undefined
 
   const handle = (
@@ -170,9 +183,11 @@ function SortableItem<T extends Item>({
       onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
         listeners?.onKeyDown?.(e)
         if (dragActive || e.defaultPrevented) return
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        const back = e.key === 'ArrowUp' || (grid && e.key === 'ArrowLeft')
+        const forward = e.key === 'ArrowDown' || (grid && e.key === 'ArrowRight')
+        if (back || forward) {
           e.preventDefault()
-          onArrow(e.key === 'ArrowUp' ? -1 : 1)
+          onArrow(back ? -1 : 1)
         }
       }}
     />
@@ -181,6 +196,7 @@ function SortableItem<T extends Item>({
   return (
     <Tag
       ref={setNodeRef}
+      id={props.itemId?.(item)}
       className={props.itemClassName?.(item)}
       style={{
         ...props.itemStyle?.(item),

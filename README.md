@@ -2,8 +2,8 @@
 
 A personal planning app that caps how many goals are active at once and ties projects and to-dos back to them.
 
-- Spec: `docs/design_handoff/Focus App - Product & Technical Spec.md`
-- Design handoff: `docs/design_handoff/README.md` (open `Focus App.dc.html` for the prototype)
+- Spec: `docs/Focus App prototype/designhandoff/Focus App - Product & Technical Spec.md`
+- Design handoff: `docs/Focus App prototype/designhandoff/README.md` (open `Focus App.dc.html` for the prototype)
 
 ## Layout
 - `api/`: AdonisJS 6 API (`/api/v1`) on Neon Postgres

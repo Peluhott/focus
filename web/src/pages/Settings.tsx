@@ -23,9 +23,8 @@ export default function Settings() {
         <section>
           <h3>AI alignment check</h3>
           <p style={{ maxWidth: '58ch', color: 'var(--color-neutral-800)' }}>
-            Compares each open to-do with your active goals (including the projects linked to
-            them), and flags the ones that don't serve any of them. When it's off, nothing is checked and no chips or highlights
-            show.
+            Compares each open to-do with your active goals, and blurs the ones that don't serve
+            any of them. When it's off, nothing is checked and no chips or highlights show.
           </p>
           <div className="seg" role="radiogroup" aria-label="AI alignment check">
             {[true, false].map((value) => (

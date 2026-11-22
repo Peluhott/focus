@@ -3,6 +3,7 @@ import AppError from '#exceptions/app_error'
 import Todo from '#models/todo'
 import { aiConfigured, queueContextRecheck } from '#services/alignment/triggers'
 import { activeGoalCount } from '#services/goal_limit'
+import { startSuggestionRun } from '#services/suggestions/triggers'
 import { updateSettingsValidator } from '#validators/settings'
 
 /**
@@ -23,11 +24,13 @@ export default class SettingsController {
 
   /**
    * PATCH /settings. Lowering focus_limit below the number of active goals
-   * is refused: archive or complete goals first.
+   * is refused: archive or complete goals first. Raising it returns a
+   * suggestion_run_id (null otherwise).
    */
   async update({ auth, request }: HttpContext) {
     const user = auth.getUserOrFail()
     const input = await request.validateUsing(updateSettingsValidator)
+    const raised = input.focus_limit !== undefined && input.focus_limit > user.focusLimit
 
     if (input.focus_limit !== undefined) {
       const active = await activeGoalCount()
@@ -50,6 +53,8 @@ export default class SettingsController {
       // Turned off: nothing waits on a check any more.
       await Todo.query().where('alignment_status', 'pending').update({ alignment_status: null })
     }
-    return view(user)
+    // Raising the limit opens spots: queue goal suggestions (after saving).
+    const suggestionRunId = raised ? await startSuggestionRun('limit_raised') : null
+    return { ...view(user), suggestion_run_id: suggestionRunId }
   }
 }

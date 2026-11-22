@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, fetchAll, patch, post } from './api'
 import { isTemp, useOptimisticMutation } from './optimistic'
 import { useAiOn } from './settings'
+import { offTrackKey } from './backlog'
+import { bumpStats, statsKey } from './stats'
 import type { LinkTarget, Placement, Todo } from './types'
 
 export const todosKey = ['todos'] as const
@@ -151,16 +153,33 @@ export function useAlignmentPolling(todos: Todo[] | undefined) {
 }
 
 /** Check it off: it leaves the list (Undo puts it back with useReopenTodo). */
+/**
+ * A red (unaligned) to-do that's checked off goes to the off-track backlog
+ * instead of being completed. Same rule as the server: AI on and red.
+ */
+export const goesOffTrack = (todo: Todo, aiOn: boolean) =>
+  aiOn && todo.alignment_status === 'unaligned'
+
+/**
+ * Check it off. With the AI on, a completion counts toward the climb
+ * ("Focus so far"); a red to-do moves to the off-track backlog instead.
+ */
 export function useCompleteTodo() {
-  return useOptimisticMutation<Todo, { id: number }, Todo[]>({
+  const aiOn = useAiOn()
+  return useOptimisticMutation<Todo, { todo: Todo }, Todo[]>({
     scope: 'todos',
     queryKey: key,
-    mutationFn: ({ id }) => patch<Todo>(`/todos/${id}`, { done: true }),
-    apply: (old, { id }) => old.filter((t) => t.id !== id),
+    mutationFn: ({ todo }) => patch<Todo>(`/todos/${todo.id}`, { done: true }),
+    apply: (old, { todo }) => old.filter((t) => t.id !== todo.id),
+    alsoApply: (qc, { todo }) => {
+      if (aiOn && !goesOffTrack(todo, aiOn)) bumpStats(qc, todo.matched_goal_id, 1)
+    },
+    alsoInvalidate: () => [statsKey, offTrackKey],
   })
 }
 
 export function useReopenTodo() {
+  const aiOn = useAiOn()
   return useOptimisticMutation<Todo, { todo: Todo; index: number }, Todo[]>({
     scope: 'todos',
     queryKey: key,
@@ -170,6 +189,10 @@ export function useReopenTodo() {
       next.splice(Math.min(index, next.length), 0, todo)
       return next
     },
+    alsoApply: (qc, { todo }) => {
+      if (aiOn && !goesOffTrack(todo, aiOn)) bumpStats(qc, todo.matched_goal_id, -1)
+    },
+    alsoInvalidate: () => [statsKey, offTrackKey],
   })
 }
 

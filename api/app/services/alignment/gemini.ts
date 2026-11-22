@@ -36,6 +36,81 @@ type GeminiResponse = {
   error?: { message?: string; status?: string }
 }
 
+export type JsonRequest = {
+  system: string
+  user: string
+  schema: object
+  maxOutputTokens: number
+  temperature?: number
+}
+
+export type JsonResult = { json: unknown; usage: Usage; latencyMs: number }
+
+/**
+ * One Gemini call with structured JSON output. Throws ProviderError (with
+ * billed usage, when known) on a timeout, an HTTP error or unparsable JSON.
+ * Shared by the alignment check and goal suggestions.
+ */
+export async function generateJson(
+  apiKey: string,
+  model: string,
+  timeoutMs: number,
+  request: JsonRequest
+): Promise<JsonResult> {
+  const started = performance.now()
+  const elapsed = () => Math.round(performance.now() - started)
+  let response: Response
+  try {
+    response = await fetch(`${ENDPOINT}/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+      signal: AbortSignal.timeout(timeoutMs),
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: request.system }] },
+        contents: [{ role: 'user', parts: [{ text: request.user }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseJsonSchema: request.schema,
+          temperature: request.temperature ?? 0,
+          maxOutputTokens: request.maxOutputTokens,
+          thinkingConfig: { thinkingLevel: 'minimal' },
+        },
+      }),
+    })
+  } catch (error) {
+    const timedOut = error instanceof DOMException && error.name === 'TimeoutError'
+    throw new ProviderError(
+      timedOut ? `Timed out after ${timeoutMs} ms` : `Network error: ${error}`,
+      null,
+      elapsed()
+    )
+  }
+
+  const body = (await response.json().catch(() => ({}))) as GeminiResponse
+  const usage: Usage = {
+    inputTokens: body.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens:
+      (body.usageMetadata?.candidatesTokenCount ?? 0) +
+      (body.usageMetadata?.thoughtsTokenCount ?? 0),
+  }
+  if (!response.ok) {
+    // Never include the key; the message is Google's error text.
+    throw new ProviderError(
+      `Gemini ${response.status}: ${body.error?.message?.slice(0, 200) ?? 'request failed'}`,
+      usage,
+      elapsed()
+    )
+  }
+
+  const text = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
+  try {
+    return { json: JSON.parse(text), usage, latencyMs: elapsed() }
+  } catch {
+    const finish = body.candidates?.[0]?.finishReason ?? 'unknown'
+    throw new ProviderError(`Invalid JSON (finish: ${finish})`, usage, elapsed())
+  }
+}
+
 /** Google Gemini via the REST API, with structured JSON output. */
 export class GeminiProvider implements AlignmentProvider {
   constructor(
@@ -45,64 +120,17 @@ export class GeminiProvider implements AlignmentProvider {
   ) {}
 
   async classifyAlignment(todo: TodoInput, context: AlignmentContext): Promise<ProviderResult> {
-    const started = performance.now()
-    const elapsed = () => Math.round(performance.now() - started)
-    let response: Response
+    const result = await generateJson(this.apiKey, this.model, this.timeoutMs, {
+      system: SYSTEM_PROMPT,
+      user: promptFor(todo, context),
+      schema: VERDICT_JSON_SCHEMA,
+      maxOutputTokens: 400,
+    })
     try {
-      response = await fetch(`${ENDPOINT}/${this.model}:generateContent`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': this.apiKey },
-        signal: AbortSignal.timeout(this.timeoutMs),
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ role: 'user', parts: [{ text: promptFor(todo, context) }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            responseJsonSchema: VERDICT_JSON_SCHEMA,
-            temperature: 0,
-            maxOutputTokens: 400,
-            thinkingConfig: { thinkingLevel: 'minimal' },
-          },
-        }),
-      })
-    } catch (error) {
-      const timedOut = error instanceof DOMException && error.name === 'TimeoutError'
-      throw new ProviderError(
-        timedOut ? `Timed out after ${this.timeoutMs} ms` : `Network error: ${error}`,
-        null,
-        elapsed()
-      )
-    }
-
-    const body = (await response.json().catch(() => ({}))) as GeminiResponse
-    const usage: Usage | null = body.usageMetadata
-      ? {
-          inputTokens: body.usageMetadata.promptTokenCount ?? 0,
-          outputTokens:
-            (body.usageMetadata.candidatesTokenCount ?? 0) +
-            (body.usageMetadata.thoughtsTokenCount ?? 0),
-        }
-      : null
-    if (!response.ok) {
-      // Never include the key; the message is Google's error text.
-      throw new ProviderError(
-        `Gemini ${response.status}: ${body.error?.message?.slice(0, 200) ?? 'request failed'}`,
-        usage,
-        elapsed()
-      )
-    }
-
-    const text = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
-    try {
-      const verdict = await parseVerdict(JSON.parse(text))
-      return {
-        verdict,
-        usage: usage ?? { inputTokens: 0, outputTokens: 0 },
-        latencyMs: elapsed(),
-      }
+      const verdict = await parseVerdict(result.json)
+      return { verdict, usage: result.usage, latencyMs: result.latencyMs }
     } catch {
-      const finish = body.candidates?.[0]?.finishReason ?? 'unknown'
-      throw new ProviderError(`Invalid verdict (finish: ${finish})`, usage, elapsed())
+      throw new ProviderError('Invalid verdict', result.usage, result.latencyMs)
     }
   }
 }

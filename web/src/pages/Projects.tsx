@@ -37,10 +37,10 @@ export default function Projects() {
 
   return (
     <section data-screen-label="Projects">
-      <h1 className="page-title" style={{ marginBottom: 'var(--space-6)' }}>
+      <h1 className="page-title centered" style={{ marginBottom: 'var(--space-6)' }}>
         Projects
       </h1>
-      <div className="controls-row" style={{ marginBottom: 'var(--space-6)' }}>
+      <div className="controls-row centered-row" style={{ marginBottom: 'var(--space-6)' }}>
         <div className="field">
           <label htmlFor="fstatus">Status</label>
           <select
@@ -81,7 +81,7 @@ export default function Projects() {
         </button>
       </div>
 
-      {isError && <p className="muted">Couldn't load your projects.</p>}
+      {isError && <p className="muted centered">Couldn't load your projects.</p>}
       {projects && (
         <SortableList
           items={projects}
@@ -117,7 +117,9 @@ export default function Projects() {
           )}
         />
       )}
-      {!isPending && projects?.length === 0 && <p className="muted">No projects match these filters.</p>}
+      {!isPending && projects?.length === 0 && (
+        <p className="muted centered">No projects match these filters.</p>
+      )}
     </section>
   )
 }

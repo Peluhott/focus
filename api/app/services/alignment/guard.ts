@@ -1,17 +1,28 @@
 import db from '@adonisjs/lucid/services/db'
 import aiConfig, { FALLBACK_PRICE, PRICES_PER_MTOK } from '#config/ai'
 
-/** Estimated spend so far this calendar month (UTC), from alignment_checks. */
-export async function monthSpendUsd(): Promise<number> {
-  const rows: { model: string; input: string | null; output: string | null }[] = await db
-    .from('alignment_checks')
+type SpendRow = { model: string | null; input: string | null; output: string | null }
+
+const spendThisMonth = (table: string): Promise<SpendRow[]> =>
+  db
+    .from(table)
     .select('model')
     .sum('input_tokens as input')
     .sum('output_tokens as output')
     .whereRaw(`created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`)
     .groupBy('model')
+
+/**
+ * Estimated spend so far this calendar month (UTC): alignment checks plus
+ * goal-suggestion runs, which share one budget.
+ */
+export async function monthSpendUsd(): Promise<number> {
+  const rows = [
+    ...(await spendThisMonth('alignment_checks')),
+    ...(await spendThisMonth('goal_suggestion_runs')),
+  ]
   return rows.reduce((total, row) => {
-    const price = PRICES_PER_MTOK[row.model] ?? FALLBACK_PRICE
+    const price = (row.model && PRICES_PER_MTOK[row.model]) || FALLBACK_PRICE
     return (
       total + (Number(row.input ?? 0) * price.input + Number(row.output ?? 0) * price.output) / 1e6
     )

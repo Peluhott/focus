@@ -7,6 +7,7 @@ import Goals from './pages/Goals'
 import Projects from './pages/Projects'
 import ProjectDetail from './pages/ProjectDetail'
 import Settings from './pages/Settings'
+import Calendar from './pages/Calendar'
 
 function RequireAuth() {
   const { data: user, isPending, isError } = useMe()
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/goals" element={<Goals />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
+        <Route path="/calendar" element={<Calendar />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/goals" replace />} />

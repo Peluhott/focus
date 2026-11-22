@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   ArchiveIcon,
   ArrowCounterClockwiseIcon,
@@ -10,8 +11,11 @@ import {
   TrashIcon,
   XIcon,
 } from '@phosphor-icons/react'
+import AutoGrowTextarea from '../components/AutoGrowTextarea'
 import ConfirmDialog, { type ConfirmRequest } from '../components/ConfirmDialog'
-import InlineInput from '../components/InlineInput'
+import FocusTracker from '../components/FocusTracker'
+import GoalSuggestions from '../components/GoalSuggestions'
+import OffTrackBacklog from '../components/OffTrackBacklog'
 import NotesField from '../components/NotesField'
 import SortableList from '../components/SortableList'
 import { useMe } from '../lib/auth'
@@ -31,13 +35,19 @@ import {
   useUpdateSubGoal,
 } from '../lib/goals'
 import { isTemp, tempId } from '../lib/optimistic'
+import { useAiOn } from '../lib/settings'
+import { useCompletionStats } from '../lib/stats'
+import { suggestionsKey, useSuggestions } from '../lib/suggestions'
 import { useToast } from '../lib/toast'
 import type { Goal, SubGoal } from '../lib/types'
 
 const LIMITS = [3, 5, 7] as const
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
-/** Goals (README §3): the focus limit, goal cards and the archive. */
+/**
+ * Goals, the home page (README §2): the slots and focus limit, goal cards,
+ * the archive and the "Focus so far" tracker.
+ */
 export default function Goals() {
   const { data: user } = useMe()
   const { data: goals, isPending, isError } = useGoals()
@@ -48,6 +58,15 @@ export default function Goals() {
   const deleteGoal = useDeleteGoal()
   const snapshot = useLimitSnapshot()
   const toast = useToast()
+  const { data: stats } = useCompletionStats()
+  const aiOn = useAiOn()
+  const qc = useQueryClient()
+  const { data: suggestionData } = useSuggestions()
+  // The suggestion run this visit started (by completing a goal or raising
+  // the limit). When it's ready the panel opens; when it found nothing, one
+  // quiet line; when it failed, nothing.
+  const [watchRun, setWatchRun] = useState<number | null>(null)
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
 
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -71,8 +90,25 @@ export default function Goals() {
     if (active.length + 1 >= limit) setAdding(false)
   }
 
+  const suggestions = suggestionData?.data ?? []
+  const latestRun = suggestionData?.latest_run
+  const watched = watchRun !== null && latestRun?.id === watchRun ? latestRun : null
+  const showSuggestions = suggestions.length > 0 && (suggestionsOpen || watched?.status === 'ready')
+
+  /** A goal completion or limit increase answered with a suggestion run to wait for. */
+  function watchSuggestionRun(response: unknown) {
+    const runId = (response as { suggestion_run_id?: number | null } | undefined)?.suggestion_run_id
+    if (!runId) return
+    setWatchRun(runId)
+    setSuggestionsOpen(false)
+    qc.invalidateQueries({ queryKey: suggestionsKey })
+  }
+
   function changeStatus(goal: Goal, action: 'complete' | 'archive') {
-    setStatus.mutate({ id: goal.id, action })
+    setStatus.mutate(
+      { id: goal.id, action },
+      { onSuccess: action === 'complete' ? watchSuggestionRun : undefined }
+    )
     toast(action === 'complete' ? 'Goal completed' : 'Goal archived', () => {
       const now = snapshot()
       if (now.active >= now.limit) {
@@ -97,45 +133,78 @@ export default function Goals() {
 
   return (
     <section data-screen-label="Goals">
-      <h1 className="page-title">Goals</h1>
-      <p className="page-subtitle">
-        {active.length} of {limit} active goals
-      </p>
-
-      <div className="controls-row">
-        <div className="field">
-          <label htmlFor="limit">Active goals</label>
-          <select
-            id="limit"
-            className="input"
-            style={{ width: 'auto', minWidth: 96 }}
-            value={limit}
-            onChange={(e) => setLimit.mutate({ limit: Number(e.target.value) as 3 | 5 | 7 })}
-          >
-            {LIMITS.map((l) => (
-              <option key={l} value={l} disabled={l < active.length}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button
-          className="btn btn-primary"
-          style={{ minHeight: 36 }}
-          disabled={atLimit || !goals}
-          onClick={() => setAdding(true)}
-        >
-          <PlusIcon size={16} aria-hidden />
-          New goal
-        </button>
-      </div>
-      {atLimit && (
-        <p className="note">You're at your limit. Complete or archive a goal, or raise your limit.</p>
-      )}
-      {nearestBlocked !== undefined && (
-        <p className="hint">
-          Archive {plural(active.length - nearestBlocked, 'goal', 'goals')} to drop to {nearestBlocked}.
+      <header className="goals-header">
+        <h1 className="goals-title">What you're climbing toward</h1>
+        <p className="goals-count">
+          {active.length} of {limit} slots taken
         </p>
+        <div className="slots">
+          {Array.from({ length: limit }, (_, i) => {
+            const goal = active[i]
+            return (
+              <div key={i} className={`slot${goal ? ' filled' : ''}`}>
+                <span className="slot-num">{String(i + 1).padStart(2, '0')}</span>
+                <span className="slot-bar" aria-hidden />
+                {goal ? (
+                  <span className="slot-title">{goal.title}</span>
+                ) : (
+                  <button className="btn btn-ghost slot-add" disabled={!goals} onClick={() => setAdding(true)}>
+                    <PlusIcon aria-hidden />
+                    Open slot
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        <div className="limit-control">
+          <span className="limit-label" id="limit-label">
+            Limit
+          </span>
+          <div className="seg" role="radiogroup" aria-labelledby="limit-label">
+            {LIMITS.map((l) => (
+              <label key={l} className="seg-opt">
+                <input
+                  type="radio"
+                  name="focus-limit"
+                  value={l}
+                  checked={limit === l}
+                  disabled={l < active.length || !user}
+                  onChange={() =>
+                    setLimit.mutate({ limit: l }, { onSuccess: l > limit ? watchSuggestionRun : undefined })
+                  }
+                />
+                {l}
+              </label>
+            ))}
+          </div>
+        </div>
+        {atLimit && (
+          <p className="note">You're at your limit. Complete or archive a goal, or raise your limit.</p>
+        )}
+        {nearestBlocked !== undefined && (
+          <p className="hint">
+            Archive {plural(active.length - nearestBlocked, 'goal', 'goals')} to drop to {nearestBlocked}.
+          </p>
+        )}
+        {suggestions.length > 0 && !showSuggestions && (
+          <button className="btn btn-ghost suggestions-link" onClick={() => setSuggestionsOpen(true)}>
+            Suggestions ({suggestions.length})
+          </button>
+        )}
+        {watched?.status === 'queued' && <p className="hint">Looking for themes in your off-track backlog…</p>}
+        {watched?.status === 'empty' && <p className="hint">No clear themes in your backlog yet.</p>}
+      </header>
+
+      {showSuggestions && (
+        <GoalSuggestions
+          suggestions={suggestions}
+          atLimit={atLimit}
+          onHide={() => {
+            setSuggestionsOpen(false)
+            setWatchRun(null)
+          }}
+        />
       )}
 
       {adding && !atLimit && (
@@ -168,11 +237,12 @@ export default function Goals() {
         </div>
       )}
 
-      {isError && <p className="muted">Couldn't load your goals.</p>}
+      {isError && <p className="muted centered">Couldn't load your goals.</p>}
       <SortableList
         items={active}
         as="article"
         noun="goal"
+        layout="grid"
         className="goal-list"
         itemClassName={() => 'card goal-card'}
         isLocked={(g) => isTemp(g.id)}
@@ -187,7 +257,7 @@ export default function Goals() {
           />
         )}
       />
-      {!isPending && active.length === 0 && <p className="empty muted">No active goals yet.</p>}
+      {!isPending && active.length === 0 && <p className="empty muted centered">No active goals yet.</p>}
 
       {archived.length > 0 && (
         <div className="archived">
@@ -224,6 +294,10 @@ export default function Goals() {
         </div>
       )}
 
+      <FocusTracker stats={stats} activeGoals={active} aiOn={aiOn} />
+
+      <OffTrackBacklog confirm={setConfirm} />
+
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </section>
   )
@@ -258,7 +332,7 @@ function GoalCard({
       <div className="goal-head">
         {handle}
         <div className="goal-head-text">
-          <InlineInput
+          <AutoGrowTextarea
             value={goal.title}
             aria-label="Goal title"
             className="goal-title"
@@ -371,7 +445,7 @@ function SubGoalRow({ sub, handle }: { sub: SubGoal; handle: ReactNode }) {
           disabled={!saved}
           onChange={(e) => patch({ done: e.target.checked })}
         />
-        <InlineInput
+        <AutoGrowTextarea
           value={sub.title}
           aria-label="Sub-goal"
           className={`subgoal-title${sub.done ? ' is-done' : ''}`}

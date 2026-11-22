@@ -3,6 +3,7 @@ import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import { DateTime } from 'luxon'
 import AppError from '#exceptions/app_error'
 import Goal from '#models/goal'
+import OffTrackItem from '#models/off_track_item'
 import Todo from '#models/todo'
 import { aiActive, queueTodoCheck } from '#services/alignment/triggers'
 import { inList, positionFor, topPosition, wantsMove } from '#services/ordering'
@@ -37,7 +38,12 @@ export default class TodosController {
   /** GET /todos: open to-dos in your order (done=true for completed ones). */
   async index({ request }: HttpContext) {
     const filters = await listTodosValidator.validate(request.qs())
-    const query = withMatches(Todo.query().where('done', filters.done ?? false))
+    // Off-track to-dos left the list but weren't completed: never listed as done.
+    const query = withMatches(
+      Todo.query()
+        .where('done', filters.done ?? false)
+        .where('off_track', false)
+    )
     if (filters.date) query.where('date', filters.date)
     if (filters.alignment_status) query.where('alignment_status', filters.alignment_status)
 
@@ -77,8 +83,10 @@ export default class TodosController {
 
   /**
    * PATCH /todos/:id. Completing keeps the item's position, so un-completing
-   * (Undo) puts it back where it was. New text re-runs the AI check (even on
-   * a dismissed to-do); a manual link is never touched by the AI.
+   * (Undo) puts it back where it was. With the AI on, checking off a red
+   * (unaligned) to-do moves it to the off-track backlog instead of
+   * completing it. New text re-runs the AI check (even on a dismissed
+   * to-do); a manual link is never touched by the AI.
    */
   async update({ params, request }: HttpContext) {
     const todo = await Todo.findOrFail(params.id)
@@ -90,7 +98,24 @@ export default class TodosController {
     if (input.title !== undefined) todo.title = input.title
     if (input.notes !== undefined) todo.notes = input.notes
     if (input.date !== undefined) todo.date = input.date
+    let backlog: 'move' | 'undo' | null = null
     if (input.done !== undefined && input.done !== todo.done) {
+      const ai = input.done ? await aiActive() : false
+      if (input.done && ai && todo.alignmentStatus === 'unaligned') {
+        // Checking off a red to-do moves it to the off-track backlog. It
+        // leaves the list but isn't a completion.
+        todo.offTrack = true
+        todo.counted = false
+        backlog = 'move'
+      } else if (!input.done && todo.offTrack) {
+        // Undo of a move: take it back out of the backlog.
+        todo.offTrack = false
+        backlog = 'undo'
+      } else {
+        // The climb only counts completions made while the AI check is on.
+        todo.counted = ai
+      }
+      if (!input.done) todo.counted = false
       todo.done = input.done
       todo.doneAt = input.done ? DateTime.now() : null
     }
@@ -110,6 +135,18 @@ export default class TodosController {
       })
     } else {
       await todo.save()
+    }
+    if (backlog === 'move') {
+      await OffTrackItem.create({
+        todoId: todo.id,
+        titleSnapshot: todo.title,
+        notesSnapshot: todo.notes,
+        reason: todo.alignmentReason,
+        status: 'open',
+        movedAt: DateTime.now(),
+      })
+    } else if (backlog === 'undo') {
+      await OffTrackItem.query().where('todo_id', todo.id).where('status', 'open').delete()
     }
     if (check) await queueTodoCheck(todo.id)
     return view(todo)

@@ -19,11 +19,15 @@
   --color-neutral-100: var(--color-neutral-100);
   --color-neutral-200: var(--color-neutral-200);
   --color-neutral-300: var(--color-neutral-300);
+  --color-neutral-400: var(--color-neutral-400);
   --color-neutral-500: var(--color-neutral-500);
   --color-neutral-600: var(--color-neutral-600);
   --color-neutral-700: var(--color-neutral-700);
   --color-neutral-800: var(--color-neutral-800);
+  --color-neutral-900: var(--color-neutral-900);
+  --color-accent-100: var(--color-accent-100);
   --color-accent-700: var(--color-accent-700);
+  --color-accent-800: var(--color-accent-800);
   --color-accent-2-100: var(--color-accent-2-100);
   --color-accent-2-700: var(--color-accent-2-700);
   --color-accent-2-800: var(--color-accent-2-800);

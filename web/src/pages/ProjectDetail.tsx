@@ -40,7 +40,7 @@ export default function ProjectDetail() {
 
   if (isError) {
     return (
-      <section style={{ maxWidth: 760 }}>
+      <section className="project-detail">
         <BackLink />
         <p className="muted" style={{ marginTop: 'var(--space-4)' }}>
           This project doesn't exist.
@@ -57,7 +57,7 @@ export default function ProjectDetail() {
   const linkedInactive = project.goal && project.goal.status !== 'active' ? project.goal : null
 
   return (
-    <section data-screen-label="Project detail" style={{ maxWidth: 760 }}>
+    <section data-screen-label="Project detail" className="project-detail">
       <BackLink />
       <InlineInput
         key={project.id}

@@ -5,24 +5,43 @@ a:hover { color: var(--color-accent-800); }
 
 :root { --gutter: clamp(20px, 5vw, 64px); }
 
-/* — shell — */
-.shell-header { padding: 0 var(--gutter); }
-.shell-nav {
-  padding: var(--space-4) 0 var(--space-3);
-  flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-6);
+/* — shell (README "Global shell") — */
+.shell-header { padding: var(--space-6) var(--gutter) 0; }
+.shell-head-row {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: var(--space-4) var(--space-8);
 }
-.shell-nav .nav-brand { font-size: 30px; letter-spacing: -0.02em; line-height: 1; }
-.rule-thick { height: 3px; background: var(--color-text); }
-.rule-thin { height: 1px; background: var(--color-text); }
-.rule-thick + .rule-thin { margin-top: 2px; }
-.rail {
-  display: flex; flex-wrap: wrap; gap: 4px var(--space-6); padding: 7px 0 6px;
-  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+.shell-brand { display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px; }
+.shell-wordmark {
+  font-family: var(--font-heading); font-weight: 600;
+  font-size: 48px; line-height: 1; letter-spacing: -0.03em; color: var(--color-text);
 }
-.rail-flag { display: inline-flex; align-items: center; gap: 4px; color: var(--color-accent-2-700); }
-.shell-main { padding: var(--space-8) var(--gutter) 140px; max-width: 900px; }
+.shell-dateline {
+  display: flex; flex-wrap: wrap; gap: 2px 14px;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-800);
+}
+.shell-flag { display: inline-flex; align-items: center; gap: 4px; color: var(--color-accent-2-700); }
+.shell-tabs { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2) var(--space-6); }
+.shell-tab {
+  display: flex; flex-direction: column; gap: 8px;
+  text-decoration: none; color: var(--color-neutral-700);
+}
+.shell-tab[aria-current='page'] { color: var(--color-text); }
+.shell-tab:hover { color: var(--color-accent-700); }
+.shell-tab-label { display: flex; align-items: flex-start; gap: 3px; padding: 0 2px; }
+.shell-tab-name {
+  font-family: var(--font-heading); font-weight: 600;
+  font-size: 26px; line-height: 1; letter-spacing: -0.01em;
+}
+.shell-tab-count { font-size: 12px; line-height: 1; color: var(--color-accent-700); }
+.shell-tab-bar { height: 5px; background: transparent; }
+.shell-tab[aria-current='page'] .shell-tab-bar { background: var(--color-accent); }
+.shell-rule { height: 1px; background: var(--color-text); }
+.shell-main { padding: var(--space-8) var(--gutter) 140px; }
 .page-title { margin: 0 0 var(--space-1); }
 .page-subtitle { font-size: 17px; margin: 0 0 var(--space-6); color: var(--color-neutral-800); }
+.centered { text-align: center; }
+.centered-row { justify-content: center; }
 
 /* — login — */
 .login {
@@ -81,8 +100,8 @@ a:hover { color: var(--color-accent-800); }
 .drag-overlay .drag-handle { cursor: grabbing; }
 
 /* — to-dos (README §2) — */
-.quick-add { font-size: 16px; min-height: 44px; max-width: 720px; }
-.todo-list { display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-4); max-width: 720px; }
+.quick-add { display: block; font-size: 16px; min-height: 44px; max-width: 720px; margin: 0 auto; }
+.todo-list { display: flex; flex-direction: column; gap: 2px; margin: var(--space-4) auto 0; max-width: 720px; }
 .todo-row { padding: 6px 8px 6px 4px; border-radius: var(--radius-md); border-left: 3px solid transparent; }
 .todo-title { font-size: 16px; }
 .date-chip { background: var(--color-neutral-200); color: var(--color-neutral-800); white-space: nowrap; flex: none; }
@@ -95,6 +114,12 @@ a:hover { color: var(--color-accent-800); }
 /* AI alignment (README §2). Magenta is reserved for the unaligned flag, and
    it always comes with the warning icon and the reason text. */
 .todo-row.is-unaligned { background: var(--color-accent-2-100); border-left-color: var(--color-accent-2); }
+/* The main line of an unaligned to-do is blurred; hover or keyboard focus
+   brings it back. The reason line below stays sharp. */
+.todo-main { transition: filter 0.2s, opacity 0.2s; }
+.todo-main.is-blurred { filter: blur(2px); opacity: 0.5; }
+.todo-main.is-blurred:hover, .todo-main.is-blurred:focus-within { filter: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .todo-main { transition: none; } }
 .align-chip { gap: 5px; max-width: 220px; flex: 0 1 auto; min-width: 0; }
 .align-chip svg { flex: none; }
 .align-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -102,20 +127,55 @@ a:hover { color: var(--color-accent-800); }
 .flag-line { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; padding: 0 0 4px 60px; font-size: 13px; }
 .flag-reason { display: inline-flex; align-items: center; gap: 6px; color: var(--color-accent-2-800); }
 .flag-reason svg { font-size: 16px; flex: none; }
-.flag-action { padding: 2px 6px; font-size: 13px; color: var(--color-accent-700); }
+.flag-action { padding: 2px 6px; font-size: 13px; gap: 4px; color: var(--color-accent-700); }
+.flag-action.muted { color: var(--color-neutral-700); }
 .link-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0 6px 60px; }
 .link-label { font-size: 12px; color: var(--color-neutral-700); }
 .link-option { padding: 4px 10px; font-size: 12px; gap: 5px; }
 
-/* — goals (README §3) — */
-.new-goal { display: flex; gap: var(--space-2); margin-top: var(--space-4); max-width: 600px; }
-.goal-list { display: grid; gap: var(--space-4); margin-top: var(--space-6); max-width: 760px; }
+/* — goals, the home page (README §2) — */
+.goals-header {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: var(--space-3); padding-top: var(--space-4);
+}
+.goals-title {
+  margin: 0; font-size: clamp(40px, 6vw, 64px); font-style: italic; font-weight: 400;
+  letter-spacing: -0.02em; text-wrap: balance;
+}
+.goals-count { margin: 0; color: var(--color-neutral-800); }
+.goals-header .note, .goals-header .hint { margin: 0; }
+.slots {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: var(--space-4) var(--space-8); margin-top: var(--space-4);
+}
+.slot { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 160px; }
+.slot-num {
+  font-family: var(--font-heading); font-weight: 600; font-size: 56px; line-height: 1;
+  color: var(--color-neutral-500);
+}
+.slot.filled .slot-num { color: var(--color-text); }
+.slot-bar { width: 40px; height: 3px; background: var(--color-neutral-300); }
+.slot.filled .slot-bar { background: var(--color-accent); }
+.slot-title { font-size: 15px; line-height: 1.3; text-wrap: balance; }
+.slot-add { font-size: 14px; padding: 2px 8px; }
+.limit-control { display: flex; align-items: center; gap: 8px; }
+.limit-label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-700); }
+.new-goal { display: flex; gap: var(--space-2); margin: var(--space-4) auto 0; max-width: 600px; }
+.goal-list {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 420px));
+  justify-content: center; gap: var(--space-4); margin: var(--space-8) auto 0; max-width: 1400px;
+}
 .goal-card { padding: var(--space-4) var(--space-4) var(--space-3) var(--space-2); gap: var(--space-3); }
 .goal-head { display: flex; gap: 8px; align-items: flex-start; }
 .goal-head .drag-handle { padding: 6px 2px; }
 .goal-head-text { flex: 1; min-width: 0; }
+/* Titles that wrap and grow (AutoGrowTextarea). */
+.autogrow {
+  display: block; box-sizing: border-box; field-sizing: content; resize: none; overflow: hidden;
+  border: 0; background: transparent; font: inherit; color: inherit;
+}
 .goal-title {
-  display: block; width: 100%; padding: 0;
+  width: 100%; padding: 0;
   font-family: var(--font-heading); font-weight: 600;
   font-size: 25px; line-height: 1.25; letter-spacing: -0.015em;
 }
@@ -129,21 +189,91 @@ a:hover { color: var(--color-accent-800); }
 }
 .progress-fill { height: 100%; background: var(--color-accent); }
 .goal-indent { padding-left: 30px; }
-.goal-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* Pinned to the bottom of the card, so a row of cards lines up. */
+.goal-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: auto; }
 .small-toggle { padding: 2px 4px; font-size: 13px; }
-.subgoal-main { gap: 8px; }
+.subgoal-main { gap: 8px; align-items: flex-start; }
+.subgoal-main .drag-handle { margin-top: 4px; }
 .subgoal-main .drag-handle svg { width: 16px; height: 16px; }
-.subgoal-title { font-size: 15px; }
+.subgoal-main .check { margin-top: 8px; }
+.subgoal-main .tiny-icon { margin-top: 1px; }
+.subgoal-title { flex: 1; min-width: 0; font-size: 15px; line-height: 1.4; padding: 5px 2px; }
 .subgoal-title.is-done { text-decoration: line-through; color: var(--color-neutral-600); }
 .subgoal-details { margin: 2px 0 6px 52px; width: calc(100% - 52px); min-height: 64px; }
-.archived { margin-top: var(--space-8); max-width: 760px; }
+.archived { margin: var(--space-8) auto 0; max-width: 1400px; }
 .archived-toggle { padding: 4px 0; font-size: 17px; color: var(--color-text); }
 .archived-list { display: grid; gap: 4px; margin-top: var(--space-2); }
 .archived-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: 4px 0 4px 22px; }
 .archived-title { flex: 1 1 240px; font-size: 16px; color: var(--color-neutral-800); }
 
+/* — focus tracker: "Focus so far" (README §2) — */
+.tracker { margin: 60px auto 0; max-width: 1400px; }
+.tracker-title { margin: 0; }
+.tracker-sub { margin: 6px 0 0; color: var(--color-neutral-800); }
+.tracker-cols {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: var(--space-8); margin-top: var(--space-6);
+}
+.tracker-h6 { margin: 0 0 var(--space-4); color: var(--color-neutral-700); }
+.share-list { display: grid; gap: 14px; }
+.share-head { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.share-label { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.share-icon { flex: none; color: var(--color-accent-700); }
+.share-icon.off { color: var(--color-accent-2-700); }
+.share-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share-count { flex: none; color: var(--color-neutral-700); }
+.share-track {
+  height: 6px; margin-top: 5px; overflow: hidden;
+  background: var(--color-neutral-200); border-radius: var(--radius-sm);
+}
+.share-fill { height: 100%; background: var(--color-accent); }
+.share-fill.off { background: var(--color-accent-2); }
+.climb-count { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.climb-number {
+  font-family: var(--font-heading); font-weight: 600; font-size: 42px; line-height: 1; letter-spacing: -0.015em;
+}
+.climb-sentence { color: var(--color-neutral-800); }
+.climb-row {
+  display: flex; flex-wrap: wrap; align-items: flex-end;
+  gap: var(--space-6) var(--space-8); margin-top: var(--space-4);
+}
+.mountain { flex: 1 1 300px; min-width: 0; padding-top: 44px; }
+.mountain-inner { position: relative; }
+.mountain-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.mountain-face { fill: var(--color-neutral-200); stroke: var(--color-text); stroke-width: 1.25; stroke-linejoin: round; }
+.trail-ahead { fill: none; stroke: var(--color-neutral-600); stroke-width: 1.5; stroke-dasharray: 4 4; stroke-linejoin: round; }
+.trail-done { fill: none; stroke: var(--color-accent); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+.step-dot { fill: var(--color-bg); stroke: var(--color-text); stroke-width: 1.25; }
+.step-dot.done { fill: var(--color-text); }
+.step-label, .summit-label {
+  position: absolute; white-space: nowrap; letter-spacing: 0.04em; color: var(--color-neutral-700);
+}
+.step-label { font-size: 11px; }
+.summit-label { font-size: 12px; transform: translate(-50%, calc(-100% - 28px)); }
+.step-label.reached, .summit-label.reached { color: var(--color-text); }
+.summit-flag { position: absolute; font-size: 24px; transform: translate(-12%, -100%); }
+.hiker { position: absolute; font-size: 28px; color: var(--color-text); transform: translate(-50%, -92%); }
+.ladder { flex: 0 0 auto; min-width: 170px; }
+.ladder-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: var(--space-3); }
+.ladder-number { font-family: var(--font-heading); font-weight: 600; font-size: 28px; line-height: 1; }
+.ladder-caption { font-size: 13px; color: var(--color-neutral-800); }
+.ladder-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.ladder-row {
+  display: grid; grid-template-columns: 22px auto minmax(0, 1fr); align-items: center; gap: 10px;
+  height: 32px; padding: 0 8px; border-radius: var(--radius-md); color: var(--color-neutral-700);
+}
+.ladder-mark { display: flex; justify-content: center; font-size: 18px; color: var(--color-neutral-500); }
+.ladder-level { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.ladder-peak { font-size: 15px; text-align: right; }
+.ladder-row.passed { color: var(--color-text); }
+.ladder-row.passed .ladder-mark { color: var(--color-text); }
+.ladder-row.current { color: var(--color-text); background: var(--color-accent-100); }
+.ladder-row.current .ladder-mark { color: var(--color-accent-700); }
+.ladder-row.current .ladder-peak { font-weight: 600; }
+
 /* — projects (README §4, §5) — */
-.project-list { display: grid; gap: 2px; max-width: 760px; }
+.project-list { display: grid; gap: 2px; max-width: 760px; margin: 0 auto; }
+.project-detail { max-width: 760px; margin: 0 auto; }
 .project-row { border-radius: var(--radius-md); }
 .project-row:hover { background: color-mix(in srgb, var(--color-text) 5%, transparent); }
 .project-row-inner { display: flex; align-items: flex-start; gap: 8px; padding: 12px 10px 12px 2px; cursor: pointer; }
@@ -169,3 +299,124 @@ a:hover { color: var(--color-accent-800); }
 .task-row.is-complete .row-main { padding-left: 26px; }
 .task-title { font-size: 15px; flex: 1; min-width: 0; padding: 5px 2px; }
 .task-title.is-done { color: var(--color-neutral-600); text-decoration: line-through; }
+
+/* — calendar (docs "Calendar view"; look from designhandoff/CALENDAR.md) — */
+.calendar { max-width: 1240px; margin: 0 auto; }
+.cal-header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-2); }
+.cal-title {
+  margin: 0; font-size: clamp(40px, 6vw, 64px); font-style: italic; font-weight: 400;
+  letter-spacing: -0.02em;
+}
+.cal-year { font-style: normal; color: var(--color-neutral-600); }
+.cal-summary {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px var(--space-4);
+  margin: 0; font-size: 14px; color: var(--color-neutral-800);
+}
+.cal-overdue { color: oklch(0.42 0.1 70); }
+.cal-empty { margin-top: var(--space-8); }
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  column-gap: var(--space-2); margin-top: var(--space-8);
+}
+.cal-weekday { margin: 0; padding: 0 8px 8px; color: var(--color-neutral-700); }
+.cal-cell {
+  position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  min-height: 128px; padding: 8px 8px 14px; box-shadow: inset 0 1px 0 var(--color-neutral-400);
+}
+.cal-cell.other { box-shadow: inset 0 1px 0 var(--color-neutral-200); }
+.cal-cell.today { box-shadow: inset 0 3px 0 var(--color-accent); background: var(--color-accent-100); }
+.cal-num { font-family: var(--font-heading); font-size: 22px; line-height: 1; padding-top: 4px; }
+.cal-cell.other .cal-num { color: var(--color-neutral-500); }
+.cal-cell.today .cal-num { color: var(--color-accent-800); font-weight: 600; }
+.cal-item {
+  display: grid; grid-template-columns: 15px minmax(0, 1fr); gap: 5px;
+  font-size: 13px; line-height: 1.3; color: var(--color-text); text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.cal-item:hover { color: var(--color-accent-700); }
+.cal-item-icon { font-size: 15px; margin-top: 1px; color: var(--color-accent-700); }
+.cal-item-title {
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden; overflow-wrap: anywhere;
+}
+.cal-item.overdue, .cal-item.overdue .cal-item-icon { color: oklch(0.42 0.1 70); }
+.cal-item.large { grid-template-columns: 17px minmax(0, 1fr); gap: 6px; font-size: 15px; line-height: 1.35; }
+.cal-item.large .cal-item-icon { font-size: 17px; }
+.cal-item.large .cal-item-title { display: block; -webkit-line-clamp: unset; }
+.cal-more { position: relative; }
+.cal-more-btn { padding: 0 2px; font-size: 12px; color: var(--color-accent-700); }
+.cal-pop {
+  position: absolute; z-index: 30; top: calc(100% + 4px); left: -8px;
+  display: grid; gap: 8px; width: max(100% + 16px, 220px); padding: 12px;
+  background: var(--color-surface); box-shadow: var(--shadow-md); border-radius: var(--radius-md);
+}
+.cal-pop-title { margin: 0; color: var(--color-neutral-700); }
+.cal-agenda {
+  display: flex; flex-direction: column; gap: var(--space-6);
+  max-width: 560px; margin: var(--space-8) auto 0; padding: 0; list-style: none;
+}
+.cal-day { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: var(--space-3); }
+.cal-day-date { display: flex; flex-direction: column; align-items: center; padding-top: 2px; }
+.cal-day.today .cal-day-date { color: var(--color-accent-800); }
+.cal-day-dow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.cal-day-num { font-family: var(--font-heading); font-weight: 600; font-size: 28px; line-height: 1; }
+.cal-day-items {
+  display: flex; flex-direction: column; gap: 8px; padding: 6px 0 0 var(--space-3);
+  box-shadow: inset 2px 0 0 var(--color-neutral-300);
+}
+.cal-day.today .cal-day-items { box-shadow: inset 2px 0 0 var(--color-accent); }
+
+/* Arriving from the Calendar: the to-do it opened flashes once. */
+.todo-row.is-target { animation: target-flash 2s ease-out; }
+@keyframes target-flash { from { background: var(--color-accent-100); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .todo-row.is-target { animation: none; background: var(--color-accent-100); } }
+
+/* Keep "+N more" lists inside the grid on the last columns. */
+.cal-cell:nth-child(7n) .cal-pop, .cal-cell:nth-child(7n + 6) .cal-pop { left: auto; right: -8px; }
+
+/* — goal suggestions (docs "Goal suggestions") — */
+.suggestions-link { font-size: 14px; padding: 2px 8px; color: var(--color-accent-700); }
+.suggestions { margin: var(--space-8) auto 0; max-width: 1400px; }
+.suggestions-head {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: var(--space-2) var(--space-6);
+}
+.suggestions-title { margin: 0; }
+.suggestions-sub { margin: 6px 0 0; color: var(--color-neutral-800); }
+.suggestion-list { margin-top: var(--space-4); }
+/* A cyan rule along the top tells a suggestion apart from a goal you hold. */
+.suggestion-card { padding: var(--space-4); gap: var(--space-3); box-shadow: inset 0 3px 0 var(--color-accent); }
+.suggestion-goal { margin: 0; font-size: 25px; line-height: 1.25; }
+.suggestion-details { margin: 0; color: var(--color-neutral-800); }
+.suggestion-subs { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 15px; }
+.suggestion-subs li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.suggestion-subs svg { font-size: 12px; color: var(--color-neutral-500); }
+.suggestion-why { margin: 0; font-size: 13px; font-style: italic; color: var(--color-neutral-800); }
+.suggestion-items {
+  display: grid; gap: 4px; margin: 6px 0 0; padding: 0 0 0 22px; list-style: none; font-size: 13px;
+}
+.suggestion-items li { display: flex; justify-content: space-between; gap: 12px; }
+.suggestion-item-date { flex: none; color: var(--color-neutral-700); }
+.suggestion-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: auto; }
+.suggestion-card .note { margin: 0; }
+.suggestion-edit-sub { display: flex; align-items: center; gap: 6px; }
+.suggestion-card .field { display: grid; gap: 6px; }
+.suggestion-card .field > label { margin: 0; }
+.field-label { display: block; font-size: 12px; color: color-mix(in srgb, var(--color-text) 70%, transparent); }
+
+/* — off-track backlog (docs "Off-track backlog") — */
+.backlog { margin: var(--space-8) auto 0; max-width: 1400px; }
+.backlog-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
+.backlog-hint { margin: 0 0 var(--space-2) 22px; }
+.backlog-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.backlog-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: start;
+  gap: var(--space-2) var(--space-4); padding: 4px 0 4px 22px;
+}
+.backlog-text { display: grid; gap: 2px; min-width: 0; }
+.backlog-title { font-size: 16px; color: var(--color-neutral-800); overflow-wrap: anywhere; }
+.backlog-reason {
+  display: inline-flex; align-items: baseline; gap: 6px; font-size: 13px; color: var(--color-accent-2-800);
+}
+.backlog-reason svg { flex: none; transform: translateY(2px); }
+.backlog-date { font-size: 13px; color: var(--color-neutral-700); white-space: nowrap; padding-top: 3px; }

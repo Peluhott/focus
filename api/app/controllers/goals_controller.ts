@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import Goal from '#models/goal'
 import { assertCanActivate } from '#services/goal_limit'
 import { bottomPosition, inList, positionFor, wantsMove } from '#services/ordering'
+import { startSuggestionRun } from '#services/suggestions/triggers'
 import { paginateByPosition } from '#services/paginate'
 import { createGoalValidator, listGoalsValidator, updateGoalValidator } from '#validators/goal'
 
@@ -17,7 +18,7 @@ function withDetails(query: ModelQueryBuilderContract<typeof Goal>) {
     .withCount('projects')
 }
 
-function view(goal: Goal) {
+export function viewGoal(goal: Goal) {
   const subGoals = goal.subGoals ?? []
   return {
     ...goal.serialize(),
@@ -28,7 +29,7 @@ function view(goal: Goal) {
   }
 }
 
-async function load(id: number | string) {
+export async function loadGoal(id: number | string) {
   return withDetails(Goal.query().where('id', id)).firstOrFail()
 }
 
@@ -39,11 +40,11 @@ export default class GoalsController {
     const query = withDetails(Goal.query())
     if (filters.status && filters.status !== 'all') query.where('goals.status', filters.status)
     const { rows, nextCursor } = await paginateByPosition<Goal>(query, filters, 'goals')
-    return { data: rows.map(view), next_cursor: nextCursor }
+    return { data: rows.map(viewGoal), next_cursor: nextCursor }
   }
 
   async show({ params }: HttpContext) {
-    return view(await load(params.id))
+    return viewGoal(await loadGoal(params.id))
   }
 
   /** POST /goals: a new active goal at the bottom, if under the limit (else 409). */
@@ -62,7 +63,7 @@ export default class GoalsController {
         { client: trx }
       )
     })
-    return response.created(view(await load(goal.id)))
+    return response.created(viewGoal(await loadGoal(goal.id)))
   }
 
   /** PATCH /goals/:id: title, details or position (status has its own routes). */
@@ -79,15 +80,22 @@ export default class GoalsController {
     } else {
       await goal.save()
     }
-    return view(await load(goal.id))
+    return viewGoal(await loadGoal(goal.id))
   }
 
+  /**
+   * POST /goals/:id/complete. The goal is completed first; then, with the AI
+   * on, a goal-suggestion run is queued. suggestion_run_id is null when
+   * nothing was queued (AI off, or too few backlog items).
+   */
   async complete({ params }: HttpContext) {
     const goal = await Goal.findOrFail(params.id)
+    const wasActive = goal.status === 'active'
     goal.status = 'completed'
     goal.completedAt = DateTime.now()
     await goal.save()
-    return view(await load(goal.id))
+    const suggestionRunId = wasActive ? await startSuggestionRun('goal_completed', goal.id) : null
+    return { ...viewGoal(await loadGoal(goal.id)), suggestion_run_id: suggestionRunId }
   }
 
   async archive({ params }: HttpContext) {
@@ -95,7 +103,7 @@ export default class GoalsController {
     goal.status = 'archived'
     goal.completedAt = null
     await goal.save()
-    return view(await load(goal.id))
+    return viewGoal(await loadGoal(goal.id))
   }
 
   /** POST /goals/:id/restore: back to active at the bottom, same limit check. */
@@ -110,7 +118,7 @@ export default class GoalsController {
       goal.position = await bottomPosition(activeGoals, trx)
       await goal.save()
     })
-    return view(await load(params.id))
+    return viewGoal(await loadGoal(params.id))
   }
 
   /** DELETE /goals/:id: sub-goals go with it; linked projects keep going, unlinked. */

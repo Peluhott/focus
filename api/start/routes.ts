@@ -19,6 +19,10 @@ const GoalsController = () => import('#controllers/goals_controller')
 const SubGoalsController = () => import('#controllers/sub_goals_controller')
 const ProjectsController = () => import('#controllers/projects_controller')
 const TasksController = () => import('#controllers/tasks_controller')
+const StatsController = () => import('#controllers/stats_controller')
+const OffTrackController = () => import('#controllers/off_track_controller')
+const GoalSuggestionsController = () => import('#controllers/goal_suggestions_controller')
+const CalendarController = () => import('#controllers/calendar_controller')
 
 router
   .group(() => {
@@ -65,6 +69,18 @@ router
         router.post('projects/:id/tasks', [TasksController, 'store'])
         router.patch('tasks/:id', [TasksController, 'update'])
         router.delete('tasks/:id', [TasksController, 'destroy'])
+
+        router.get('stats/completions', [StatsController, 'completions'])
+
+        router.get('off-track', [OffTrackController, 'index'])
+        router.post('off-track/clear', [OffTrackController, 'clear'])
+        router.delete('off-track/:id', [OffTrackController, 'destroy'])
+
+        router.get('goal-suggestions', [GoalSuggestionsController, 'index'])
+        router.post('goal-suggestions/:id/accept', [GoalSuggestionsController, 'accept'])
+        router.post('goal-suggestions/:id/dismiss', [GoalSuggestionsController, 'dismiss'])
+
+        router.get('calendar', [CalendarController, 'index'])
       })
       .where('id', router.matchers.number())
       .use(middleware.auth())

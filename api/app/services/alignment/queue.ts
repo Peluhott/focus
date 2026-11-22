@@ -4,13 +4,19 @@ import env from '#start/env'
 import aiConfig from '#config/ai'
 
 /** pg-boss queues. "short": at most one queued job per key, so bursts collapse. */
-export const QUEUES = { todo: 'alignment-todo', all: 'alignment-all' } as const
+export const QUEUES = {
+  todo: 'alignment-todo',
+  all: 'alignment-all',
+  suggest: 'goal-suggestions',
+} as const
 
 export interface AlignmentQueue {
   /** Check one to-do in ~1.5 s (repeat requests while queued are merged). */
   checkTodo(todoId: number): Promise<void>
   /** Re-check all open to-dos in ~5 s, after goals or projects change. */
   checkAll(): Promise<void>
+  /** Build goal suggestions for one run (after a goal completes or the limit rises). */
+  suggestGoals(runId: number): Promise<void>
   close(): Promise<void>
 }
 
@@ -71,6 +77,11 @@ class BossQueue implements AlignmentQueue {
   async checkAll() {
     const boss = await this.boss()
     await boss.send(QUEUES.all, {}, { startAfter: later(aiConfig.contextDelayMs) })
+  }
+
+  async suggestGoals(runId: number) {
+    const boss = await this.boss()
+    await boss.send(QUEUES.suggest, { runId }, { singletonKey: String(runId) })
   }
 
   async close() {

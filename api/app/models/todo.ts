@@ -30,6 +30,14 @@ export default class Todo extends AppBaseModel {
   @column.dateTime()
   declare doneAt: DateTime | null
 
+  /** Counts toward the climb: completed while the AI check was on. */
+  @column()
+  declare counted: boolean
+
+  /** Checked off while red: moved to the off-track backlog, not completed. */
+  @column()
+  declare offTrack: boolean
+
   /** AI alignment (Phase 6). Stays null while the check is off. */
   @column()
   declare alignmentStatus: AlignmentStatus | null

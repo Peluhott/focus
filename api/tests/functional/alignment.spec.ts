@@ -31,6 +31,7 @@ class FakeQueue implements AlignmentQueue {
   async checkAll() {
     this.all++
   }
+  async suggestGoals() {}
   async close() {}
 }
 

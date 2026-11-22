@@ -1,4 +1,5 @@
-import { useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ArrowClockwiseIcon,
@@ -11,10 +12,12 @@ import {
 import InlineInput from '../components/InlineInput'
 import NotesField from '../components/NotesField'
 import SortableList from '../components/SortableList'
+import { completionToast } from '../lib/climb'
 import { isOverdue, shortDate } from '../lib/dates'
 import { activeOf, useGoals } from '../lib/goals'
 import { useAiOn } from '../lib/settings'
 import { isTemp, tempId } from '../lib/optimistic'
+import { statsKey, useCompletionStats, type CompletionStats } from '../lib/stats'
 import { useToast } from '../lib/toast'
 import {
   useAddTodo,
@@ -26,18 +29,22 @@ import {
   useRecheckTodo,
   useReopenTodo,
   useRestoreTodo,
+  goesOffTrack,
   todosKey,
   useTodos,
   useUpdateTodo,
 } from '../lib/todos'
 import type { LinkTarget, Placement, Todo } from '../lib/types'
 
-/** To-dos (README §2): one list, in the order you set. */
+/** To-dos (README §3): one list, in the order you set. */
 export default function Todos() {
   const { data: todos, isPending, isError } = useTodos()
   const add = useAddTodo()
   const move = useMoveTodo()
   const aiOn = useAiOn()
+  // Loaded here too, so completion toasts can tell when you reach a camp.
+  useCompletionStats()
+  useFocusTarget(!!todos)
   const [draft, setDraft] = useState('')
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
 
@@ -51,8 +58,8 @@ export default function Todos() {
 
   return (
     <section data-screen-label="To-dos">
-      <h1 className="page-title">To-dos</h1>
-      <p className="page-subtitle">One list, in the order you set.</p>
+      <h1 className="page-title centered">To-dos</h1>
+      <p className="page-subtitle centered">One list, in the order you set.</p>
       <input
         className="input quick-add"
         placeholder="Add a to-do and press Enter"
@@ -61,12 +68,13 @@ export default function Todos() {
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={onQuickAdd}
       />
-      {isError && <p className="muted">Couldn't load your to-dos.</p>}
+      {isError && <p className="muted centered">Couldn't load your to-dos.</p>}
       {todos && (
         <SortableList
           items={todos}
           noun="to-do"
           className="todo-list"
+          itemId={(t) => `todo-${t.id}`}
           itemClassName={(t) =>
             aiOn && t.alignment_status === 'unaligned' ? 'todo-row is-unaligned' : 'todo-row'
           }
@@ -84,9 +92,30 @@ export default function Todos() {
           )}
         />
       )}
-      {!isPending && todos?.length === 0 && <p className="empty muted">Nothing on the list.</p>}
+      {!isPending && todos?.length === 0 && <p className="empty muted centered">Nothing on the list.</p>}
     </section>
   )
+}
+
+/**
+ * Coming from the Calendar: once the list has loaded, scroll to the to-do it
+ * opened and flash that row.
+ */
+function useFocusTarget(loaded: boolean) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const target = (location.state as { focusTodo?: number } | null)?.focusTodo
+  useEffect(() => {
+    if (!loaded || target === undefined) return
+    const el = document.getElementById(`todo-${target}`)
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      el.classList.add('is-target')
+      window.setTimeout(() => el.classList.remove('is-target'), 2000)
+    }
+    // Clear the state so a refresh or Back doesn't scroll again.
+    navigate('.', { replace: true, state: null })
+  }, [loaded, target, navigate])
 }
 
 function TodoRow({
@@ -139,19 +168,35 @@ function TodoRow({
     )
   }
 
+  // A red to-do's checkbox moves it to the off-track backlog instead.
+  const offTrack = goesOffTrack(todo, aiOn)
+
   function onComplete() {
-    complete.mutate({ id: todo.id })
-    toast('To-do completed', () => reopen.mutate({ todo, index }))
+    // With the AI on, the completion counts toward the climb; say so when it
+    // reaches a camp or tops a level.
+    const before = aiOn ? qc.getQueryData<CompletionStats>(statsKey)?.total : undefined
+    const message = offTrack
+      ? 'Moved to off-track'
+      : before === undefined
+        ? 'To-do completed'
+        : completionToast(before, before + 1)
+    complete.mutate({ todo })
+    toast(message, () => reopen.mutate({ todo, index }))
   }
+
+  // Unaligned to-dos are blurred until you hover or focus the line, or open
+  // its panel or link picker.
+  const blurred = status === 'unaligned' && !expanded && !linking
 
   return (
     <>
-      <div className="row-main">
+      <div className={`row-main todo-main${blurred ? ' is-blurred' : ''}`}>
         {handle}
         <input
           type="checkbox"
           className="check check-18"
-          aria-label="Complete"
+          aria-label={offTrack ? 'Move to off-track' : 'Complete'}
+          title={offTrack ? 'Move to off-track.' : undefined}
           checked={false}
           disabled={!saved}
           onChange={onComplete}
@@ -197,15 +242,6 @@ function TodoRow({
         >
           <CalendarBlankIcon size={18} aria-hidden />
         </button>
-        <button
-          className="btn btn-ghost btn-icon row-icon"
-          aria-label="Delete to-do"
-          title="Delete"
-          disabled={!saved}
-          onClick={onDelete}
-        >
-          <TrashIcon size={18} aria-hidden />
-        </button>
       </div>
       {status === 'unaligned' && (
         <div className="flag-line">
@@ -218,6 +254,10 @@ function TodoRow({
           </button>
           <button className="btn btn-ghost flag-action" onClick={() => setLinking(true)}>
             Link to…
+          </button>
+          <button className="btn btn-ghost flag-action muted" disabled={!saved} onClick={onDelete}>
+            <TrashIcon aria-hidden />
+            Delete
           </button>
         </div>
       )}

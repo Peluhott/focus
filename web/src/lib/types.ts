@@ -13,6 +13,8 @@ export type Todo = {
   position: string
   done: boolean
   done_at: string | null
+  /** Checked off while red: moved to the off-track backlog instead of completed. */
+  off_track?: boolean
   /** AI alignment (spec "AI alignment check"); all null while the AI is off. */
   alignment_status: AlignmentStatus | null
   alignment_reason: string | null
@@ -85,3 +87,38 @@ export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   done: 'Done',
   archived: 'Archived',
 }
+
+/** A red to-do you checked off (docs "Off-track backlog"). */
+export type OffTrackItem = {
+  id: number
+  todo_id: number | null
+  title_snapshot: string
+  notes_snapshot: string
+  reason: string | null
+  status: 'open' | 'used' | 'cleared'
+  moved_at: string
+  used_in_goal_id: number | null
+}
+
+export type SuggestionRunStatus = 'queued' | 'ready' | 'empty' | 'error' | 'skipped'
+
+/** A goal the AI built from a recurring backlog theme. */
+export type GoalSuggestion = {
+  id: number
+  run_id: number
+  title: string
+  details: string
+  sub_goals: string[]
+  item_ids: number[]
+  rationale: string
+  status: 'open' | 'accepted' | 'dismissed'
+  accepted_goal_id: number | null
+  items: { id: number; title: string; reason: string | null; moved_at: string; status: OffTrackItem['status'] }[]
+}
+
+export type SuggestionsResponse = {
+  data: GoalSuggestion[]
+  latest_run: { id: number; status: SuggestionRunStatus; trigger: string; created_at: string } | null
+}
+
+export type CalendarEntry = { date: string; id: number; title: string }

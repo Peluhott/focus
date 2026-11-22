@@ -17,3 +17,8 @@ export function shortDate(iso: string): string {
 export function isOverdue(iso: string): boolean {
   return iso < todayISO()
 }
+
+/** A timestamp ("2026-11-21T15:04:05Z") → "Nov 21", in the viewer's local time. */
+export function shortDay(timestamp: string): string {
+  return short.format(new Date(timestamp))
+}
