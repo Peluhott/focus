@@ -3,14 +3,15 @@
 | Routes
 |--------------------------------------------------------------------------
 |
-| Everything lives under /api/v1. The web app and (from Phase 5) API keys
-| call the same endpoints.
+| Everything lives under /api/v1. The web app (session cookie) and API keys
+| (Bearer fk_…, limited by scopes) call the same endpoints. Settings and key
+| management are session only.
 |
 */
 
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
-import { loginThrottle } from '#start/limiter'
+import { apiThrottle, loginThrottle } from '#start/limiter'
 
 const AuthController = () => import('#controllers/auth_controller')
 const SettingsController = () => import('#controllers/settings_controller')
@@ -25,6 +26,7 @@ const GoalSuggestionsController = () => import('#controllers/goal_suggestions_co
 const CalendarController = () => import('#controllers/calendar_controller')
 const CompletionsController = () => import('#controllers/completions_controller')
 const ProjectFilesController = () => import('#controllers/project_files_controller')
+const ApiKeysController = () => import('#controllers/api_keys_controller')
 
 router
   .group(() => {
@@ -34,66 +36,88 @@ router
     router.post('auth/logout', [AuthController, 'logout']).use(middleware.auth())
     router.get('auth/me', [AuthController, 'me']).use(middleware.auth())
 
+    /** Session only: API keys can't change settings or manage keys. */
     router
       .group(() => {
         router.get('settings', [SettingsController, 'show'])
         router.patch('settings', [SettingsController, 'update'])
 
-        router.get('todos', [TodosController, 'index'])
-        router.post('todos', [TodosController, 'store'])
-        router.get('todos/:id', [TodosController, 'show'])
-        router.patch('todos/:id', [TodosController, 'update'])
-        router.post('todos/:id/recheck', [TodosController, 'recheck'])
-        router.post('todos/:id/dismiss', [TodosController, 'dismiss'])
-        router.delete('todos/:id', [TodosController, 'destroy'])
-
-        router.get('goals', [GoalsController, 'index'])
-        router.post('goals', [GoalsController, 'store'])
-        router.get('goals/:id', [GoalsController, 'show'])
-        router.patch('goals/:id', [GoalsController, 'update'])
-        router.delete('goals/:id', [GoalsController, 'destroy'])
-        router.post('goals/:id/complete', [GoalsController, 'complete'])
-        router.post('goals/:id/archive', [GoalsController, 'archive'])
-        router.post('goals/:id/restore', [GoalsController, 'restore'])
-
-        router.get('goals/:id/subgoals', [SubGoalsController, 'index'])
-        router.post('goals/:id/subgoals', [SubGoalsController, 'store'])
-        router.patch('subgoals/:id', [SubGoalsController, 'update'])
-        router.delete('subgoals/:id', [SubGoalsController, 'destroy'])
-
-        router.get('projects', [ProjectsController, 'index'])
-        router.post('projects', [ProjectsController, 'store'])
-        router.get('projects/:id', [ProjectsController, 'show'])
-        router.patch('projects/:id', [ProjectsController, 'update'])
-        router.delete('projects/:id', [ProjectsController, 'destroy'])
-
-        router.get('projects/:id/files', [ProjectFilesController, 'index'])
-        router.post('projects/:id/files/sign', [ProjectFilesController, 'sign'])
-        router.post('projects/:id/files', [ProjectFilesController, 'store'])
-        router.patch('files/:id', [ProjectFilesController, 'update'])
-        router.delete('files/:id', [ProjectFilesController, 'destroy'])
-        router.get('files/:id/url', [ProjectFilesController, 'url'])
-
-        router.get('projects/:id/tasks', [TasksController, 'index'])
-        router.post('projects/:id/tasks', [TasksController, 'store'])
-        router.patch('tasks/:id', [TasksController, 'update'])
-        router.delete('tasks/:id', [TasksController, 'destroy'])
-
-        router.get('stats/completions', [StatsController, 'completions'])
-        router.get('completions', [CompletionsController, 'index'])
-        router.delete('completions/:id', [CompletionsController, 'destroy'])
-
-        router.get('off-track', [OffTrackController, 'index'])
-        router.post('off-track/clear', [OffTrackController, 'clear'])
-        router.delete('off-track/:id', [OffTrackController, 'destroy'])
-
-        router.get('goal-suggestions', [GoalSuggestionsController, 'index'])
-        router.post('goal-suggestions/:id/accept', [GoalSuggestionsController, 'accept'])
-        router.post('goal-suggestions/:id/dismiss', [GoalSuggestionsController, 'dismiss'])
-
-        router.get('calendar', [CalendarController, 'index'])
+        router.get('keys', [ApiKeysController, 'index'])
+        router.post('keys', [ApiKeysController, 'store'])
+        router.delete('keys/:id', [ApiKeysController, 'destroy'])
       })
       .where('id', router.matchers.number())
-      .use(middleware.auth())
+      .use(middleware.auth({ guards: ['web'] }))
+
+    /** Session or API key; a key needs the scope on each route. */
+    router
+      .group(() => {
+        const todosRead = middleware.scope('todos:read')
+        const todosWrite = middleware.scope('todos:write')
+        const goalsRead = middleware.scope('goals:read')
+        const goalsWrite = middleware.scope('goals:write')
+        const projectsRead = middleware.scope('projects:read')
+        const projectsWrite = middleware.scope('projects:write')
+
+        router.get('todos', [TodosController, 'index']).use(todosRead)
+        router.post('todos', [TodosController, 'store']).use(todosWrite)
+        router.get('todos/:id', [TodosController, 'show']).use(todosRead)
+        router.patch('todos/:id', [TodosController, 'update']).use(todosWrite)
+        router.post('todos/:id/recheck', [TodosController, 'recheck']).use(todosWrite)
+        router.post('todos/:id/dismiss', [TodosController, 'dismiss']).use(todosWrite)
+        router.delete('todos/:id', [TodosController, 'destroy']).use(todosWrite)
+
+        router.get('goals', [GoalsController, 'index']).use(goalsRead)
+        router.post('goals', [GoalsController, 'store']).use(goalsWrite)
+        router.get('goals/:id', [GoalsController, 'show']).use(goalsRead)
+        router.patch('goals/:id', [GoalsController, 'update']).use(goalsWrite)
+        router.delete('goals/:id', [GoalsController, 'destroy']).use(goalsWrite)
+        router.post('goals/:id/complete', [GoalsController, 'complete']).use(goalsWrite)
+        router.post('goals/:id/archive', [GoalsController, 'archive']).use(goalsWrite)
+        router.post('goals/:id/restore', [GoalsController, 'restore']).use(goalsWrite)
+
+        router.get('goals/:id/subgoals', [SubGoalsController, 'index']).use(goalsRead)
+        router.post('goals/:id/subgoals', [SubGoalsController, 'store']).use(goalsWrite)
+        router.patch('subgoals/:id', [SubGoalsController, 'update']).use(goalsWrite)
+        router.delete('subgoals/:id', [SubGoalsController, 'destroy']).use(goalsWrite)
+
+        router.get('projects', [ProjectsController, 'index']).use(projectsRead)
+        router.post('projects', [ProjectsController, 'store']).use(projectsWrite)
+        router.get('projects/:id', [ProjectsController, 'show']).use(projectsRead)
+        router.patch('projects/:id', [ProjectsController, 'update']).use(projectsWrite)
+        router.delete('projects/:id', [ProjectsController, 'destroy']).use(projectsWrite)
+
+        router.get('projects/:id/files', [ProjectFilesController, 'index']).use(projectsRead)
+        router.post('projects/:id/files/sign', [ProjectFilesController, 'sign']).use(projectsWrite)
+        router.post('projects/:id/files', [ProjectFilesController, 'store']).use(projectsWrite)
+        router.patch('files/:id', [ProjectFilesController, 'update']).use(projectsWrite)
+        router.delete('files/:id', [ProjectFilesController, 'destroy']).use(projectsWrite)
+        router.get('files/:id/url', [ProjectFilesController, 'url']).use(projectsRead)
+
+        router.get('projects/:id/tasks', [TasksController, 'index']).use(projectsRead)
+        router.post('projects/:id/tasks', [TasksController, 'store']).use(projectsWrite)
+        router.patch('tasks/:id', [TasksController, 'update']).use(projectsWrite)
+        router.delete('tasks/:id', [TasksController, 'destroy']).use(projectsWrite)
+
+        router.get('stats/completions', [StatsController, 'completions']).use(todosRead)
+        router.get('completions', [CompletionsController, 'index']).use(todosRead)
+        router.delete('completions/:id', [CompletionsController, 'destroy']).use(todosWrite)
+
+        router.get('off-track', [OffTrackController, 'index']).use(todosRead)
+        router.post('off-track/clear', [OffTrackController, 'clear']).use(todosWrite)
+        router.delete('off-track/:id', [OffTrackController, 'destroy']).use(todosWrite)
+
+        router.get('goal-suggestions', [GoalSuggestionsController, 'index']).use(goalsRead)
+        router
+          .post('goal-suggestions/:id/accept', [GoalSuggestionsController, 'accept'])
+          .use(goalsWrite)
+        router
+          .post('goal-suggestions/:id/dismiss', [GoalSuggestionsController, 'dismiss'])
+          .use(goalsWrite)
+
+        router.get('calendar', [CalendarController, 'index']).use(todosRead)
+      })
+      .where('id', router.matchers.number())
+      .use([middleware.auth({ guards: ['web', 'api'] }), apiThrottle])
   })
   .prefix('/api/v1')

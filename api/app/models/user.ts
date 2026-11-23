@@ -4,6 +4,7 @@ import { compose } from '@adonisjs/core/helpers'
 import { column } from '@adonisjs/lucid/orm'
 import AppBaseModel from '#models/app_base_model'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
+import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email'],
@@ -34,4 +35,11 @@ export default class User extends compose(AppBaseModel, AuthFinder) {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  /** API keys ("fk_…"), stored hashed in api_keys; abilities are the scopes. */
+  static accessTokens = DbAccessTokensProvider.forModel(User, {
+    table: 'api_keys',
+    type: 'api_key',
+    prefix: 'fk_',
+  })
 }

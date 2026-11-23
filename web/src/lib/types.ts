@@ -163,3 +163,16 @@ export type UploadSignature = {
   upload_url: string
   max_upload_mb: number
 }
+
+/** An API key (Settings > API keys). `key` is only present right after creating it. */
+export type ApiKey = {
+  id: number
+  name: string
+  prefix: string | null
+  scopes: string[]
+  last_used_at: string | null
+  expires_at: string | null
+  revoked_at: string | null
+  created_at: string
+  key?: string
+}

@@ -2,10 +2,11 @@ import { SignOutIcon } from '@phosphor-icons/react'
 import { useNavigate } from 'react-router-dom'
 import { useLogout, useMe } from '../lib/auth'
 import { useSetAiEnabled, useSettings } from '../lib/settings'
+import ApiKeys from '../components/ApiKeys'
 
 /**
- * Settings (README §6): the AI toggle and Account. API keys and export
- * arrive in Phase 5.
+ * Settings (README §6): the AI toggle, API keys and Account. Export is
+ * still to come.
  */
 export default function Settings() {
   const { data: user } = useMe()
@@ -47,6 +48,7 @@ export default function Settings() {
             </p>
           )}
         </section>
+        <ApiKeys />
         <section>
           <h3>Account</h3>
           <div className="flex flex-wrap items-center gap-3">

@@ -18,7 +18,11 @@ const shieldConfig = defineConfig({
    */
   csrf: {
     enabled: true,
-    exceptRoutes: [],
+    /**
+     * API keys send a Bearer header, which a browser never adds by itself,
+     * so those requests can't be forged and skip the cookie CSRF check.
+     */
+    exceptRoutes: (ctx) => ctx.request.header('authorization')?.startsWith('Bearer ') ?? false,
     /**
      * Sets an XSRF-TOKEN cookie the SPA echoes back in the X-XSRF-TOKEN header.
      */
