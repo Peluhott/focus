@@ -57,7 +57,7 @@ test.group('Alignment verdicts', () => {
       {
         aligned: false,
         confidence: 0.9,
-        match: { type: 'none', id: null },
+        matches: [],
         reason: 'x'.repeat(300),
       },
       context
@@ -66,12 +66,12 @@ test.group('Alignment verdicts', () => {
     assert.lengthOf(outcome.reason, 140)
   })
 
-  test('an aligned verdict naming "none" is aligned with no chip', ({ assert }) => {
+  test('an aligned verdict with no matches is aligned with no chip', ({ assert }) => {
     const outcome = toOutcome(
-      { aligned: true, confidence: 0.9, match: { type: 'none', id: null }, reason: 'ok' },
+      { aligned: true, confidence: 0.9, matches: [], reason: 'ok' },
       context
     )
-    assert.deepInclude(outcome, { status: 'aligned', matchedGoalId: null })
+    assert.deepInclude(outcome, { status: 'aligned', goals: [] })
   })
 })
 

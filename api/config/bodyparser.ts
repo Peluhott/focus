@@ -1,3 +1,4 @@
+import storageConfig from '#config/storage'
 import { defineConfig } from '@adonisjs/core/bodyparser'
 
 const bodyParserConfig = defineConfig({
@@ -47,7 +48,7 @@ const bodyParserConfig = defineConfig({
      * Maximum limit of data to parse including all files
      * and fields
      */
-    limit: '20mb',
+    limit: `${storageConfig.maxUploadMb + 1}mb`,
     types: ['multipart/form-data'],
   },
 })

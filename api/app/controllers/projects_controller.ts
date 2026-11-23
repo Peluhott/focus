@@ -4,8 +4,10 @@ import db from '@adonisjs/lucid/services/db'
 import AppError from '#exceptions/app_error'
 import Goal from '#models/goal'
 import Project from '#models/project'
+import ProjectFile from '#models/project_file'
 import { bottomPosition, inList, positionFor, wantsMove } from '#services/ordering'
 import { paginateByPosition } from '#services/paginate'
+import { queueFileDeletes } from '#services/storage/deletes'
 import {
   createProjectValidator,
   listProjectsValidator,
@@ -116,10 +118,17 @@ export default class ProjectsController {
     return view(await load(project.id))
   }
 
-  /** DELETE /projects/:id: its tasks go with it. */
+  /**
+   * DELETE /projects/:id: its tasks and file records go with it (cascade);
+   * deleting the files from Cloudinary is queued for the worker.
+   */
   async destroy({ params, response }: HttpContext) {
     const project = await Project.findOrFail(params.id)
+    const files = await ProjectFile.query()
+      .where('project_id', project.id)
+      .select('cloudinary_public_id', 'resource_type')
     await project.delete()
+    await queueFileDeletes(files)
     return response.noContent()
   }
 }

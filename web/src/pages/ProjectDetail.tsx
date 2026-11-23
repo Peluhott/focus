@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog, { type ConfirmRequest } from '../components/ConfirmDialog'
 import InlineInput from '../components/InlineInput'
 import NotesField from '../components/NotesField'
+import ProjectFiles from '../components/ProjectFiles'
 import SortableList from '../components/SortableList'
 import { shortDate } from '../lib/dates'
 import { activeOf, useGoals } from '../lib/goals'
@@ -136,6 +137,8 @@ export default function ProjectDetail() {
         />
       </div>
 
+      <ProjectFiles projectId={id} />
+
       <h3 style={{ margin: 'var(--space-8) 0 var(--space-3)' }}>Tasks</h3>
       <input
         className="input"
@@ -175,7 +178,7 @@ export default function ProjectDetail() {
           onClick={() =>
             setConfirm({
               title: 'Delete this project?',
-              body: `“${project.title || 'Untitled project'}” and its tasks will be deleted.`,
+              body: `“${project.title || 'Untitled project'}” and its tasks and files will be deleted.`,
               action: 'Delete project',
               run: () => remove.mutate(id, { onSuccess: () => navigate('/projects') }),
             })

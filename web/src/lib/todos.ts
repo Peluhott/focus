@@ -4,7 +4,7 @@ import { del, fetchAll, patch, post } from './api'
 import { isTemp, useOptimisticMutation } from './optimistic'
 import { useAiOn } from './settings'
 import { offTrackKey } from './backlog'
-import { bumpStats, statsKey } from './stats'
+import { bumpStats, goalIdsOf, statsKey } from './stats'
 import type { LinkTarget, Placement, Todo } from './types'
 
 export const todosKey = ['todos'] as const
@@ -32,8 +32,11 @@ export function useAddTodo() {
         alignment_status: null,
         alignment_reason: null,
         alignment_source: null,
-        matched_goal_id: null,
-        matched_project_id: null,
+        matches: [],
+        match_level: 'none',
+        recurring: false,
+        completion_count: 0,
+        last_completed_at: null,
       },
       ...old,
     ],
@@ -41,17 +44,19 @@ export function useAddTodo() {
   })
 }
 
-export type TodoPatch = Partial<Pick<Todo, 'title' | 'notes' | 'date'>>
+export type TodoPatch = Partial<Pick<Todo, 'title' | 'notes' | 'date' | 'recurring'>>
 
 /** The AI result is cleared while a check runs (spec: "nothing while checking"). */
-const CHECKING = {
+const CHECKING: Pick<
+  Todo,
+  'alignment_status' | 'alignment_reason' | 'alignment_source' | 'matches' | 'match_level'
+> = {
   alignment_status: 'pending',
   alignment_reason: null,
   alignment_source: null,
-  matched_goal_id: null,
-  matched_project_id: null,
-  matched_goal: null,
-} as const
+  matches: [],
+  match_level: 'none',
+}
 
 export function useUpdateTodo() {
   const aiOn = useAiOn()
@@ -68,7 +73,9 @@ export function useUpdateTodo() {
           t.alignment_source !== 'manual' &&
           ((body.title !== undefined && body.title !== t.title) ||
             (body.notes !== undefined && body.notes !== t.notes))
-        return { ...t, ...body, ...(recheck ? CHECKING : {}) }
+        // Repeat on: the date goes (repeating to-dos have no date).
+        const date = body.recurring ? { date: null } : {}
+        return { ...t, ...body, ...date, ...(recheck ? CHECKING : {}) }
       }),
   })
 }
@@ -81,7 +88,9 @@ export function useDismissTodo() {
     mutationFn: ({ id }) => post<Todo>(`/todos/${id}/dismiss`),
     apply: (old, { id }) =>
       old.map((t) =>
-        t.id === id ? { ...t, alignment_status: 'dismissed', alignment_reason: null } : t
+        t.id === id
+          ? { ...t, alignment_status: 'dismissed', alignment_reason: null, matches: [], match_level: 'none' }
+          : t
       ),
   })
 }
@@ -120,9 +129,9 @@ export function useLinkTodo() {
           alignment_status: 'aligned',
           alignment_source: 'manual',
           alignment_reason: null,
-          matched_goal_id: target.id,
-          matched_project_id: null,
-          matched_goal: { id: target.id, title: target.title },
+          matches: [{ type: 'goal', id: target.id, title: target.title, confidence: null }],
+          // The server works out the level from the number of active goals.
+          match_level: t.match_level === 'none' ? 'one' : t.match_level,
         }
       }),
   })
@@ -172,25 +181,30 @@ export function useCompleteTodo() {
     mutationFn: ({ todo }) => patch<Todo>(`/todos/${todo.id}`, { done: true }),
     apply: (old, { todo }) => old.filter((t) => t.id !== todo.id),
     alsoApply: (qc, { todo }) => {
-      if (aiOn && !goesOffTrack(todo, aiOn)) bumpStats(qc, todo.matched_goal_id, 1)
+      if (aiOn && !goesOffTrack(todo, aiOn)) bumpStats(qc, goalIdsOf(todo), 1)
     },
     alsoInvalidate: () => [statsKey, offTrackKey],
   })
 }
 
+/**
+ * Undo a check-off. A recurring to-do that went off-track comes back as
+ * recurring (it stopped repeating when it moved).
+ */
 export function useReopenTodo() {
   const aiOn = useAiOn()
   return useOptimisticMutation<Todo, { todo: Todo; index: number }, Todo[]>({
     scope: 'todos',
     queryKey: key,
-    mutationFn: ({ todo }) => patch<Todo>(`/todos/${todo.id}`, { done: false }),
+    mutationFn: ({ todo }) =>
+      patch<Todo>(`/todos/${todo.id}`, todo.recurring ? { done: false, recurring: true } : { done: false }),
     apply: (old, { todo, index }) => {
       const next = old.filter((t) => t.id !== todo.id)
       next.splice(Math.min(index, next.length), 0, todo)
       return next
     },
     alsoApply: (qc, { todo }) => {
-      if (aiOn && !goesOffTrack(todo, aiOn)) bumpStats(qc, todo.matched_goal_id, -1)
+      if (aiOn && !goesOffTrack(todo, aiOn)) bumpStats(qc, goalIdsOf(todo), -1)
     },
     alsoInvalidate: () => [statsKey, offTrackKey],
   })
@@ -236,5 +250,60 @@ export function useDeleteTodo() {
     queryKey: key,
     mutationFn: ({ id }) => (isTemp(id) ? Promise.resolve() : del(`/todos/${id}`)),
     apply: (old, { id }) => old.filter((t) => t.id !== id),
+  })
+}
+
+/** Local "YYYY-MM-DD" of a timestamp, to compare with today. */
+const localDay = (iso: string) => {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** "✓ today": a recurring to-do checked off today (local date). */
+export const doneToday = (todo: Todo, today: string) =>
+  !!todo.last_completed_at && localDay(todo.last_completed_at) === today
+
+/**
+ * Check off a recurring to-do: logs one completion and leaves it in place.
+ * The count, "✓ today" and the climb update at once; the response carries
+ * completion_id for Undo.
+ */
+export function useLogCompletion() {
+  const aiOn = useAiOn()
+  return useOptimisticMutation<Todo, { todo: Todo }, Todo[]>({
+    scope: 'todos',
+    queryKey: key,
+    mutationFn: ({ todo }) => patch<Todo>(`/todos/${todo.id}`, { done: true }),
+    apply: (old, { todo }) =>
+      old.map((t) =>
+        t.id === todo.id
+          ? { ...t, completion_count: t.completion_count + 1, last_completed_at: new Date().toISOString() }
+          : t
+      ),
+    settle: (old, saved) => old.map((t) => (t.id === saved.id ? { ...t, ...saved } : t)),
+    alsoApply: (qc, { todo }) => {
+      if (aiOn) bumpStats(qc, goalIdsOf(todo), 1)
+    },
+    alsoInvalidate: () => [statsKey],
+  })
+}
+
+/** Undo a recurring check-off: DELETE /completions/:id and restore the row. */
+export function useUndoCompletion() {
+  const aiOn = useAiOn()
+  return useOptimisticMutation<void, { todo: Todo; completionId: number }, Todo[]>({
+    scope: 'todos',
+    queryKey: key,
+    mutationFn: ({ completionId }) => del(`/completions/${completionId}`),
+    apply: (old, { todo }) =>
+      old.map((t) =>
+        t.id === todo.id
+          ? { ...t, completion_count: todo.completion_count, last_completed_at: todo.last_completed_at }
+          : t
+      ),
+    alsoApply: (qc, { todo }) => {
+      if (aiOn) bumpStats(qc, goalIdsOf(todo), -1)
+    },
+    alsoInvalidate: () => [statsKey],
   })
 }

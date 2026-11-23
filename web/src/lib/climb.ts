@@ -52,18 +52,25 @@ export function climbState(count: number): ClimbState {
   return { count, level, peak, step, c, leg, t, levelsPassed, atTop, sentence }
 }
 
-/** The completion toast, given the climb count before and after. */
-export function completionToast(before: number, after: number) {
-  if (after <= before || before >= TOP) return 'To-do completed'
+/**
+ * The milestone sentence when a completion crosses a camp or peak, e.g.
+ * "You reached the ridge at 600." or "You topped level 2 at 500.", else null.
+ */
+export function milestoneSentence(before: number, after: number): string | null {
+  if (after <= before || before >= TOP) return null
   const lb = levelOf(before)
   const la = levelOf(after)
-  if (la > lb || after >= TOP) {
-    return `To-do completed. You topped level ${lb + 1} at ${fmtN(PEAKS[lb])}.`
-  }
+  if (la > lb || after >= TOP) return `You topped level ${lb + 1} at ${fmtN(PEAKS[lb])}.`
   const stepA = PEAKS[la] / 5
   if (Math.floor(after / stepA) > Math.floor(before / stepA)) {
     const k = Math.floor(after / stepA)
-    return `To-do completed. You reached the ${CAMPS[k].toLowerCase()} at ${fmtN(k * stepA)}.`
+    return `You reached the ${CAMPS[k].toLowerCase()} at ${fmtN(k * stepA)}.`
   }
-  return 'To-do completed'
+  return null
+}
+
+/** The completion toast, given the climb count before and after. */
+export function completionToast(before: number, after: number) {
+  const milestone = milestoneSentence(before, after)
+  return milestone ? `To-do completed. ${milestone}` : 'To-do completed'
 }

@@ -22,3 +22,11 @@ export function isOverdue(iso: string): boolean {
 export function shortDay(timestamp: string): string {
   return short.format(new Date(timestamp))
 }
+
+const shortWithYear = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+/** A timestamp → "Nov 12", or "Nov 12, 2025" when it's not this year. */
+export function shortDayMaybeYear(timestamp: string): string {
+  const d = new Date(timestamp)
+  return d.getFullYear() === new Date().getFullYear() ? short.format(d) : shortWithYear.format(d)
+}

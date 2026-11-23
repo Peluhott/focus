@@ -20,17 +20,32 @@
 <div style="min-height: 100vh; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body);">
 
   <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
-    <main data-screen-label="Login" style="min-height: 100vh; box-sizing: border-box; padding: clamp(48px, 14vh, 160px) clamp(20px, 5vw, 64px) 64px; display: flex; flex-direction: column; gap: var(--space-8); max-width: 560px;">
-      <div>
-        <h1 style="font-size: clamp(72px, 12vw, 120px); line-height: 1; margin: 0; letter-spacing: -0.03em;"><span class="cmyk-head" style="display: block; text-box: trim-both cap alphabetic;"><span class="paper">Focus</span><span class="plate plate-c" aria-hidden="true">Focus</span><span class="plate plate-m" aria-hidden="true">Focus</span><span class="plate plate-y" aria-hidden="true">Focus</span></span></h1>
-        <p style="font-size: 19px; line-height: 1.45; margin: var(--space-6) 0 0; max-width: 30ch;">A few goals at a time. Every project and to-do traces back to one.</p>
+    <main data-screen-label="Login" style="position: relative; min-height: 100vh; box-sizing: border-box; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 64px clamp(20px, 5vw, 64px);">
+      <div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; user-select: none; white-space: nowrap;">
+        <span style="position: absolute; left: 5.6%; top: 10.5%; font-size: max(20px, 2.65vw); font-style: italic; color: var(--color-neutral-600); filter: blur(5px);">Reorganize bookmarks</span>
+        <span style="position: absolute; left: 36%; top: 6%; font-size: max(15px, 1.72vw); color: var(--color-neutral-600);">Reply to Sam about dinner</span>
+        <span style="position: absolute; right: 7.5%; top: 13.75%; font-size: max(24px, 3.1vw); color: var(--color-neutral-500); filter: blur(7px);">Browse flights</span>
+        <span style="position: absolute; left: 11.7%; top: 31%; font-size: max(16px, 1.88vw); color: var(--color-neutral-600);">Clean out the inbox</span>
+        <span style="position: absolute; right: 9.4%; top: 36%; font-size: max(17px, 2.03vw); font-style: italic; color: var(--color-neutral-600); filter: blur(3.5px);">New video game?</span>
+        <span style="position: absolute; left: 3.75%; top: 59%; font-size: max(26px, 3.44vw); color: var(--color-neutral-500); filter: blur(8px);">Rearrange the desk</span>
+        <span style="position: absolute; right: 5%; top: 62.5%; font-size: max(15px, 1.72vw); color: var(--color-neutral-600);">Watch that documentary</span>
+        <span style="position: absolute; left: 11%; bottom: 10%; font-size: max(17px, 2.03vw); font-style: italic; color: var(--color-neutral-600); filter: blur(1px);">Sort old photos</span>
+        <span style="position: absolute; right: 14%; bottom: 7.5%; font-size: max(20px, 2.5vw); color: var(--color-neutral-500); filter: blur(6px);">Price new headphones</span>
       </div>
-      <form onSubmit="{{ onSignIn }}" style="display: grid; gap: var(--space-3); max-width: 360px;">
-        <div class="field"><label for="email">Email</label><input id="email" class="input" type="email" value="{{ email }}" onChange="{{ onEmail }}"></div>
-        <div class="field"><label for="pw">Password</label><input id="pw" class="input" type="password" placeholder="Password" value="{{ password }}" onChange="{{ onPassword }}"></div>
-        <button class="btn btn-primary btn-block" type="submit" style="min-height: 40px;">Sign in</button>
-        <p class="text-muted" style="font-size: 12px; margin: 0;">Single account. Sign-up is closed.</p>
-      </form>
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; max-width: 760px;">
+        <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 600; font-size: clamp(96px, 13vw, 168px); line-height: 0.85; letter-spacing: -0.05em;">Focus</h1>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px; font-size: 16px; margin-top: 8px;">
+          <span style="display: inline-flex; align-items: center; gap: 6px;"><i class="ph-duotone ph-target" style="color: var(--color-accent-700);"></i>Ship Focus v1</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px;"><i class="ph-duotone ph-target" style="color: var(--color-accent-700);"></i>Run a half marathon</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px;"><i class="ph-duotone ph-target" style="color: var(--color-accent-700);"></i>Build an emergency fund</span>
+        </div>
+        <p style="margin: 0; font-size: 19px; font-style: italic; color: var(--color-neutral-800); text-wrap: balance;">A few goals at a time. Every project and to-do traces back to one.</p>
+        <form onSubmit="{{ onSignIn }}" style="display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: 20px; padding: 10px; background: var(--color-bg); border-radius: var(--radius-md);">
+          <input class="input" type="email" aria-label="Email" placeholder="Email" style="flex: 1 1 220px; width: 220px;" value="{{ email }}" onChange="{{ onEmail }}">
+          <input class="input" type="password" aria-label="Password" placeholder="Password" style="flex: 1 1 180px; width: 180px;" value="{{ password }}" onChange="{{ onPassword }}">
+          <button class="btn btn-primary" type="submit" style="flex: 0 0 auto; min-height: 40px; padding: 0 22px;">Sign in</button>
+        </form>
+      </div>
     </main>
   </sc-if>
 
@@ -73,10 +88,12 @@
                 <div style="display: flex; align-items: center; gap: 10px; filter: {{ t.blur }}; opacity: {{ t.blurOpacity }}; transition: filter 0.2s, opacity 0.2s;" style-hover="filter: none; opacity: 1;">
                   <span draggable="true" tabIndex="0" role="button" aria-label="Reorder (drag, or use arrow keys)" onDragStart="{{ t.dragStart }}" onDragEnd="{{ t.dragEnd }}" onKeyDown="{{ t.handleKey }}" style="display: flex; padding: 4px 2px; cursor: grab; color: var(--color-neutral-500); flex: none;"><i class="ph-duotone ph-dots-six-vertical" style="font-size: 18px;"></i></span>
                   <input type="checkbox" aria-label="Complete" checked="{{ t.checked }}" onChange="{{ t.onDone }}" style="width: 18px; height: 18px; margin: 0; flex: none; cursor: pointer; accent-color: var(--color-accent);">
+                  <sc-if value="{{ t.recurring }}"><i class="ph-duotone ph-repeat" title="Repeats" aria-label="Repeats" style="font-size: 16px; flex: none; margin-left: -4px; color: var(--color-accent-700);"></i></sc-if>
                   <input value="{{ t.title }}" onChange="{{ t.onTitle }}" aria-label="To-do" style="flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 16px; color: inherit; padding: 5px 2px;">
+                  <sc-if value="{{ t.recurring }}"><span style="display: inline-flex; align-items: center; gap: 10px; flex: none; font-size: 12px; white-space: nowrap; color: var(--color-neutral-700);"><span>{{ t.tally }}</span><sc-if value="{{ t.doneToday }}"><span style="display: inline-flex; align-items: center; gap: 3px; color: var(--color-accent-700);"><i class="ph-duotone ph-check"></i>today</span></sc-if></span></sc-if>
                   <sc-if value="{{ t.aligned }}"><span class="tag tag-accent" style="gap: 5px; max-width: 220px; flex: 0 1 auto; min-width: 0;"><i class="{{ t.matchIcon }}" style="flex: none;"></i><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ t.matchName }}</span></span></sc-if>
                   <sc-if value="{{ t.hasDate }}"><span class="tag" style="background: {{ t.dateBg }}; color: {{ t.dateFg }}; white-space: nowrap; flex: none;">{{ t.dateLabel }}</span></sc-if>
-                  <button class="btn btn-ghost btn-icon" aria-label="Date and notes" onClick="{{ t.onExpand }}" style="width: 32px; height: 32px; flex: none; color: var(--color-neutral-700);"><i class="ph-duotone ph-calendar-blank" style="font-size: 18px;"></i></button>
+                  <button class="btn btn-ghost btn-icon" aria-label="{{ t.expandLabel }}" title="{{ t.expandLabel }}" onClick="{{ t.onExpand }}" style="width: 32px; height: 32px; flex: none; color: var(--color-neutral-700);"><i class="{{ t.expandIcon }}" style="font-size: 18px;"></i></button>
                 </div>
                 <sc-if value="{{ t.unaligned }}">
                   <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; padding: 0 0 4px 60px; font-size: 13px;">
@@ -97,11 +114,15 @@
                   <div style="display: grid; gap: var(--space-2); padding: 6px 0 8px 60px; max-width: 600px;">
                     <textarea class="input" style="min-height: 64px; background: var(--color-bg);" placeholder="Notes" value="{{ t.notes }}" onChange="{{ t.onNotes }}"></textarea>
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);">
-                      <input type="date" class="input" aria-label="Date" style="width: auto; background: var(--color-bg);" value="{{ t.date }}" onChange="{{ t.onDate }}">
-                      <sc-if value="{{ t.hasDate }}"><button class="btn btn-ghost" onClick="{{ t.onClearDate }}">Clear date</button></sc-if>
+                      <label style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px 6px 2px; font-size: 14px; cursor: pointer;"><input type="checkbox" role="switch" checked="{{ t.recurring }}" onChange="{{ t.onRepeat }}" style="width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: var(--color-accent);"><i class="ph-duotone ph-repeat" style="font-size: 16px;"></i>Repeat</label>
+                      <sc-if value="{{ t.notRecurring }}">
+                        <input type="date" class="input" aria-label="Date" style="width: auto; background: var(--color-bg);" value="{{ t.date }}" onChange="{{ t.onDate }}">
+                        <sc-if value="{{ t.hasDate }}"><button class="btn btn-ghost" onClick="{{ t.onClearDate }}">Clear date</button></sc-if>
+                      </sc-if>
                       <button class="btn btn-ghost" onClick="{{ t.onLinkOpen }}"><i class="ph-duotone ph-link"></i>Link to…</button>
                       <button class="btn btn-ghost" style="margin-left: auto; color: var(--color-neutral-700);" onClick="{{ t.onDelete }}"><i class="ph-duotone ph-trash"></i>Delete</button>
                     </div>
+                    <sc-if value="{{ t.recurring }}"><p style="margin: 0; font-size: 13px; color: var(--color-neutral-700);">Stays on the list. Each check-off logs one completion. Repeating to-dos have no date, so they don't appear on the calendar.</p></sc-if>
                   </div>
                 </sc-if>
               </div>
@@ -350,6 +371,63 @@
             <textarea id="pdetails" class="input" style="min-height: 140px;" placeholder="Overview, links, decisions and notes. Markdown works." value="{{ pv.details }}" onChange="{{ pv.onDetails }}"></textarea>
           </div>
 
+          <div data-screen-label="Project files" onDragOver="{{ fz.onDragOver }}" onDragLeave="{{ fz.onDragLeave }}" onDrop="{{ fz.onDrop }}" style="margin-top: var(--space-8); border-radius: var(--radius-md); outline: 2px dashed {{ fz.outline }}; outline-offset: 10px; background: {{ fz.bg }}; box-shadow: 0 0 0 10px {{ fz.bg }}; transition: background 0.15s;">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-2);">
+              <h3 style="margin: 0; display: flex; align-items: baseline; gap: 8px;">Files<span style="font-family: var(--font-body); font-size: 14px; font-weight: 400; color: var(--color-accent-700);">{{ fz.countLabel }}</span></h3>
+              <sc-if value="{{ fz.enabled }}"><label class="btn btn-secondary" style="position: relative; cursor: pointer;"><i class="ph-duotone ph-upload-simple"></i>Upload<input type="file" multiple="{{ true }}" aria-label="Upload files" onChange="{{ fz.onPick }}" style="position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer;"></label></sc-if>
+            </div>
+            <sc-if value="{{ fz.disabled }}">
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 6px 0;">
+                <i class="ph-duotone ph-cloud-slash" style="font-size: 20px; margin-top: 1px; color: var(--color-neutral-700);"></i>
+                <div><div style="font-size: 15px;">File storage not set up</div><div style="font-size: 13px; color: var(--color-neutral-700);">Add your Cloudinary credentials to the server to turn on uploads. The rest of the project works as usual.</div></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ fz.isEmpty }}"><p style="display: flex; align-items: center; gap: 8px; margin: 0; padding: 6px 0; font-size: 15px; color: var(--color-neutral-700);"><i class="ph-duotone ph-tray-arrow-down" style="font-size: 18px;"></i>No files. Drop files here or click Upload.</p></sc-if>
+            <sc-if value="{{ fz.dragging }}"><p style="display: flex; align-items: center; gap: 8px; margin: 0; padding: 6px 0; font-size: 15px; color: var(--color-accent-800);"><i class="ph-duotone ph-tray-arrow-down" style="font-size: 18px;"></i>Drop to upload to this project</p></sc-if>
+            <sc-for list="{{ fz.errs }}" as="er">
+              <div role="alert" style="display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 14px; color: var(--color-accent-2-800);">
+                <i class="ph-duotone ph-warning-circle" style="font-size: 18px; flex: none;"></i>
+                <span style="flex: 1; min-width: 0; overflow-wrap: anywhere;">{{ er.msg }}</span>
+                <button class="btn btn-ghost btn-icon" aria-label="Dismiss" onClick="{{ er.onDismiss }}" style="width: 28px; height: 28px; flex: none; color: var(--color-neutral-700);"><i class="ph-duotone ph-x"></i></button>
+              </div>
+            </sc-for>
+            <div style="display: grid; gap: 2px;">
+              <sc-for list="{{ fz.uploads }}" as="u">
+                <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: 6px 0;">
+                  <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); background: var(--color-neutral-200); color: var(--color-neutral-600);"><i class="{{ u.icon }}" style="font-size: 24px;"></i></div>
+                  <div style="min-width: 0;">
+                    <div style="font-size: 16px; color: var(--color-neutral-800); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ u.name }}</div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+                      <div style="flex: 1; height: 4px; background: var(--color-neutral-300); border-radius: var(--radius-sm); overflow: hidden;"><div style="height: 100%; width: {{ u.pct }}; background: var(--color-accent); transition: width 0.2s;"></div></div>
+                      <span style="flex: none; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-neutral-700);">{{ u.label }}</span>
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost btn-icon" aria-label="Cancel upload" title="Cancel upload" onClick="{{ u.onCancel }}" style="width: 32px; height: 32px; color: var(--color-neutral-700);"><i class="ph-duotone ph-x" style="font-size: 18px;"></i></button>
+                </div>
+              </sc-for>
+              <sc-for list="{{ fz.files }}" as="f">
+                <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: 6px 0;">
+                  <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: var(--radius-md); background: var(--color-neutral-200); color: var(--color-neutral-800);">
+                    <sc-if value="{{ f.hasThumb }}" hint-placeholder-val="{{ false }}"><div role="img" aria-label="Thumbnail" style="width: 100%; height: 100%; background: center / cover no-repeat {{ f.thumbBg }};"></div></sc-if>
+                    <sc-if value="{{ f.noThumb }}"><i class="{{ f.icon }}" style="font-size: 24px;"></i></sc-if>
+                  </div>
+                  <div style="min-width: 0;">
+                    <sc-if value="{{ f.notRenaming }}"><a href="#" onClick="{{ f.onOpen }}" title="Open {{ f.name }}" style="display: block; font-size: 16px; color: var(--color-text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" style-hover="color: var(--color-accent-700); text-decoration: underline;">{{ f.name }}</a></sc-if>
+                    <sc-if value="{{ f.renaming }}"><input class="input" autoFocus="{{ true }}" aria-label="File name" value="{{ f.renameValue }}" onChange="{{ f.onRenameInput }}" onKeyDown="{{ f.onRenameKey }}" onBlur="{{ f.onRenameBlur }}" style="padding: 3px 8px; font-size: 15px; background: var(--color-bg);"></sc-if>
+                    <div style="margin-top: 2px; font-size: 13px; color: var(--color-neutral-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.meta }}</div>
+                  </div>
+                  <div style="display: flex; gap: 2px;">
+                    <button class="btn btn-ghost btn-icon" aria-label="Open" title="Open" onClick="{{ f.onOpen }}" style="width: 32px; height: 32px; color: var(--color-neutral-700);"><i class="ph-duotone ph-arrow-square-out" style="font-size: 18px;"></i></button>
+                    <button class="btn btn-ghost btn-icon" aria-label="Download" title="Download" onClick="{{ f.onDownload }}" style="width: 32px; height: 32px; color: var(--color-neutral-700);"><i class="ph-duotone ph-download-simple" style="font-size: 18px;"></i></button>
+                    <button class="btn btn-ghost btn-icon" aria-label="Rename" title="Rename" onClick="{{ f.onRename }}" style="width: 32px; height: 32px; color: var(--color-neutral-700);"><i class="ph-duotone ph-pencil-simple" style="font-size: 18px;"></i></button>
+                    <button class="btn btn-ghost btn-icon" aria-label="Delete" title="Delete" onClick="{{ f.onDelete }}" style="width: 32px; height: 32px; color: var(--color-neutral-700);"><i class="ph-duotone ph-trash" style="font-size: 18px;"></i></button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ fz.enabled }}"><p style="margin: var(--space-2) 0 0; font-size: 12px; color: var(--color-neutral-700);">Any file type, up to {{ fz.maxLabel }} each. Files are private to your account.</p></sc-if>
+          </div>
+
           <h3 style="margin: var(--space-8) 0 var(--space-3);">Tasks</h3>
           <input class="input" style="font-size: 15px; min-height: 40px;" placeholder="Add a task and press Enter" value="{{ newTask }}" onChange="{{ onNewTask }}" onKeyDown="{{ onNewTaskKey }}">
           <h6 style="margin: var(--space-6) 0 var(--space-2); color: var(--color-neutral-700);">Pending · {{ pv.pendingCount }}</h6>
@@ -558,7 +636,7 @@
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;startPage&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;goals&quot;,&quot;todos&quot;,&quot;projects&quot;,&quot;calendar&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;goals&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;sampleData&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;climbPreview&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:100000,&quot;step&quot;:10,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Climb preview (0 = real count)&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;startPage&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;goals&quot;,&quot;todos&quot;,&quot;projects&quot;,&quot;calendar&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;goals&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;sampleData&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;climbPreview&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:100000,&quot;step&quot;:10,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Climb preview (0 = real count)&quot;},&quot;fileStorage&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Project files&quot;}}">
 const TODAY = '2026-11-20';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmt = d => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return MONTHS[m - 1] + ' ' + dd + (y !== 2026 ? ', ' + y : ''); };
@@ -570,6 +648,11 @@ let seq = 100;
 const uid = p => p + (++seq);
 const move = (arr, from, to) => { const a = arr.slice(); const i = a.findIndex(x => x.id === from); const j = a.findIndex(x => x.id === to); if (i < 0 || j < 0) return arr; const [it] = a.splice(i, 1); a.splice(j, 0, it); return a; };
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+const MAX_UPLOAD_MB = 25;
+const IMG = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'heic', 'avif']);
+const FTYPES = { pdf: ['PDF', 'ph-file-pdf'], doc: ['Word', 'ph-file-doc'], docx: ['Word', 'ph-file-doc'], xls: ['Excel', 'ph-file-xls'], xlsx: ['Excel', 'ph-file-xls'], csv: ['CSV', 'ph-file-csv'], ppt: ['Slides', 'ph-file-ppt'], pptx: ['Slides', 'ph-file-ppt'], zip: ['ZIP', 'ph-file-zip'], mp4: ['Video', 'ph-file-video'], mov: ['Video', 'ph-file-video'], webm: ['Video', 'ph-file-video'], mp3: ['Audio', 'ph-file-audio'], wav: ['Audio', 'ph-file-audio'], m4a: ['Audio', 'ph-file-audio'], txt: ['Text', 'ph-file-text'], md: ['Markdown', 'ph-file-text'] };
+const fileType = name => { const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : ''; if (IMG.has(ext)) return [ext.toUpperCase() + ' image', 'ph-file-image']; return FTYPES[ext] || [ext ? ext.toUpperCase() : 'File', 'ph-file']; };
+const fmtBytes = b => b < 1024 ? b + ' B' : b < 1048576 ? Math.round(b / 1024) + ' KB' : (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + ' MB';
 const WEEK_LABELS = ['Sep 28', 'Oct 5', 'Oct 12', 'Oct 19', 'Oct 26', 'Nov 2', 'Nov 9'];
 const TODAY_IDX = 25;
 const PEAKS = [100, 500, 1000, 5000, 10000, 50000, 100000];
@@ -605,7 +688,9 @@ function seed() {
       { id: 'g3', title: 'Learn conversational Spanish', status: 'archived', details: '', subgoals: [{ id: 's10', title: 'Finish the A2 course', done: false }] },
     ],
     projects: [
-      { id: 'p1', title: 'Focus app: Phase 3, Goals', status: 'active', goalId: 'g1', due: '2026-12-05', details: 'Focus-limit setting, goal CRUD with the limit enforced, sub-goals and progress.\n\nDone when a 4th goal is blocked at limit 3, in both the UI and the API.', tasks: [
+      { id: 'p1', title: 'Focus app: Phase 3, Goals', status: 'active', goalId: 'g1', due: '2026-12-05', details: 'Focus-limit setting, goal CRUD with the limit enforced, sub-goals and progress.\n\nDone when a 4th goal is blocked at limit 3, in both the UI and the API.', files: [
+        { id: 'f1', name: 'goals-page-wireframe.png', bytes: 412000, uploaded: '2026-11-16', image: true },
+        { id: 'f2', name: 'phase-3-spec.pdf', bytes: 1240000, uploaded: '2026-11-12' }], tasks: [
         { id: 'k1', title: 'Goal CRUD endpoints', done: true, due: '', doneAt: 1 },
         { id: 'k2', title: 'Return 409 goal_limit_reached at the limit', done: false, due: '2026-11-25' },
         { id: 'k3', title: 'Focus-limit dropdown on the Goals page', done: false, due: '' },
@@ -614,7 +699,10 @@ function seed() {
       { id: 'p2', title: 'Spring training plan', status: 'planning', goalId: 'g2', due: '', details: '', tasks: [
         { id: 'k5', title: 'Pick a 16-week plan', done: false, due: '' },
         { id: 'k6', title: 'Buy new running shoes', done: false, due: '2026-12-01' }] },
-      { id: 'p3', title: 'Apartment move', status: 'active', goalId: null, due: '2026-12-14', details: 'Moving on Dec 14. Lease signed.', tasks: [
+      { id: 'p3', title: 'Apartment move', status: 'active', goalId: null, due: '2026-12-14', details: 'Moving on Dec 14. Lease signed.', files: [
+        { id: 'f3', name: 'lease-signed.pdf', bytes: 2310000, uploaded: '2026-11-03' },
+        { id: 'f4', name: 'floor-plan.jpg', bytes: 884000, uploaded: '2026-11-03', image: true },
+        { id: 'f5', name: 'moving-checklist.csv', bytes: 6200, uploaded: '2026-11-18' }], tasks: [
         { id: 'k7', title: 'Book movers', done: false, due: '2026-11-24' },
         { id: 'k8', title: 'Change address with the bank', done: false, due: '2026-12-10' },
         { id: 'k13', title: 'Order moving boxes', done: false, due: '2026-11-18' },
@@ -625,10 +713,12 @@ function seed() {
     ],
     todos: [
       { id: 't7', title: 'Draft the OpenAPI notes for Phase 5', notes: '', date: '', al: { status: 'pending', source: 'ai' } },
+      { id: 't8', title: 'Transfer $20 to savings', notes: '', date: '', recurring: true, count: 14, lastDone: '2026-11-20', al: { status: 'aligned', type: 'goal', id: 'g4', source: 'ai' } },
       { id: 't1', title: 'Write the 409 test for the goal limit', notes: '', date: '2026-11-21', al: { status: 'aligned', type: 'goal', id: 'g1', source: 'ai' } },
       { id: 't2', title: 'Call movers for a quote', notes: '', date: '2026-11-24', al: { status: 'unaligned', reason: "Doesn't relate to any active goal.", source: 'ai' } },
       { id: 't3', title: 'Reorganize the bookmarks folder', notes: '', date: '', al: { status: 'unaligned', reason: "Doesn't relate to any active goal.", source: 'ai' } },
       { id: 't4', title: 'Easy 5 km run', notes: 'Conversational pace.', date: '2026-11-19', al: { status: 'aligned', type: 'goal', id: 'g2', source: 'ai' } },
+      { id: 't9', title: 'Stretch after the run', notes: '', date: '', recurring: true, count: 37, lastDone: '2026-11-19', al: { status: 'aligned', type: 'goal', id: 'g2', source: 'ai' } },
       { id: 't5', title: 'Reply to Sam about dinner', notes: '', date: '', al: { status: 'dismissed', source: 'ai' } },
       { id: 't6', title: 'Research a new video game to play', notes: '', date: '', al: { status: 'unaligned', reason: 'Leisure item; it doesn\u2019t move a goal forward.', source: 'ai' } },
     ],
@@ -650,6 +740,7 @@ class Component extends DCLogic {
     detailsOpen: {}, subInput: {}, addingGoal: false, newGoalTitle: '', archivedOpen: false,
     confirm: null, toast: null, fStatus: 'open', fGoal: 'all', projectId: null, newProjectId: null, newTask: '',
     tracker: 'a', drag: null, over: null, keyForm: null, newKey: null, copied: false, email: 'jav@focus.app', password: '',
+    flash: {}, uploads: [], fileErrs: [], renaming: null, fileDrag: null,
   });
 
   componentDidMount() { this.queuePending(); this.onResize = () => this.forceUpdate(); window.addEventListener('resize', this.onResize); }
@@ -732,30 +823,48 @@ class Component extends DCLogic {
     this.queueCheck(id, 1200);
   }
   bump(k) { if (this.state.aiEnabled) this.setState(s => ({ sess: { ...s.sess, [k]: s.sess[k] + 1 } })); }
+  tally(item, s0, prevSess) {
+    if (!s0.aiEnabled) return prevSess;
+    let al = item.al || {};
+    if (al.status === 'pending') al = this.classify(item, s0);
+    const sess = { ...prevSess, byGoal: { ...prevSess.byGoal }, done: prevSess.done + 1 };
+    if (al.status === 'aligned') {
+      sess.aligned++;
+      const key = al.type === 'goal' ? al.id : (((s0.projects.find(p => p.id === al.id) || {}).goalId) || 'none');
+      sess.byGoal[key] = (sess.byGoal[key] || 0) + 1;
+    } else if (al.status === 'unaligned') sess.kept++;
+    return sess;
+  }
+  milestone(s0, prevSess, sess) {
+    const before = (s0.history ? s0.history.base.done : 0) + prevSess.done, after = before + (sess.done - prevSess.done);
+    const lb = levelOf(before), la = levelOf(after), stA = PEAKS[la] / 5, last = PEAKS[PEAKS.length - 1];
+    if (after > before && before < last) {
+      if (la > lb || after >= last) return ` You topped level ${lb + 1} at ${fmtN(PEAKS[lb])}.`;
+      if (Math.floor(after / stA) > Math.floor(before / stA)) { const k = Math.floor(after / stA); return ` You reached the ${CAMPS[k].toLowerCase()} at ${fmtN(k * stA)}.`; }
+    }
+    return '';
+  }
+  checkRecurring(id) {
+    const s0 = this.state;
+    if (s0.flash[id]) return;
+    const i = s0.todos.findIndex(t => t.id === id); const item = s0.todos[i];
+    if (s0.aiEnabled && item.al && item.al.status === 'unaligned') {
+      this.setState(s => ({ todos: s.todos.filter(t => t.id !== id) }));
+      return this.showToast('Moved to the off-track backlog. It no longer repeats.', () => this.setState(s => { const a = s.todos.slice(); a.splice(Math.min(i, a.length), 0, item); return { todos: a }; }));
+    }
+    const prevSess = s0.sess, sess = this.tally(item, s0, prevSess), count = (item.count || 0) + 1;
+    this.setState(s => ({ sess, flash: { ...s.flash, [id]: true }, todos: s.todos.map(t => t.id === id ? { ...t, count, lastDone: TODAY } : t) }));
+    clearTimeout(this.timers['f' + id]);
+    this.timers['f' + id] = setTimeout(() => this.setState(s => ({ flash: { ...s.flash, [id]: false } })), 1000);
+    this.showToast(`Completion logged · Done ${count}\u00d7.` + this.milestone(s0, prevSess, sess), () => this.setState(s => ({ sess: prevSess, todos: s.todos.map(t => t.id === id ? { ...t, count: item.count, lastDone: item.lastDone } : t) })));
+  }
   completeTodo(id) {
     const s0 = this.state;
     const i = s0.todos.findIndex(t => t.id === id); const item = s0.todos[i];
-    const prevSess = s0.sess;
-    let sess = prevSess;
-    if (s0.aiEnabled) {
-      let al = item.al || {};
-      if (al.status === 'pending') al = this.classify(item, s0);
-      sess = { ...prevSess, byGoal: { ...prevSess.byGoal }, done: prevSess.done + 1 };
-      if (al.status === 'aligned') {
-        sess.aligned++;
-        const key = al.type === 'goal' ? al.id : (((s0.projects.find(p => p.id === al.id) || {}).goalId) || 'none');
-        sess.byGoal[key] = (sess.byGoal[key] || 0) + 1;
-      } else if (al.status === 'unaligned') sess.kept++;
-    }
+    const prevSess = s0.sess, sess = this.tally(item, s0, prevSess);
     this.setState(s => ({ todos: s.todos.filter(t => t.id !== id), sess }));
-    const before = (s0.history ? s0.history.base.done : 0) + prevSess.done, after = before + (sess.done - prevSess.done);
-    const lb = levelOf(before), la = levelOf(after), stA = PEAKS[la] / 5, last = PEAKS[PEAKS.length - 1];
-    let msg = 'To-do completed';
-    if (after > before && before < last) {
-      if (la > lb || after >= last) msg = `To-do completed. You topped level ${lb + 1} at ${fmtN(PEAKS[lb])}.`;
-      else if (Math.floor(after / stA) > Math.floor(before / stA)) { const k = Math.floor(after / stA); msg = `To-do completed. You reached the ${CAMPS[k].toLowerCase()} at ${fmtN(k * stA)}.`; }
-    }
-    this.showToast(msg, () => this.setState(s => { const a = s.todos.slice(); a.splice(Math.min(i, a.length), 0, item); return { todos: a, sess: prevSess }; }));
+    const m = this.milestone(s0, prevSess, sess);
+    this.showToast(m ? 'To-do completed.' + m : 'To-do completed', () => this.setState(s => { const a = s.todos.slice(); a.splice(Math.min(i, a.length), 0, item); return { todos: a, sess: prevSess }; }));
   }
 
   // goals
@@ -787,12 +896,46 @@ class Component extends DCLogic {
   }
   updSub(gid, sid, patch) { this.updGoal(gid, g => ({ ...g, subgoals: g.subgoals.map(x => x.id === sid ? { ...x, ...patch } : x) })); }
 
+  // files
+  updFiles(pid, fn) { this.setState(s => ({ projects: s.projects.map(p => p.id === pid ? { ...p, files: fn(p.files || []) } : p) })); }
+  uploadFiles(pid, list) {
+    const max = MAX_UPLOAD_MB * 1048576, errs = [], ups = [];
+    Array.from(list || []).forEach(f => {
+      if (f.size > max) errs.push({ id: uid('e'), pid, msg: `${f.name} is ${fmtBytes(f.size)}. Files can be up to ${MAX_UPLOAD_MB} MB.` });
+      else ups.push({ id: uid('u'), pid, name: f.name, size: f.size, pct: 0, file: f });
+    });
+    this.setState(s => ({ fileErrs: [...s.fileErrs, ...errs], uploads: [...s.uploads, ...ups], fileDrag: null }));
+    ups.forEach(u => this.tickUpload(u.id));
+  }
+  tickUpload(id) {
+    this.timers['u' + id] = setTimeout(() => {
+      const u = this.state.uploads.find(x => x.id === id); if (!u) return;
+      const pct = Math.min(100, u.pct + Math.max(3, (10 + Math.random() * 18) * Math.min(1, 4e6 / Math.max(u.size, 1))));
+      if (pct < 100) { this.setState(s => ({ uploads: s.uploads.map(x => x.id === id ? { ...x, pct } : x) })); return this.tickUpload(id); }
+      const ext = u.name.includes('.') ? u.name.split('.').pop().toLowerCase() : '';
+      let url = ''; try { url = URL.createObjectURL(u.file); } catch (_) {}
+      this.setState(s => ({ uploads: s.uploads.filter(x => x.id !== id), projects: s.projects.map(p => p.id === u.pid ? { ...p, files: [{ id: uid('f'), name: u.name, bytes: u.size, uploaded: TODAY, url, image: IMG.has(ext) }, ...(p.files || [])] } : p) }));
+    }, 200);
+  }
+  saveRename(pid) {
+    const r = this.state.renaming; if (!r) return;
+    const v = r.value.trim();
+    if (v) this.updFiles(pid, fs => fs.map(x => x.id === r.id ? { ...x, name: v } : x));
+    this.setState({ renaming: null });
+  }
+  openFile(f, download) {
+    if (!f.url) return this.showToast('Sample file. Upload your own to try opening it.');
+    const a = document.createElement('a'); a.href = f.url; a.rel = 'noopener';
+    if (download) a.download = f.name; else a.target = '_blank';
+    a.click();
+  }
+
   // projects
   updProject(id, patch) { this.setState(s => ({ projects: s.projects.map(p => p.id === id ? { ...p, ...patch } : p) })); this.queueAll(); }
   updTasks(pid, fn) { this.setState(s => ({ projects: s.projects.map(p => p.id === pid ? { ...p, tasks: fn(p.tasks) } : p) })); }
   newProject() {
     const id = uid('p');
-    this.setState(s => ({ projects: [{ id, title: '', status: 'planning', goalId: null, due: '', details: '', tasks: [] }, ...s.projects], page: 'project', projectId: id, newProjectId: id, newTask: '' }));
+    this.setState(s => ({ projects: [{ id, title: '', status: 'planning', goalId: null, due: '', details: '', files: [], tasks: [] }, ...s.projects], page: 'project', projectId: id, newProjectId: id, newTask: '' }));
     window.scrollTo(0, 0);
   }
   addTask() {
@@ -857,7 +1000,10 @@ class Component extends DCLogic {
       const matchName = ai && al.status === 'aligned' && al.type === 'goal' ? goalName(al.id) : '';
       const overdue = !!t.date && t.date < TODAY;
       return {
-        id: t.id, title: t.title, notes: t.notes, date: t.date, checked: false,
+        id: t.id, title: t.title, notes: t.notes, date: t.date, checked: !!s.flash[t.id],
+        recurring: !!t.recurring, notRecurring: !t.recurring, tally: 'Done ' + (t.count || 0) + '\u00d7', doneToday: !!t.recurring && t.lastDone === TODAY,
+        expandIcon: t.recurring ? 'ph-duotone ph-dots-three' : 'ph-duotone ph-calendar-blank', expandLabel: t.recurring ? 'Notes and repeat' : 'Date and notes',
+        onRepeat: () => { const on = !t.recurring; this.updTodo(t.id, on ? { recurring: true, date: '' } : { recurring: false }); if (on && t.date) this.showToast('Repeat is on. The date was removed.'); },
         hasDate: !!t.date, dateLabel: (overdue ? 'Overdue · ' : '') + fmt(t.date),
         dateBg: overdue ? 'color-mix(in srgb, var(--color-process-yellow) 30%, var(--color-bg))' : 'var(--color-neutral-200)',
         dateFg: overdue ? 'oklch(0.42 0.1 70)' : 'var(--color-neutral-800)',
@@ -873,7 +1019,7 @@ class Component extends DCLogic {
         onNotes: e => this.setTodoText(t.id, 'notes', e.target.value),
         onDate: e => this.updTodo(t.id, { date: e.target.value }),
         onClearDate: () => this.updTodo(t.id, { date: '' }),
-        onDone: () => this.completeTodo(t.id),
+        onDone: () => t.recurring ? this.checkRecurring(t.id) : this.completeTodo(t.id),
         onDelete: () => { this.setState(s2 => ({ todos: s2.todos.filter(x => x.id !== t.id) })); if (unaligned) this.bump('dropped'); },
         onDismiss: () => { this.updTodo(t.id, { al: { ...al, status: 'dismissed' } }); this.bump('kept'); },
         onLinkOpen: () => this.setState(s2 => ({ linking: s2.linking === t.id ? null : t.id })),
@@ -997,6 +1143,39 @@ class Component extends DCLogic {
     });
     const goalOpts = s.goals.filter(g => g.status === 'active').map(g => ({ id: g.id, title: g.title || 'Untitled goal' }));
 
+    let fz = { enabled: false, disabled: false, isEmpty: false, dragging: false, files: [], uploads: [], errs: [], countLabel: '', outline: 'transparent', bg: 'transparent', maxLabel: MAX_UPLOAD_MB + ' MB' };
+    if (proj) {
+      const storage = this.props.fileStorage !== false;
+      const pFiles = proj.files || [], pUps = s.uploads.filter(u => u.pid === proj.id), pErrs = s.fileErrs.filter(e => e.pid === proj.id);
+      const dragging = storage && s.fileDrag === proj.id;
+      fz = {
+        enabled: storage, disabled: !storage, dragging, isEmpty: storage && !dragging && !pFiles.length && !pUps.length,
+        countLabel: storage && pFiles.length ? String(pFiles.length) : '', maxLabel: MAX_UPLOAD_MB + ' MB',
+        outline: dragging ? 'var(--color-accent)' : 'transparent', bg: dragging ? 'var(--color-accent-100)' : 'transparent',
+        onDragOver: e => { if (!storage || !Array.from(e.dataTransfer.types || []).includes('Files')) return; e.preventDefault(); if (this.state.fileDrag !== proj.id) this.setState({ fileDrag: proj.id }); },
+        onDragLeave: e => { if (!e.currentTarget.contains(e.relatedTarget)) this.setState({ fileDrag: null }); },
+        onDrop: e => { if (!storage || !e.dataTransfer.files || !e.dataTransfer.files.length) return; e.preventDefault(); this.uploadFiles(proj.id, e.dataTransfer.files); },
+        onPick: e => { this.uploadFiles(proj.id, e.target.files); e.target.value = ''; },
+        errs: storage ? pErrs.map(er => ({ id: er.id, msg: er.msg, onDismiss: () => this.setState(s2 => ({ fileErrs: s2.fileErrs.filter(x => x.id !== er.id) })) })) : [],
+        uploads: storage ? pUps.map(u => ({ id: u.id, name: u.name, icon: 'ph-duotone ' + fileType(u.name)[1], pct: Math.round(u.pct) + '%', label: Math.round(u.pct) + '% of ' + fmtBytes(u.size),
+          onCancel: () => { clearTimeout(this.timers['u' + u.id]); this.setState(s2 => ({ uploads: s2.uploads.filter(x => x.id !== u.id) })); } })) : [],
+        files: storage ? pFiles.map(f => {
+          const [typeLabel, icon] = fileType(f.name), ren = !!(s.renaming && s.renaming.id === f.id), thumb = !!(f.image && f.url);
+          return { id: f.id, name: f.name, icon: 'ph-duotone ' + icon, hasThumb: thumb, noThumb: !thumb, thumbBg: f.url ? 'url("' + f.url + '")' : 'none',
+            meta: [typeLabel, fmtBytes(f.bytes), fmt(f.uploaded)].join(' \u00b7 '),
+            renaming: ren, notRenaming: !ren, renameValue: ren ? s.renaming.value : '',
+            onOpen: e => { if (e && e.preventDefault) e.preventDefault(); this.openFile(f, false); },
+            onDownload: () => this.openFile(f, true),
+            onRename: () => this.setState({ renaming: { id: f.id, value: f.name } }),
+            onRenameInput: e => { const v = e.target.value; this.setState(s2 => ({ renaming: { ...s2.renaming, value: v } })); },
+            onRenameKey: e => { if (e.key === 'Enter') { e.preventDefault(); this.saveRename(proj.id); } if (e.key === 'Escape') this.setState({ renaming: null }); },
+            onRenameBlur: () => this.saveRename(proj.id),
+            onDelete: () => this.setState({ confirm: { title: 'Delete this file?', body: `\u201c${f.name}\u201d will be removed from this project and deleted from storage.`, action: 'Delete file', run: () => { this.updFiles(proj.id, fs => fs.filter(x => x.id !== f.id)); this.showToast('File deleted'); } } }),
+          };
+        }) : [],
+      };
+    }
+
     let pv = { title: '', status: 'planning', goalValue: '', due: '', details: '', goalOpts: [], pendingTasks: [], completeTasks: [], pendingCount: 0, completeCount: 0, noPending: false, isNew: false };
     if (proj) {
       const pend = proj.tasks.filter(k => !k.done);
@@ -1018,7 +1197,7 @@ class Component extends DCLogic {
           ...this.dnd('tasks', k.id, (a, b) => this.updTasks(proj.id, ts => move(ts, a, b)), arr[i - 1] && arr[i - 1].id, arr[i + 1] && arr[i + 1].id),
         })),
         completeTasks: comp.map(k => ({ id: k.id, title: k.title, checked: true, onToggle: () => this.toggleTask(proj.id, k.id) })),
-        onDelete: () => this.setState({ confirm: { title: 'Delete this project?', body: `\u201c${proj.title || 'Untitled project'}\u201d and its tasks will be deleted.`, action: 'Delete project', run: () => this.setState(s2 => ({ projects: s2.projects.filter(p => p.id !== proj.id), confirm: null, page: 'projects' })) } }),
+        onDelete: () => this.setState({ confirm: { title: 'Delete this project?', body: `\u201c${proj.title || 'Untitled project'}\u201d and its tasks and files will be deleted.`, action: 'Delete project', run: () => this.setState(s2 => ({ projects: s2.projects.filter(p => p.id !== proj.id), confirm: null, page: 'projects' })) } }),
       };
     }
 
@@ -1141,7 +1320,7 @@ class Component extends DCLogic {
       fStatus: s.fStatus, fGoal: s.fGoal, goalOpts,
       onFStatus: e => this.setState({ fStatus: e.target.value }), onFGoal: e => this.setState({ fGoal: e.target.value }),
       newProject: () => this.newProject(), projectRows, noProjects: projectRows.length === 0,
-      pv, newTask: s.newTask, onNewTask: e => this.setState({ newTask: e.target.value }),
+      pv, fz, newTask: s.newTask, onNewTask: e => this.setState({ newTask: e.target.value }),
       onNewTaskKey: e => { if (e.key === 'Enter') { e.preventDefault(); this.addTask(); } },
 
       aiOn: ai, aiOff: !ai, setAiOn: () => this.setAi(true), setAiOff: () => this.setAi(false),

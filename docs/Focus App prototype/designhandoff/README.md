@@ -3,7 +3,14 @@
 ## Overview
 Focus is a single-user planning app that caps how many goals can be active at once (3, 5 or 7) and ties every to-do back to a goal. To-dos that don't serve any active goal are blurred. The Goals page doubles as the home page and carries an all-time "climb" tracker that turns completed to-dos into progress up a series of mountains.
 
-Screens: Login, Goals (home, with the focus tracker), To-dos, Projects (list + detail), Settings.
+Screens: Login, Goals (home, with the focus tracker), To-dos, Projects (list + detail), Calendar, Settings.
+
+**Addenda** (each one overrides the matching section below):
+- `LOGIN.md`: the new "Depth of field" login page. Replaces §1.
+- `RECURRING-TODOS.md`: recurring to-dos on the To-dos page (§3).
+- `PROJECT-FILES.md`: the Files section on Project detail (§5).
+- `CALENDAR.md`: the Calendar page.
+- Feature spec for recurring to-dos and project files: `Focus - Project Files, Recurring To-dos & Multi-goal Matching.md`. Multi-goal matching from that spec is **not designed yet**.
 
 The product and technical spec is included as `Focus App - Product & Technical Spec.md`. **Where the spec and this README disagree, this README wins for the items listed under "Changes from the spec"; for everything else (data model, API, AI pipeline) the spec wins.**
 
@@ -48,6 +55,7 @@ Broadsheet is "newsprint for the web":
 ## Screens
 
 ### 1. Login
+**Superseded by `LOGIN.md`.** The description below is the previous design, kept for reference only.
 - Column, gap 40px, max-width 560px, padding `clamp(48px, 14vh, 160px) <gutter> 64px`, min-height 100vh.
 - Wordmark "Focus" at `clamp(72px, 12vw, 120px)`, line-height 1, letter-spacing -0.03em, with the **`.cmyk-head` plate treatment** (`.paper` span + aria-hidden `.plate-c/-m/-y` repeats, `text-box: trim-both cap alphabetic`). This is the only place the plate treatment appears.
 - Tagline: "A few goals at a time. Every project and to-do traces back to one." 19px / 1.45, max 30ch.
@@ -132,7 +140,7 @@ Unchanged from the spec layout (left-aligned, max-width 720px, gap 40px). Update
 
 ## Prototype-only controls (do not build)
 - **"Layout" switcher** (bottom-right on To-dos / Projects): a review toggle between Left and Centered. Ship **Centered**.
-- **Tweaks:** `startPage`, `sampleData`, `climbPreview` (overrides the climb count for previewing levels).
+- **Tweaks:** `startPage`, `sampleData`, `climbPreview` (overrides the climb count for previewing levels), `fileStorage` (off shows the "File storage not set up" state).
 
 ## Interactions & Behavior
 - Optimistic UI for add, edit, check, reorder, delete.
@@ -183,3 +191,5 @@ Markdown rendering, sub-goal details/drag, task due-date editing, AI `error` ret
 - `_ds/broadsheet-…/styles.css`: Broadsheet tokens and component classes, the source of truth for visual values.
 - `_ds/broadsheet-…/_ds_bundle.js`: design-system bundle (plate filter defs).
 - `Focus App - Product & Technical Spec.md`: product and technical spec.
+- `Focus - Project Files, Recurring To-dos & Multi-goal Matching.md`: feature spec for project files, recurring to-dos and multi-goal matching.
+- `LOGIN.md`, `RECURRING-TODOS.md`, `PROJECT-FILES.md`, `CALENDAR.md`: UI addenda.

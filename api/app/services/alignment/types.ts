@@ -7,9 +7,14 @@
 export type Verdict = {
   aligned: boolean
   confidence: number
-  /** To-dos match goals only; projects are evidence for their goal. */
-  match: { type: 'goal' | 'none'; id: number | null }
+  /**
+   * Every active goal the to-do advances. To-dos match goals only; projects
+   * are evidence for their goal.
+   */
+  matches: { type: 'goal'; id: number; confidence: number }[]
   reason: string
+  /** Single-match verdicts cached before multi-goal matching. */
+  match?: { type: 'goal' | 'none'; id: number | null }
 }
 
 export type TodoInput = { title: string; notes: string }

@@ -8,7 +8,11 @@ export const QUEUES = {
   todo: 'alignment-todo',
   all: 'alignment-all',
   suggest: 'goal-suggestions',
+  /** Cloudinary deletions for removed files and projects (not AI). */
+  fileDelete: 'files-delete',
 } as const
+
+export type FileDeleteJob = { publicId: string; resourceType: string }
 
 export interface AlignmentQueue {
   /** Check one to-do in ~1.5 s (repeat requests while queued are merged). */
@@ -17,6 +21,8 @@ export interface AlignmentQueue {
   checkAll(): Promise<void>
   /** Build goal suggestions for one run (after a goal completes or the limit rises). */
   suggestGoals(runId: number): Promise<void>
+  /** Delete one file from Cloudinary; retried with backoff if it's down. */
+  deleteFile(job: FileDeleteJob): Promise<void>
   close(): Promise<void>
 }
 
@@ -37,6 +43,18 @@ export function createBoss(max: number, role: 'api' | 'worker') {
 export async function ensureQueues(boss: PgBoss) {
   for (const name of Object.values(QUEUES)) {
     if (await boss.getQueue(name)) continue
+    if (name === QUEUES.fileDelete) {
+      // Every deletion must run (no collapsing), with retries while
+      // Cloudinary is down: 1 min, then backing off, up to 10 tries.
+      await boss.createQueue(name, {
+        policy: 'standard',
+        retryLimit: 10,
+        retryDelay: 60,
+        retryBackoff: true,
+        expireInSeconds: 5 * 60,
+      })
+      continue
+    }
     await boss.createQueue(name, {
       policy: 'short',
       // Model retries happen inside the job; this covers a worker crash.
@@ -82,6 +100,11 @@ class BossQueue implements AlignmentQueue {
   async suggestGoals(runId: number) {
     const boss = await this.boss()
     await boss.send(QUEUES.suggest, { runId }, { singletonKey: String(runId) })
+  }
+
+  async deleteFile(job: FileDeleteJob) {
+    const boss = await this.boss()
+    await boss.send(QUEUES.fileDelete, job)
   }
 
   async close() {

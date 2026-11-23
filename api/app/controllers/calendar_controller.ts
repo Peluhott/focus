@@ -5,7 +5,8 @@ import { calendarValidator } from '#validators/suggestion'
 /**
  * GET /calendar?month=YYYY-MM: every open, dated to-do in that month as
  * { date, id, title }, by date then list order. Dates are plain calendar
- * days, so there's no time zone to shift.
+ * days, so there's no time zone to shift. Recurring to-dos have no date
+ * and never appear.
  */
 export default class CalendarController {
   async index({ request }: HttpContext) {
@@ -14,6 +15,7 @@ export default class CalendarController {
     const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`
     const rows = await Todo.query()
       .where('done', false)
+      .where('recurring', false)
       .where('date', '>=', `${month}-01`)
       .where('date', '<', `${next}-01`)
       .orderBy('date', 'asc')

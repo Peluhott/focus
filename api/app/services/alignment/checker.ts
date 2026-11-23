@@ -5,7 +5,9 @@ import logger from '@adonisjs/core/services/logger'
 import aiConfig from '#config/ai'
 import AlignmentCheck from '#models/alignment_check'
 import Todo from '#models/todo'
+import { setMatches } from '#services/matches'
 import { buildContext, isEmpty, sha256, todoInput } from './context.js'
+import { PROMPT_VERSION } from './gemini.js'
 import { AlignmentGuard } from './guard.js'
 import { aiActive } from './triggers.js'
 import { NOTHING_ACTIVE, toOutcome, type Outcome } from './verdict.js'
@@ -40,7 +42,7 @@ export class AlignmentChecker {
 
     context ??= await buildContext()
     const input = todoInput(todo)
-    const inputHash = sha256([this.provider.model, input, context.version])
+    const inputHash = sha256([this.provider.model, PROMPT_VERSION, input, context.version])
 
     if (isEmpty(context)) {
       await this.write(todo, NOTHING_ACTIVE)
@@ -159,32 +161,29 @@ export class AlignmentChecker {
    * new text (a newer check is queued), done, dismissed or linked by hand.
    */
   private async write(checked: Todo, outcome: Outcome) {
-    await this.update(checked, {
-      alignmentStatus: outcome.status,
-      alignmentReason: outcome.reason,
-      matchedGoalId: outcome.matchedGoalId,
-      matchedProjectId: null,
-      alignmentSource: 'ai',
-    })
+    await this.update(
+      checked,
+      { alignmentStatus: outcome.status, alignmentReason: outcome.reason, alignmentSource: 'ai' },
+      outcome.goals
+    )
   }
 
   private async writeError(checked: Todo, reason: string) {
-    await this.update(checked, {
-      alignmentStatus: 'error',
-      alignmentReason: reason,
-      matchedGoalId: null,
-      matchedProjectId: null,
-      alignmentSource: null,
-    })
+    await this.update(
+      checked,
+      { alignmentStatus: 'error', alignmentReason: reason, alignmentSource: null },
+      []
+    )
   }
 
-  private async update(checked: Todo, fields: Partial<Todo>) {
+  private async update(checked: Todo, fields: Partial<Todo>, goals: Outcome['goals']) {
     await db.transaction(async (trx) => {
       const todo = await Todo.query({ client: trx }).where('id', checked.id).forUpdate().first()
       if (!todo || !eligible(todo)) return
       if (todo.title !== checked.title || todo.notes !== checked.notes) return
       todo.merge({ ...fields, checkedAt: DateTime.now() })
       await todo.save()
+      await setMatches(todo.id, goals, trx)
     })
   }
 }

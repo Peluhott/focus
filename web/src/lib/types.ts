@@ -19,11 +19,23 @@ export type Todo = {
   alignment_status: AlignmentStatus | null
   alignment_reason: string | null
   alignment_source: 'ai' | 'manual' | null
-  matched_goal_id: number | null
-  matched_project_id: number | null
-  /** The matched goal, for the aligned chip. To-dos match goals only. */
-  matched_goal?: { id: number; title: string } | null
+  /** Every active goal the to-do serves (best first). To-dos match goals only. */
+  matches: TodoMatch[]
+  /** none · one (1 goal) · several (2+ but not all) · all (every active goal). */
+  match_level: MatchLevel
+  /** Repeat: stays on the list; each check-off logs a completion. No date. */
+  recurring: boolean
+  /** "Done N×" */
+  completion_count: number
+  /** For "✓ today" (compared with the local date). */
+  last_completed_at: string | null
+  /** Set on the response to a recurring check-off (for Undo). */
+  completion_id?: number
 }
+
+export type TodoMatch = { type: 'goal'; id: number; title: string; confidence: number | null }
+
+export type MatchLevel = 'none' | 'one' | 'several' | 'all'
 
 export type AlignmentStatus = 'pending' | 'aligned' | 'unaligned' | 'dismissed' | 'error'
 
@@ -122,3 +134,32 @@ export type SuggestionsResponse = {
 }
 
 export type CalendarEntry = { date: string; id: number; title: string }
+
+/** A file on a project (metadata; the file lives in Cloudinary). */
+export type ProjectFile = {
+  id: number
+  project_id: number
+  name: string
+  resource_type: 'image' | 'video' | 'raw'
+  format: string | null
+  bytes: number
+  uploaded_at: string
+  /** Small signed 88×88 crop, images only. */
+  thumb_url: string | null
+}
+
+export type FilesResponse = {
+  data: ProjectFile[]
+  storage: { enabled: boolean; max_upload_mb: number }
+}
+
+export type UploadSignature = {
+  timestamp: number
+  folder: string
+  type: string
+  signature: string
+  api_key: string
+  cloud_name: string
+  upload_url: string
+  max_upload_mb: number
+}

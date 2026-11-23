@@ -1,8 +1,6 @@
 import { DateTime } from 'luxon'
-import { belongsTo, column } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { column } from '@adonisjs/lucid/orm'
 import AppBaseModel from '#models/app_base_model'
-import Goal from '#models/goal'
 
 export const ALIGNMENT_STATUSES = ['pending', 'aligned', 'unaligned', 'dismissed', 'error'] as const
 export type AlignmentStatus = (typeof ALIGNMENT_STATUSES)[number]
@@ -30,9 +28,19 @@ export default class Todo extends AppBaseModel {
   @column.dateTime()
   declare doneAt: DateTime | null
 
-  /** Counts toward the climb: completed while the AI check was on. */
+  /**
+   * Recurring: one item that never leaves the list. Each check-off logs a
+   * completion and the checkbox resets. Recurring to-dos have no date.
+   */
   @column()
-  declare counted: boolean
+  declare recurring: boolean
+
+  /** Cached count of this to-do's todo_completions rows ("Done N×"). */
+  @column()
+  declare completionCount: number
+
+  @column.dateTime()
+  declare lastCompletedAt: DateTime | null
 
   /** Checked off while red: moved to the off-track backlog, not completed. */
   @column()
@@ -46,23 +54,15 @@ export default class Todo extends AppBaseModel {
   declare alignmentReason: string | null
 
   @column()
-  declare matchedGoalId: number | null
-
-  @column()
-  declare matchedProjectId: number | null
-
-  @column()
   declare alignmentSource: 'ai' | 'manual' | null
 
   @column.dateTime()
   declare checkedAt: DateTime | null
 
-  /**
-   * Serialized as matched_goal ({ id, title, status }) for the chip.
-   * To-dos match goals only; matched_project_id is no longer set.
+  /*
+   * Goal links live in todo_matches (#services/matches). The old
+   * matched_goal_id, matched_project_id and counted columns are unused.
    */
-  @belongsTo(() => Goal, { foreignKey: 'matchedGoalId', serializeAs: 'matched_goal' })
-  declare matchedGoal: BelongsTo<typeof Goal>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

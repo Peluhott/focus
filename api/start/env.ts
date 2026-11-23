@@ -48,4 +48,14 @@ export default await Env.create(new URL('../', import.meta.url), {
   /** Gemini model id; defaults to gemini-3.1-flash-lite (config/ai.ts). */
   AI_MODEL: Env.schema.string.optional(),
   AI_MONTHLY_BUDGET_USD: Env.schema.number.optional(),
+
+  /**
+   * Project files on Cloudinary. Off unless all three are set; the Files
+   * area then shows "File storage not set up".
+   */
+  CLOUDINARY_CLOUD_NAME: Env.schema.string.optional(),
+  CLOUDINARY_API_KEY: Env.schema.string.optional(),
+  CLOUDINARY_API_SECRET: Env.schema.string.optional(),
+  /** Per-file limit in MB; keep at or below the Cloudinary plan's limit. */
+  MAX_UPLOAD_MB: Env.schema.number.optional(),
 })

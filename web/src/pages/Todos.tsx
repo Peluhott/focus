@@ -4,7 +4,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   ArrowClockwiseIcon,
   CalendarBlankIcon,
+  CheckIcon,
+  DotsThreeIcon,
   LinkIcon,
+  RepeatIcon,
   TargetIcon,
   TrashIcon,
   WarningIcon,
@@ -12,8 +15,8 @@ import {
 import InlineInput from '../components/InlineInput'
 import NotesField from '../components/NotesField'
 import SortableList from '../components/SortableList'
-import { completionToast } from '../lib/climb'
-import { isOverdue, shortDate } from '../lib/dates'
+import { completionToast, milestoneSentence } from '../lib/climb'
+import { isOverdue, shortDate, todayISO } from '../lib/dates'
 import { activeOf, useGoals } from '../lib/goals'
 import { useAiOn } from '../lib/settings'
 import { isTemp, tempId } from '../lib/optimistic'
@@ -25,6 +28,9 @@ import {
   useDeleteTodo,
   useDismissTodo,
   useLinkTodo,
+  useLogCompletion,
+  useUndoCompletion,
+  doneToday,
   useMoveTodo,
   useRecheckTodo,
   useReopenTodo,
@@ -75,9 +81,7 @@ export default function Todos() {
           noun="to-do"
           className="todo-list"
           itemId={(t) => `todo-${t.id}`}
-          itemClassName={(t) =>
-            aiOn && t.alignment_status === 'unaligned' ? 'todo-row is-unaligned' : 'todo-row'
-          }
+          itemClassName={(t) => `todo-row${rowTint(t, aiOn)}`}
           isLocked={(t) => isTemp(t.id)}
           onMove={(id, placement, order) => move.mutate({ id, placement, order })}
           renderItem={(todo, handle) => (
@@ -96,6 +100,23 @@ export default function Todos() {
     </section>
   )
 }
+
+/**
+ * Row color (spec "How it's shown", multi-goal spec): red for unaligned;
+ * light green when it serves 2+ goals but not all; green for every active
+ * goal. The label next to the chips carries the same meaning.
+ */
+function rowTint(t: Todo, aiOn: boolean) {
+  if (!aiOn) return ''
+  if (t.alignment_status === 'unaligned') return ' is-unaligned'
+  if (t.alignment_status !== 'aligned') return ''
+  if (t.match_level === 'all') return ' is-match-all'
+  if (t.match_level === 'several') return ' is-match-several'
+  return ''
+}
+
+/** Show up to 3 goal chips, then "+N". */
+const MAX_CHIPS = 3
 
 /**
  * Coming from the Calendar: once the list has loaded, scroll to the to-do it
@@ -140,6 +161,10 @@ function TodoRow({
   const [linking, setLinking] = useState(false)
   const complete = useCompleteTodo()
   const reopen = useReopenTodo()
+  const logCompletion = useLogCompletion()
+  const undoCompletion = useUndoCompletion()
+  // A recurring check-off shows checked for 1 s, then clears itself.
+  const [flash, setFlash] = useState(false)
   const remove = useDeleteTodo()
   const restore = useRestoreTodo()
   const qc = useQueryClient()
@@ -148,8 +173,10 @@ function TodoRow({
   const overdue = todo.date ? isOverdue(todo.date) : false
   // AI display rules (spec "How it's shown"); nothing at all while it's off.
   const status = aiOn ? todo.alignment_status : null
-  const match = todo.matched_goal
+  const matches = todo.matches ?? []
   const manual = todo.alignment_source === 'manual'
+  const recurring = todo.recurring
+  const today = doneToday(todo, todayISO())
 
   /** Delete now, with Undo putting it back between the same neighbours. */
   function onDelete() {
@@ -172,16 +199,48 @@ function TodoRow({
   const offTrack = goesOffTrack(todo, aiOn)
 
   function onComplete() {
+    if (flash) return // ignore clicks while the 1 s check shows
     // With the AI on, the completion counts toward the climb; say so when it
     // reaches a camp or tops a level.
     const before = aiOn ? qc.getQueryData<CompletionStats>(statsKey)?.total : undefined
+    if (recurring && !offTrack) {
+      onLogRecurring(before)
+      return
+    }
     const message = offTrack
-      ? 'Moved to off-track'
+      ? recurring
+        ? 'Moved to the off-track backlog. It no longer repeats.'
+        : 'Moved to off-track'
       : before === undefined
         ? 'To-do completed'
         : completionToast(before, before + 1)
     complete.mutate({ todo })
     toast(message, () => reopen.mutate({ todo, index }))
+  }
+
+  /** Recurring: log one completion; the row stays where it is. */
+  function onLogRecurring(before: number | undefined) {
+    setFlash(true)
+    window.setTimeout(() => setFlash(false), 1000)
+    const prev = todo
+    const pending = logCompletion.mutateAsync({ todo })
+    pending.catch(() => {}) // the mutation already toasts its error
+    const milestone = before === undefined ? null : milestoneSentence(before, before + 1)
+    const message = `Completion logged · Done ${todo.completion_count + 1}×.${milestone ? ` ${milestone}` : ''}`
+    toast(message, () => {
+      pending
+        .then((saved) => {
+          if (saved.completion_id !== undefined) {
+            undoCompletion.mutate({ todo: prev, completionId: saved.completion_id })
+          }
+        })
+        .catch(() => {})
+    })
+  }
+
+  function onRepeat(on: boolean) {
+    update.mutate({ id: todo.id, patch: { recurring: on } })
+    if (on && todo.date) toast('Repeat is on. The date was removed.')
   }
 
   // Unaligned to-dos are blurred until you hover or focus the line, or open
@@ -197,10 +256,15 @@ function TodoRow({
           className="check check-18"
           aria-label={offTrack ? 'Move to off-track' : 'Complete'}
           title={offTrack ? 'Move to off-track.' : undefined}
-          checked={false}
+          checked={flash}
           disabled={!saved}
           onChange={onComplete}
         />
+        {recurring && (
+          <RepeatIcon className="repeat-icon" size={16} aria-label="Repeats">
+            <title>Repeats</title>
+          </RepeatIcon>
+        )}
         <InlineInput
           value={todo.title}
           aria-label="To-do"
@@ -209,13 +273,42 @@ function TodoRow({
           readOnly={!saved}
           onCommit={(title) => update.mutate({ id: todo.id, patch: { title: title.trim() } })}
         />
-        {status === 'aligned' && match && (
+        {recurring && (
+          <span className="tally" aria-label={`Done ${todo.completion_count} times${today ? ', done today' : ''}`}>
+            <span aria-hidden>Done {todo.completion_count}×</span>
+            {today && (
+              <span className="tally-today" aria-hidden>
+                <CheckIcon size={12} />
+                today
+              </span>
+            )}
+          </span>
+        )}
+        {status === 'aligned' && (todo.match_level === 'several' || todo.match_level === 'all') && (
+          <span className={`tag match-label match-${todo.match_level}`}>
+            {todo.match_level === 'all' ? 'All goals' : `${matches.length} goals`}
+          </span>
+        )}
+        {status === 'aligned' &&
+          matches.slice(0, MAX_CHIPS).map((match) => (
+            <span
+              key={match.id}
+              className="tag tag-accent align-chip"
+              title={manual ? `Linked by you to ${match.title}` : (todo.alignment_reason ?? match.title)}
+            >
+              <TargetIcon aria-hidden />
+              <span className="align-chip-name">{match.title}</span>
+            </span>
+          ))}
+        {status === 'aligned' && matches.length > MAX_CHIPS && (
           <span
             className="tag tag-accent align-chip"
-            title={manual ? `Linked by you to ${match.title}` : (todo.alignment_reason ?? match.title)}
+            title={matches
+              .slice(MAX_CHIPS)
+              .map((m) => m.title)
+              .join(', ')}
           >
-            <TargetIcon aria-hidden />
-            <span className="align-chip-name">{match.title}</span>
+            +{matches.length - MAX_CHIPS}
           </span>
         )}
         {status === 'error' && (
@@ -228,19 +321,20 @@ function TodoRow({
             Retry check
           </button>
         )}
-        {todo.date && (
+        {todo.date && !recurring && (
           <span className={`tag date-chip${overdue ? ' overdue' : ''}`}>
             {overdue ? `Overdue · ${shortDate(todo.date)}` : shortDate(todo.date)}
           </span>
         )}
         <button
           className="btn btn-ghost btn-icon row-icon"
-          aria-label="Date and notes"
+          aria-label={recurring ? 'Notes and repeat' : 'Date and notes'}
+          title={recurring ? 'Notes and repeat' : 'Date and notes'}
           aria-expanded={expanded}
           disabled={!saved}
           onClick={onToggle}
         >
-          <CalendarBlankIcon size={18} aria-hidden />
+          {recurring ? <DotsThreeIcon size={18} aria-hidden /> : <CalendarBlankIcon size={18} aria-hidden />}
         </button>
       </div>
       {status === 'unaligned' && (
@@ -282,18 +376,32 @@ function TodoRow({
             onCommit={(notes) => update.mutate({ id: todo.id, patch: { notes } })}
           />
           <div className="row-panel-actions">
-            <input
-              type="date"
-              className="input on-bg"
-              aria-label="Date"
-              style={{ width: 'auto' }}
-              value={todo.date ?? ''}
-              onChange={(e) => update.mutate({ id: todo.id, patch: { date: e.target.value || null } })}
-            />
-            {todo.date && (
-              <button className="btn btn-ghost" onClick={() => update.mutate({ id: todo.id, patch: { date: null } })}>
-                Clear date
-              </button>
+            <label className="repeat-toggle">
+              <input
+                type="checkbox"
+                role="switch"
+                checked={recurring}
+                onChange={(e) => onRepeat(e.target.checked)}
+              />
+              <RepeatIcon size={16} aria-hidden />
+              Repeat
+            </label>
+            {!recurring && (
+              <>
+                <input
+                  type="date"
+                  className="input on-bg"
+                  aria-label="Date"
+                  style={{ width: 'auto' }}
+                  value={todo.date ?? ''}
+                  onChange={(e) => update.mutate({ id: todo.id, patch: { date: e.target.value || null } })}
+                />
+                {todo.date && (
+                  <button className="btn btn-ghost" onClick={() => update.mutate({ id: todo.id, patch: { date: null } })}>
+                    Clear date
+                  </button>
+                )}
+              </>
             )}
             {aiOn && (
               <button className="btn btn-ghost" onClick={() => setLinking(true)}>
@@ -306,6 +414,12 @@ function TodoRow({
               Delete
             </button>
           </div>
+          {recurring && (
+            <p className="repeat-note">
+              Stays on the list. Each check-off logs one completion. Repeating to-dos have no date, so
+              they don't appear on the calendar.
+            </p>
+          )}
         </div>
       )}
     </>

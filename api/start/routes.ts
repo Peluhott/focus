@@ -23,6 +23,8 @@ const StatsController = () => import('#controllers/stats_controller')
 const OffTrackController = () => import('#controllers/off_track_controller')
 const GoalSuggestionsController = () => import('#controllers/goal_suggestions_controller')
 const CalendarController = () => import('#controllers/calendar_controller')
+const CompletionsController = () => import('#controllers/completions_controller')
+const ProjectFilesController = () => import('#controllers/project_files_controller')
 
 router
   .group(() => {
@@ -65,12 +67,21 @@ router
         router.patch('projects/:id', [ProjectsController, 'update'])
         router.delete('projects/:id', [ProjectsController, 'destroy'])
 
+        router.get('projects/:id/files', [ProjectFilesController, 'index'])
+        router.post('projects/:id/files/sign', [ProjectFilesController, 'sign'])
+        router.post('projects/:id/files', [ProjectFilesController, 'store'])
+        router.patch('files/:id', [ProjectFilesController, 'update'])
+        router.delete('files/:id', [ProjectFilesController, 'destroy'])
+        router.get('files/:id/url', [ProjectFilesController, 'url'])
+
         router.get('projects/:id/tasks', [TasksController, 'index'])
         router.post('projects/:id/tasks', [TasksController, 'store'])
         router.patch('tasks/:id', [TasksController, 'update'])
         router.delete('tasks/:id', [TasksController, 'destroy'])
 
         router.get('stats/completions', [StatsController, 'completions'])
+        router.get('completions', [CompletionsController, 'index'])
+        router.delete('completions/:id', [CompletionsController, 'destroy'])
 
         router.get('off-track', [OffTrackController, 'index'])
         router.post('off-track/clear', [OffTrackController, 'clear'])

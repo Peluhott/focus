@@ -5,6 +5,7 @@ import AlignmentCheck from '#models/alignment_check'
 import Goal from '#models/goal'
 import Project from '#models/project'
 import Todo from '#models/todo'
+import TodoMatch from '#models/todo_match'
 import type User from '#models/user'
 import { AlignmentChecker } from '#services/alignment/checker'
 import { AlignmentGuard } from '#services/alignment/guard'
@@ -32,6 +33,7 @@ class FakeQueue implements AlignmentQueue {
     this.all++
   }
   async suggestGoals() {}
+  async deleteFile() {}
   async close() {}
 }
 
@@ -52,13 +54,13 @@ class FakeProvider implements AlignmentProvider {
 const aligned = (type: 'goal', id: number): Verdict => ({
   aligned: true,
   confidence: 0.9,
-  match: { type, id },
+  matches: [{ type, id, confidence: 0.9 }],
   reason: 'Moves it forward.',
 })
 const unaligned = (confidence: number): Verdict => ({
   aligned: false,
   confidence,
-  match: { type: 'none', id: null },
+  matches: [],
   reason: "Doesn't serve any active goal or project.",
 })
 
@@ -133,8 +135,8 @@ test.group('AI alignment check', (group) => {
         {
           alignment_status: 'aligned',
           alignment_source: 'ai',
-          matched_goal_id: goal.id,
-          matched_goal: { id: goal.id, title: 'Get fit' },
+          matches: [{ type: 'goal', id: goal.id, title: 'Get fit' }],
+          match_level: 'all',
         },
       ],
     })
@@ -158,7 +160,7 @@ test.group('AI alignment check', (group) => {
     assert.equal(a.alignmentReason, "Doesn't serve any active goal or project.")
     const b = await Todo.findOrFail(unsure.id)
     assert.equal(b.alignmentStatus, 'aligned')
-    assert.isNull(b.matchedGoalId)
+    assert.lengthOf(await TodoMatch.query().where('todo_id', b.id), 0)
   })
 
   test('a match that is not an active goal gives no chip', async ({ client, assert }) => {
@@ -167,7 +169,7 @@ test.group('AI alignment check', (group) => {
     await checker(new FakeProvider(() => aligned('goal', 999))).checkTodo(todo.id)
     const saved = await Todo.findOrFail(todo.id)
     assert.equal(saved.alignmentStatus, 'aligned')
-    assert.isNull(saved.matchedGoalId)
+    assert.lengthOf(await TodoMatch.query().where('todo_id', saved.id), 0)
   })
 
   test('projects show up under their goal; goal-less projects are left out', async ({
@@ -317,13 +319,16 @@ test.group('AI alignment check', (group) => {
     linked.assertBodyContains({
       alignment_status: 'aligned',
       alignment_source: 'manual',
-      matched_goal: { id: goal.id, title: 'Get fit' },
+      matches: [{ type: 'goal', id: goal.id, title: 'Get fit' }],
     })
     const provider = new FakeProvider(() => unaligned(0.9))
     assert.equal(await checker(provider).checkTodo(todo.id), 'skipped')
     // Editing the text doesn't touch a manual link either.
     const edited = await as(client.patch(`/api/v1/todos/${todo.id}`).json({ title: 'Clean it' }))
-    edited.assertBodyContains({ alignment_source: 'manual', matched_goal_id: goal.id })
+    edited.assertBodyContains({
+      alignment_source: 'manual',
+      matches: [{ type: 'goal', id: goal.id }],
+    })
 
     // Unlink: back to the AI.
     const unlinked = await as(
@@ -348,7 +353,7 @@ test.group('AI alignment check', (group) => {
     const url = `/api/v1/todos/${todo.id}`
     ;(await as(client.patch(url).json({ matched_goal_id: archived.id }))).assertStatus(422)
     const ignored = await as(client.patch(url).json({ matched_project_id: project.id }))
-    assert.isNull(ignored.body().matched_project_id)
+    assert.isUndefined(ignored.body().matched_project_id)
   })
 
   test('recheck queues a new check; 422 when the AI is off', async ({ client, assert }) => {

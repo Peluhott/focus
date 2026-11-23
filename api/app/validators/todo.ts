@@ -16,6 +16,7 @@ export const createTodoValidator = vine.compile(
     title: vine.string().trim().minLength(1).maxLength(500),
     notes: vine.string().maxLength(10000).optional(),
     date: isoDate().nullable().optional(),
+    recurring: vine.boolean().optional(),
   })
 )
 
@@ -25,8 +26,17 @@ export const updateTodoValidator = vine.compile(
     notes: vine.string().maxLength(10000).optional(),
     date: isoDate().nullable().optional(),
     done: vine.boolean().optional(),
+    /** Repeat: stays on the list; each check-off logs a completion. */
+    recurring: vine.boolean().optional(),
     /** "Link to…": a manual link to an active goal (null unlinks). */
     matched_goal_id: vine.number().withoutDecimals().positive().nullable().optional(),
     ...placement,
+  })
+)
+
+export const listCompletionsValidator = vine.compile(
+  vine.object({
+    from: isoDate().optional(),
+    to: isoDate().optional(),
   })
 )

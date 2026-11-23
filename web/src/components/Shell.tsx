@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
-import { WarningIcon } from '@phosphor-icons/react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { SignOutIcon, WarningIcon } from '@phosphor-icons/react'
+import { useLogout } from '../lib/auth'
 import { activeOf, useGoals } from '../lib/goals'
 import { useProjects } from '../lib/projects'
 import { useAiOn } from '../lib/settings'
@@ -26,6 +27,8 @@ export default function Shell({ children }: { children: ReactNode }) {
   useAlignmentPolling(todos)
   const flagged = todos?.filter((t) => t.alignment_status === 'unaligned').length ?? 0
   const [dateline] = useState(() => today.format(new Date()))
+  const logout = useLogout()
+  const navigate = useNavigate()
 
   const links = [
     { to: '/goals', label: 'Goals', count: goals ? activeOf(goals).length : undefined },
@@ -54,6 +57,14 @@ export default function Shell({ children }: { children: ReactNode }) {
                   {flagged} flagged
                 </span>
               )}
+              <button
+                className="shell-signout"
+                onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/login') })}
+                disabled={logout.isPending}
+              >
+                <SignOutIcon aria-hidden />
+                {logout.isPending ? 'Signing out…' : 'Sign out'}
+              </button>
             </span>
           </div>
           <nav className="shell-tabs" aria-label="Main">

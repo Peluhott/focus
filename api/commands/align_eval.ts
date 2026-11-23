@@ -6,7 +6,17 @@ import aiConfig from '#config/ai'
 type EvalFile = {
   passRate: number
   context: { goals: any[] }
-  cases: { title: string; notes?: string; expect: 'aligned' | 'flagged'; match?: string[] }[]
+  /**
+   * match: acceptable goal chips (at least one must appear).
+   * matchAll: chips that must all appear (a to-do serving several goals).
+   */
+  cases: {
+    title: string
+    notes?: string
+    expect: 'aligned' | 'flagged'
+    match?: string[]
+    matchAll?: string[]
+  }[]
 }
 
 /**
@@ -54,9 +64,13 @@ export default class AlignEval extends BaseCommand {
         output += usage.outputTokens
         const outcome = toOutcome(verdict, context)
         const shown = outcome.status === 'unaligned' ? 'flagged' : 'aligned'
-        const chip = outcome.matchedGoalId ? `goal:${outcome.matchedGoalId}` : null
+        const chips = outcome.goals.map((g) => `goal:${g.id}`)
+        const chip = chips.length ? chips.join(', ') : null
         const ok =
-          shown === c.expect && (c.expect === 'flagged' || !c.match || c.match.includes(chip!))
+          shown === c.expect &&
+          (c.expect === 'flagged' ||
+            ((!c.match || c.match.some((m) => chips.includes(m))) &&
+              (!c.matchAll || c.matchAll.every((m) => chips.includes(m)))))
         if (ok) passed++
         const mark = ok ? this.colors.green('✓') : this.colors.red('✗')
         const detail = `${shown}${chip ? ` → ${chip}` : ''} (${verdict.confidence.toFixed(2)})`

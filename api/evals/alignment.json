@@ -168,6 +168,30 @@
     {
       "title": "Scroll photography forums",
       "expect": "flagged"
+    },
+    {
+      "title": "Go for a run with my Spanish conversation partner, speaking only Spanish",
+      "expect": "aligned",
+      "matchAll": [
+        "goal:1",
+        "goal:3"
+      ]
+    },
+    {
+      "title": "Add Spanish translations to the Focus app's onboarding screens and practise reading them aloud",
+      "expect": "aligned",
+      "matchAll": [
+        "goal:2",
+        "goal:3"
+      ]
+    },
+    {
+      "title": "Build the training-plan tracker into the Focus app and use it for my half marathon block",
+      "expect": "aligned",
+      "matchAll": [
+        "goal:1",
+        "goal:2"
+      ]
     }
   ]
 }
