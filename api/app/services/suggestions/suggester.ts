@@ -170,19 +170,23 @@ export class GoalSuggester {
     const run = await GoalSuggestionRun.find(runId)
     if (!run) return 'missing'
     if (run.status !== 'queued') return run.status
-    if (!(await aiActive())) return this.finish(run, 'skipped')
+    if (!(await aiActive(run.workspaceId))) return this.finish(run, 'skipped')
 
     const items = await OffTrackItem.query()
+      .where('workspace_id', run.workspaceId)
       .where('status', 'open')
       .orderBy('moved_at', 'desc')
       .orderBy('id', 'desc')
       .limit(LIMITS.backlog)
     if (items.length < MIN_ITEMS) return this.finish(run, 'skipped')
 
-    const blocked = await this.guard.blocked()
+    const blocked = await this.guard.blocked(run.workspaceId)
     if (blocked) return this.finish(run, 'error', blocked)
 
-    const active = await Goal.query().where('status', 'active').orderBy('position')
+    const active = await Goal.query()
+      .where('workspace_id', run.workspaceId)
+      .where('status', 'active')
+      .orderBy('position')
     const completed = run.triggerGoalId ? await Goal.find(run.triggerGoalId) : null
     const input = {
       backlog: items.map((i) => ({
@@ -211,7 +215,10 @@ export class GoalSuggester {
     )
     await db.transaction(async (trx) => {
       for (const s of kept) {
-        await GoalSuggestion.create({ runId: run.id, status: 'open', ...s }, { client: trx })
+        await GoalSuggestion.create(
+          { runId: run.id, workspaceId: run.workspaceId, status: 'open', ...s },
+          { client: trx }
+        )
       }
       run.useTransaction(trx)
       run.status = kept.length ? 'ready' : 'empty'

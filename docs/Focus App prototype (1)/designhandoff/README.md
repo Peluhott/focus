@@ -3,13 +3,21 @@
 ## Overview
 Focus is a single-user planning app that caps how many goals can be active at once (3, 5 or 7) and ties every to-do back to a goal. To-dos that don't serve any active goal are blurred. The Goals page doubles as the home page and carries an all-time "climb" tracker that turns completed to-dos into progress up a series of mountains.
 
-Screens: Login, Goals (home, with the focus tracker), To-dos, Projects (list + detail), Calendar, Settings.
+Screens: Login splash, Login / Sign-up panel, Goals (home, with the focus tracker), To-dos, Projects (list + detail), Notes, Calendar, Settings.
+
+**Start with `FRONTEND-TASKS.md`** — the current work list (types, Settings account + timer, nav timer, Notes, Help me start, API key scopes).
 
 **Addenda** (each one overrides the matching section below):
-- `LOGIN.md`: the new "Depth of field" login page. Replaces §1.
-- `RECURRING-TODOS.md`: recurring to-dos on the To-dos page (§3).
+- `NAV-AND-TIMER.md`: two-row nav bar and the nav timer. Replaces "Global shell → Header".
+- `NOTES.md`: the Notes page.
+- `START-SMALL.md`: the "Help me start" button on to-dos.
+- `SETTINGS.md`: Settings with Account first and the Timer section. Replaces §6.
+- `LOGIN.md`: the "Depth of field" login splash. Replaces §1.
+- `LOGIN-SIGNUP.md`: Log in / Sign up buttons on the splash, and the split auth panel (Google, Microsoft, Apple and email on the left; feature previews on the right). Overrides the form in `LOGIN.md`.
+- `RECURRING-TODOS.md`: recurring to-dos and the Recurring band on the To-dos page (§3).
 - `PROJECT-FILES.md`: the Files section on Project detail (§5).
 - `CALENDAR.md`: the Calendar page.
+- `WORK-MODE.md`: Personal / Work workspaces, the switch next to the wordmark, and AI off by default in Work with a turn-on warning.
 - Feature spec for recurring to-dos and project files: `Focus - Project Files, Recurring To-dos & Multi-goal Matching.md`. Multi-goal matching from that spec is **not designed yet**.
 
 The product and technical spec is included as `Focus App - Product & Technical Spec.md`. **Where the spec and this README disagree, this README wins for the items listed under "Changes from the spec"; for everything else (data model, API, AI pipeline) the spec wins.**
@@ -40,6 +48,7 @@ Broadsheet is "newsprint for the web":
 - Map the tokens into `tailwind.config` instead of hard-coding values.
 
 ## Global shell (signed-in pages)
+**The header below is superseded by `NAV-AND-TIMER.md`** (two rows, six nav items, timer). Gutter and main padding still apply.
 - **Page gutter:** `clamp(20px, 5vw, 64px)` left/right.
 - **Header** (padding `30px <gutter> 0`): one flex row, `flex-wrap: wrap`, `align-items: flex-end`, `justify-content: space-between`, gap `20px 40px`.
   - **Left block** (column, gap 10px, padding-bottom 10px):
@@ -55,7 +64,7 @@ Broadsheet is "newsprint for the web":
 ## Screens
 
 ### 1. Login
-**Superseded by `LOGIN.md`.** The description below is the previous design, kept for reference only.
+**Superseded by `LOGIN.md` and `LOGIN-SIGNUP.md`.** The description below is the previous design, kept for reference only.
 - Column, gap 40px, max-width 560px, padding `clamp(48px, 14vh, 160px) <gutter> 64px`, min-height 100vh.
 - Wordmark "Focus" at `clamp(72px, 12vw, 120px)`, line-height 1, letter-spacing -0.03em, with the **`.cmyk-head` plate treatment** (`.paper` span + aria-hidden `.plate-c/-m/-y` repeats, `text-box: trim-both cap alphabetic`). This is the only place the plate treatment appears.
 - Tagline: "A few goals at a time. Every project and to-do traces back to one." 19px / 1.45, max 30ch.
@@ -88,7 +97,7 @@ Broadsheet is "newsprint for the web":
 - Header: h2 "Focus so far", line "All time" (neutral-800). No date ranges anywhere.
 - If AI is off: 13px note "The AI check is off, so new completions aren't being counted."
 - Two columns: grid `repeat(auto-fit, minmax(min(100%, 340px), 1fr))`, gap 40px.
-- **Left: Completed to-dos by goal.** h6 "Completed to-dos by goal · {total}". Rows (gap 14px): icon + label left, count right (14px), then a 6px bar (track neutral-200, radius 1px) with width = count / total. Rows: each active goal (`target` icon in accent-700, bar accent), then "Off-goal" (`warning` icon in accent-2-700, bar accent-2) = completions with no goal link.
+- **Left: Completed to-dos by goal.** h6 "Completed to-dos by goal · {total}". Rows (gap 14px): icon + label left, count right (14px), then a 6px bar (track neutral-200, radius 1px) with width = count / total. Rows: one per active goal (`target` icon in accent-700, bar accent). **No "Off-goal" row.** The heading total and bar widths count only goal-linked completions, so the bars sum to 100%.
 - **Right: The climb.**
   - h6 "The climb · Level {n} · summit at {peak}".
   - Big count: heading font 42px / 600 / line-height 1 (all-time completed to-dos), followed by a sentence in neutral-800: "completed · {n} to the {camp} at {value}", or "completed · {n} to the summit" on the last leg, or "completed. You topped every level." at the end.
@@ -106,6 +115,7 @@ Broadsheet is "newsprint for the web":
   - **Toasts on completion:** crossing a step: "To-do completed. You reached the {camp} at {value}." Crossing a peak: "To-do completed. You topped level {n} at {peak}." Otherwise "To-do completed".
 
 ### 3. To-dos
+See also `RECURRING-TODOS.md` (Recurring band, now between the add box and the one-time list) and `START-SMALL.md` (row button).
 - Centered header: h1 "To-dos", subtitle "One list, in the order you set." (17px, neutral-800).
 - Quick add: `.input` 16px, min-height 44px, max-width 720px, centered, placeholder "Add a to-do and press Enter". Enter inserts at the top.
 - List: column, gap 2px, max-width 720px, centered (`margin: 20px auto 0`). Row text stays left-aligned. Each row (padding `6px 8px 6px 4px`, radius 2px, `border-left: 3px solid transparent`):
@@ -131,7 +141,7 @@ Broadsheet is "newsprint for the web":
 - Back link (`arrow-left` "Projects"), title input at h1 size, fields row (Status, Goal, Due date), Details textarea, Tasks (add input, "Pending · n" / "Complete · n" lists, drag to reorder pending, completed most-recent-first), ghost "Delete project" → confirm.
 
 ### 6. Settings
-Unchanged from the spec layout (left-aligned, max-width 720px, gap 40px). Updated AI copy: "Compares each open to-do with your active goals, and blurs the ones that don't serve any of them. When it's off, nothing is checked and no chips or highlights show." Sections: AI alignment check (`.seg` On/Off), API keys (new-key form, one-time key dialog, key rows with Revoke), Data ("Export all"), Account (email + "Sign out").
+**Superseded by `SETTINGS.md`.** Previous description: unchanged from the spec layout (left-aligned, max-width 720px, gap 40px). Updated AI copy: "Compares each open to-do with your active goals, and blurs the ones that don't serve any of them. When it's off, nothing is checked and no chips or highlights show." Sections: AI alignment check (`.seg` On/Off), API keys (new-key form, one-time key dialog, key rows with Revoke), Data ("Export all"), Account (email + "Sign out").
 
 ## Shared components
 - **Undo toast:** fixed bottom 24px, left = gutter, z 40, bg surface, `--shadow-lg`, radius 2px, 14px, padding `8px 8px 8px 16px`, message + ghost "Undo". 5 s. `role="status"`.
@@ -140,7 +150,7 @@ Unchanged from the spec layout (left-aligned, max-width 720px, gap 40px). Update
 
 ## Prototype-only controls (do not build)
 - **"Layout" switcher** (bottom-right on To-dos / Projects): a review toggle between Left and Centered. Ship **Centered**.
-- **Tweaks:** `startPage`, `sampleData`, `climbPreview` (overrides the climb count for previewing levels), `fileStorage` (off shows the "File storage not set up" state).
+- **Tweaks:** `startPage` (`login` opens the splash), `startMode` (open in Personal or Work), `sampleData`, `climbPreview` (overrides the climb count for previewing levels), `fileStorage` (off shows the "File storage not set up" state), `hintResult` (success / error for Help me start).
 
 ## Interactions & Behavior
 - Optimistic UI for add, edit, check, reorder, delete.
@@ -179,11 +189,11 @@ levelsPassed = PEAKS.filter(p => count >= p).length
 
 ## Assets
 - No images.
-- Phosphor duotone icons: dots-six-vertical, calendar-blank, warning, target, folder-simple, link, trash, plus, check-circle, circle, archive, x, caret-right, caret-down, arrow-counter-clockwise, arrow-left, key, copy, download-simple, sign-out, flag-pennant, person-simple-hike.
+- Phosphor duotone icons: dots-six-vertical, calendar-blank, warning, target, folder-simple, link, trash, plus, check-circle, circle, archive, x, caret-right, caret-down, arrow-counter-clockwise, arrow-left, key, copy, download-simple, sign-out, flag-pennant, person-simple-hike, repeat, dots-three, check, timer, play, pause, arrow-clockwise, note, magnifying-glass, cloud-arrow-up, clock, footprints, warning-circle, gear-six, check-square, google-logo, windows-logo, apple-logo, link-simple, arrows-clockwise.
 - Font: Source Serif 4 (Google Fonts, imported in `styles.css`).
 
 ## Not covered in the prototype
-Markdown rendering, sub-goal details/drag, task due-date editing, AI `error` retry link, login/rate-limit errors, API error surfaces (`422`, `429`), eval tooling.
+Markdown rendering, sub-goal details/drag, task due-date editing, AI `error` retry link, login/sign-up error and loading states (specified in `LOGIN-SIGNUP.md`), API error surfaces (`422`, `429`), eval tooling.
 
 ## Files
 - `Focus App.dc.html`: full prototype (all screens, one file): template markup plus a `Component` logic class with sample data, state, the fake classifier and the climb math.
@@ -192,4 +202,5 @@ Markdown rendering, sub-goal details/drag, task due-date editing, AI `error` ret
 - `_ds/broadsheet-…/_ds_bundle.js`: design-system bundle (plate filter defs).
 - `Focus App - Product & Technical Spec.md`: product and technical spec.
 - `Focus - Project Files, Recurring To-dos & Multi-goal Matching.md`: feature spec for project files, recurring to-dos and multi-goal matching.
-- `LOGIN.md`, `RECURRING-TODOS.md`, `PROJECT-FILES.md`, `CALENDAR.md`: UI addenda.
+- `FRONTEND-TASKS.md`: current work list.
+- `LOGIN.md`, `LOGIN-SIGNUP.md`, `RECURRING-TODOS.md`, `PROJECT-FILES.md`, `CALENDAR.md`, `NAV-AND-TIMER.md`, `NOTES.md`, `START-SMALL.md`, `SETTINGS.md`, `WORK-MODE.md`: UI addenda.

@@ -5,6 +5,7 @@ import {
   noteContextChange,
   queueContextRecheck,
   recheckIfContextChanged,
+  workspaceOf,
 } from '#services/alignment/triggers'
 
 export const TASK_STATUSES = ['pending', 'complete'] as const
@@ -50,11 +51,11 @@ export default class Task extends AppBaseModel {
 
   @afterSave()
   static recheckAlignment(row: Task) {
-    recheckIfContextChanged(row)
+    recheckIfContextChanged(row, () => workspaceOf('projects', row.projectId))
   }
 
   @afterDelete()
-  static recheckAlignmentOnDelete() {
-    void queueContextRecheck()
+  static async recheckAlignmentOnDelete(row: Task) {
+    void queueContextRecheck(await workspaceOf('projects', row.projectId))
   }
 }

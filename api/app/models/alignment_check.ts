@@ -8,6 +8,10 @@ export default class AlignmentCheck extends AppBaseModel {
   @column({ isPrimary: true })
   declare id: number
 
+  /** The Personal or Work workspace this row belongs to (and through it, the user). */
+  @column({ serializeAs: null })
+  declare workspaceId: number
+
   @column()
   declare todoId: number | null
 

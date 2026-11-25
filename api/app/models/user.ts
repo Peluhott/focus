@@ -1,10 +1,12 @@
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
-import { column } from '@adonisjs/lucid/orm'
+import { column, hasMany } from '@adonisjs/lucid/orm'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 import AppBaseModel from '#models/app_base_model'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
+import Workspace, { type WorkspaceKind } from '#models/workspace'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email'],
@@ -25,16 +27,27 @@ export default class User extends compose(AppBaseModel, AuthFinder) {
   declare password: string
 
   @column()
-  declare focusLimit: FocusLimit
+  declare displayName: string | null
 
   @column()
-  declare aiEnabled: boolean
+  declare focusLimit: FocusLimit
+
+  /** Default length of the nav-bar focus timer (the countdown runs in the browser). */
+  @column()
+  declare timerMinutes: number
+
+  /** Workspace the web app opens in next time ("personal" | "work"). */
+  @column()
+  declare lastWorkspace: WorkspaceKind
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  @hasMany(() => Workspace)
+  declare workspaces: HasMany<typeof Workspace>
 
   /** API keys ("fk_…"), stored hashed in api_keys; abilities are the scopes. */
   static accessTokens = DbAccessTokensProvider.forModel(User, {

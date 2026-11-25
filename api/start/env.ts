@@ -32,6 +32,8 @@ export default await Env.create(new URL('../', import.meta.url), {
    */
   ADMIN_EMAIL: Env.schema.string.optional({ format: 'email' }),
   ADMIN_PASSWORD: Env.schema.string.optional(),
+  /** Email sign-up (POST /auth/signup). On unless set to false. */
+  SIGNUP_ENABLED: Env.schema.boolean.optional(),
 
   /**
    * Browser origin allowed by CORS. Unset in local dev, where Vite proxies
@@ -48,6 +50,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   /** Gemini model id; defaults to gemini-3.1-flash-lite (config/ai.ts). */
   AI_MODEL: Env.schema.string.optional(),
   AI_MONTHLY_BUDGET_USD: Env.schema.number.optional(),
+  AI_USER_MONTHLY_BUDGET_USD: Env.schema.number.optional(),
 
   /**
    * Project files on Cloudinary. Off unless all three are set; the Files

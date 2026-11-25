@@ -14,13 +14,16 @@ export const FALLBACK_PRICE = { input: 1, output: 5 }
 /**
  * AI alignment check (spec "AI alignment check"). It runs only when
  * AI_ENABLED is true *and* GEMINI_API_KEY is set; the Settings toggle can
- * then switch it off per account.
+ * then switch it off per workspace (off by default in Work).
  */
 const aiConfig = {
   enabled: env.get('AI_ENABLED') ?? false,
   apiKey: env.get('GEMINI_API_KEY'),
   model: env.get('AI_MODEL') ?? 'gemini-3.1-flash-lite',
+  /** Cap for all users together. */
   monthlyBudgetUsd: env.get('AI_MONTHLY_BUDGET_USD') ?? 5,
+  /** Cap for one user (both workspaces), so one account can't use up everyone's. */
+  userMonthlyBudgetUsd: env.get('AI_USER_MONTHLY_BUDGET_USD') ?? 1,
 
   /** Each model call: 10 s timeout, 3 attempts (2 retries) with backoff. */
   timeoutMs: 10_000,

@@ -21,6 +21,10 @@ export default class Goal extends AppBaseModel {
   @column({ isPrimary: true })
   declare id: number
 
+  /** The Personal or Work workspace this row belongs to (and through it, the user). */
+  @column({ serializeAs: null })
+  declare workspaceId: number
+
   @column()
   declare title: string
 
@@ -64,14 +68,14 @@ export default class Goal extends AppBaseModel {
    */
   @afterSave()
   static async recheckAlignment(row: Goal) {
-    if (leftActive.delete(row)) await releaseManualLinks(row.id)
-    recheckIfContextChanged(row)
+    if (leftActive.delete(row)) await releaseManualLinks(row.id, row.workspaceId)
+    recheckIfContextChanged(row, row.workspaceId)
   }
 
   @afterDelete()
   static async recheckAlignmentOnDelete(row: Goal) {
-    await releaseManualLinks(row.id)
+    await releaseManualLinks(row.id, row.workspaceId)
     await TodoMatch.query().where('target_type', 'goal').where('target_id', row.id).delete()
-    void queueContextRecheck()
+    void queueContextRecheck(row.workspaceId)
   }
 }

@@ -15,6 +15,10 @@ export default class OffTrackItem extends AppBaseModel {
   @column({ isPrimary: true })
   declare id: number
 
+  /** The Personal or Work workspace this row belongs to (and through it, the user). */
+  @column({ serializeAs: null })
+  declare workspaceId: number
+
   /** The to-do it came from (null once that to-do is deleted). */
   @column()
   declare todoId: number | null

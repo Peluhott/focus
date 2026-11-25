@@ -5,6 +5,8 @@ import AppError from '#exceptions/app_error'
 export const API_SCOPES = [
   'goals:read',
   'goals:write',
+  'notes:read',
+  'notes:write',
   'projects:read',
   'projects:write',
   'todos:read',

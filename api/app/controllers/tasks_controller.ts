@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import Project from '#models/project'
 import Task from '#models/task'
+import { findInWs, findTask } from '#services/scoped'
 import { bottomPosition, inList, positionFor, wantsMove } from '#services/ordering'
 import { createTaskValidator, updateTaskValidator } from '#validators/project'
 
@@ -14,8 +15,8 @@ export default class TasksController {
    * GET /projects/:id/tasks: pending tasks in your order, then completed
    * ones, most recently completed first. Completed tasks never disappear.
    */
-  async index({ params }: HttpContext) {
-    const project = await Project.findOrFail(params.id)
+  async index({ params, workspace }: HttpContext) {
+    const project = await findInWs(Project, workspace, params.id)
     const pending = await pendingOf(project.id)().orderBy('position', 'asc').orderBy('id', 'asc')
     const complete = await Task.query()
       .where('project_id', project.id)
@@ -26,8 +27,8 @@ export default class TasksController {
   }
 
   /** POST /projects/:id/tasks: appended to Pending. */
-  async store({ params, request, response }: HttpContext) {
-    const project = await Project.findOrFail(params.id)
+  async store({ params, request, response, workspace }: HttpContext) {
+    const project = await findInWs(Project, workspace, params.id)
     const input = await request.validateUsing(createTaskValidator)
     const task = await inList(`tasks:${project.id}`, async (trx) =>
       Task.create(
@@ -50,8 +51,8 @@ export default class TasksController {
    * PATCH /tasks/:id. Completing stamps completed_at (top of Complete);
    * moving back to pending puts it at the end of Pending.
    */
-  async update({ params, request }: HttpContext) {
-    const task = await Task.findOrFail(params.id)
+  async update({ params, request, workspace }: HttpContext) {
+    const task = await findTask(workspace, params.id)
     const input = await request.validateUsing(updateTaskValidator)
 
     if (input.title !== undefined) task.title = input.title
@@ -75,8 +76,8 @@ export default class TasksController {
     return task.serialize()
   }
 
-  async destroy({ params, response }: HttpContext) {
-    const task = await Task.findOrFail(params.id)
+  async destroy({ params, response, workspace }: HttpContext) {
+    const task = await findTask(workspace, params.id)
     await task.delete()
     return response.noContent()
   }

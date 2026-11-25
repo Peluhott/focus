@@ -7,6 +7,9 @@ import { alignmentQueue } from './queue.js'
  * Where the rest of the app touches the AI check. Every function here is
  * safe to call from a request: failures are logged, never thrown, so saves
  * work the same whether the AI is on, off or broken.
+ *
+ * The AI setting is per workspace (Personal / Work). Nothing from a
+ * workspace is sent to the model unless that workspace's ai_enabled is on.
  */
 
 let forced: boolean | undefined
@@ -20,11 +23,11 @@ export function forceAiConfigured(value: boolean | undefined) {
   forced = value
 }
 
-/** Configured on the server *and* switched on in Settings. */
-export async function aiActive() {
-  if (!aiConfigured()) return false
-  const user = await db.from('users').select('ai_enabled').orderBy('id').first()
-  return !!user?.ai_enabled
+/** Configured on the server *and* switched on for this workspace. */
+export async function aiActive(workspaceId: number | null | undefined) {
+  if (!aiConfigured() || !workspaceId) return false
+  const row = await db.from('workspaces').where('id', workspaceId).select('ai_enabled').first()
+  return !!row?.ai_enabled
 }
 
 /** Queue a check for one to-do (already saved as "pending"). */
@@ -44,13 +47,21 @@ export async function queueTodoCheck(todoId: number) {
   }
 }
 
-/** Goals or projects changed: re-check open to-dos (batched by the queue). */
-export async function queueContextRecheck() {
+/** A workspace's goals or projects changed: re-check its open to-dos (batched by the queue). */
+export async function queueContextRecheck(workspaceId: number | null | undefined) {
   try {
-    if (await aiActive()) await alignmentQueue().checkAll()
+    if (workspaceId && (await aiActive(workspaceId))) {
+      await alignmentQueue().checkAll(workspaceId)
+    }
   } catch (error) {
-    logger.error({ err: error }, 'could not queue an alignment re-check')
+    logger.error({ err: error, workspaceId }, 'could not queue an alignment re-check')
   }
+}
+
+/** The workspace of a goal or project, for child rows (sub-goals, tasks). */
+export async function workspaceOf(table: 'goals' | 'projects', id: number) {
+  const row = await db.from(table).where('id', id).select('workspace_id').first()
+  return (row?.workspace_id as number | null | undefined) ?? null
 }
 
 /**
@@ -66,8 +77,15 @@ export function noteContextChange(
   if (!model.$isPersisted || fields.some((f) => f in model.$dirty)) touched.add(model)
 }
 
-export function recheckIfContextChanged(model: object) {
+/** `workspace` is the id, or a lookup for rows that only know their parent. */
+export function recheckIfContextChanged(
+  model: object,
+  workspace: number | null | (() => Promise<number | null>)
+) {
   if (!touched.delete(model)) return
   // Fire and forget: the request doesn't wait, and errors are logged.
-  void queueContextRecheck()
+  void (async () => {
+    const id = typeof workspace === 'function' ? await workspace() : workspace
+    await queueContextRecheck(id)
+  })().catch((error) => logger.error({ err: error }, 'could not queue an alignment re-check'))
 }

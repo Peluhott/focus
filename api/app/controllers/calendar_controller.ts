@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { inWs } from '#services/scoped'
 import Todo from '#models/todo'
 import { calendarValidator } from '#validators/suggestion'
 
@@ -9,11 +10,11 @@ import { calendarValidator } from '#validators/suggestion'
  * and never appear.
  */
 export default class CalendarController {
-  async index({ request }: HttpContext) {
+  async index({ request, workspace }: HttpContext) {
     const { month } = await calendarValidator.validate(request.qs())
     const [y, m] = month.split('-').map(Number)
     const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`
-    const rows = await Todo.query()
+    const rows = await inWs(Todo, workspace)
       .where('done', false)
       .where('recurring', false)
       .where('date', '>=', `${month}-01`)

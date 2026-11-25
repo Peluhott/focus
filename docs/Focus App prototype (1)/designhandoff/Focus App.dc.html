@@ -19,7 +19,7 @@
 </helmet>
 <div style="min-height: 100vh; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body);">
 
-  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+  <sc-if value="{{ isSplash }}" hint-placeholder-val="{{ false }}">
     <main data-screen-label="Login" style="position: relative; min-height: 100vh; box-sizing: border-box; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 64px clamp(20px, 5vw, 64px);">
       <div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; user-select: none; white-space: nowrap;">
         <span style="position: absolute; left: 5.6%; top: 10.5%; font-size: max(20px, 2.65vw); font-style: italic; color: var(--color-neutral-600); filter: blur(5px);">Reorganize bookmarks</span>
@@ -40,12 +40,89 @@
           <span style="display: inline-flex; align-items: center; gap: 6px;"><i class="ph-duotone ph-target" style="color: var(--color-accent-700);"></i>Build an emergency fund</span>
         </div>
         <p style="margin: 0; font-size: 19px; font-style: italic; color: var(--color-neutral-800); text-wrap: balance;">A few goals at a time. Every project and to-do traces back to one.</p>
-        <form onSubmit="{{ onSignIn }}" style="display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: 20px; padding: 10px; background: var(--color-bg); border-radius: var(--radius-md);">
-          <input class="input" type="email" aria-label="Email" placeholder="Email" style="flex: 1 1 220px; width: 220px;" value="{{ email }}" onChange="{{ onEmail }}">
-          <input class="input" type="password" aria-label="Password" placeholder="Password" style="flex: 1 1 180px; width: 180px;" value="{{ password }}" onChange="{{ onPassword }}">
-          <button class="btn btn-primary" type="submit" style="flex: 0 0 auto; min-height: 40px; padding: 0 22px;">Sign in</button>
-        </form>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: 20px;">
+          <button class="btn btn-primary" type="button" onClick="{{ openLogin }}" style="min-height: 44px; padding: 0 28px;">Log in</button>
+          <button class="btn btn-secondary" type="button" onClick="{{ openSignup }}" style="min-height: 44px; padding: 0 28px;">Sign up</button>
+        </div>
       </div>
+    </main>
+  </sc-if>
+
+
+  <sc-if value="{{ isAuth }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="Login panel" style="min-height: 100vh; display: flex; flex-wrap: wrap;">
+      <div style="flex: 1 1 380px; min-width: 0; max-width: 600px; box-sizing: border-box; padding: var(--space-6) clamp(20px, 5vw, 64px) var(--space-8); display: flex; flex-direction: column; gap: var(--space-8);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);">
+          <span style="font-family: var(--font-heading); font-weight: 600; font-size: 40px; line-height: 1; letter-spacing: -0.03em;">Focus</span>
+          <button class="btn btn-ghost" type="button" onClick="{{ closeAuth }}" style="color: var(--color-neutral-800);"><i class="ph-duotone ph-arrow-left"></i>Back</button>
+        </div>
+        <div style="margin: var(--space-6) 0 0; display: grid; gap: var(--space-6); width: 100%; max-width: 380px;">
+          <div style="display: grid; gap: var(--space-2);">
+            <h1 style="margin: 0; font-size: clamp(40px, 4vw, 56px); font-weight: 600; line-height: 1; letter-spacing: -0.02em;">{{ au.title }}</h1>
+            <p style="margin: 0; font-size: 17px; font-style: italic; color: var(--color-neutral-800);">{{ au.sub }}</p>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="Log in or sign up" style="justify-self: start;">
+            <label class="seg-opt" style="padding: 9px 18px; font-size: 14px;"><input type="radio" name="authmode" checked="{{ au.isLogin }}" onChange="{{ openLogin }}">Log in</label>
+            <label class="seg-opt" style="padding: 9px 18px; font-size: 14px;"><input type="radio" name="authmode" checked="{{ au.isSignup }}" onChange="{{ openSignup }}">Sign up</label>
+          </div>
+          <div style="display: grid; gap: var(--space-3);">
+            <button class="btn btn-secondary btn-block" type="button" onClick="{{ onSignIn }}" style="min-height: 44px; gap: 10px;"><i class="ph-duotone ph-google-logo" style="font-size: 20px;"></i>{{ au.googleLabel }}</button>
+            <button class="btn btn-secondary btn-block" type="button" onClick="{{ onSignIn }}" style="min-height: 44px; gap: 10px;"><i class="ph-duotone ph-windows-logo" style="font-size: 20px;"></i>{{ au.microsoftLabel }}</button>
+            <button class="btn btn-secondary btn-block" type="button" onClick="{{ onSignIn }}" style="min-height: 44px; gap: 10px;"><i class="ph-duotone ph-apple-logo" style="font-size: 20px;"></i>{{ au.appleLabel }}</button>
+            <span style="font-size: 13px; font-style: italic; color: var(--color-neutral-700);">or with email</span>
+          </div>
+          <form onSubmit="{{ onSignIn }}" style="display: grid; gap: var(--space-3);">
+            <sc-if value="{{ au.isSignup }}" hint-placeholder-val="{{ false }}">
+              <div class="field"><label for="au-name">Name</label><input id="au-name" class="input" autoComplete="name" placeholder="What should we call you?" value="{{ au.name }}" onChange="{{ au.onName }}"></div>
+            </sc-if>
+            <div class="field"><label for="au-email">Email</label><input id="au-email" class="input" type="email" autoComplete="email" value="{{ email }}" onChange="{{ onEmail }}"></div>
+            <div class="field">
+              <label for="au-pass">Password</label>
+              <input id="au-pass" class="input" type="password" autoComplete="{{ au.passAuto }}" value="{{ password }}" onChange="{{ onPassword }}">
+              <sc-if value="{{ au.isLogin }}" hint-placeholder-val="{{ true }}"><a href="#" onClick="{{ stopLink }}" style="justify-self: start; font-size: 13px;">Forgot it?</a></sc-if>
+            </div>
+            <button class="btn btn-primary btn-block" type="submit" style="min-height: 44px; margin-top: var(--space-2);">{{ au.cta }}</button>
+          </form>
+          <p style="margin: 0; font-size: 14px; color: var(--color-neutral-800);">{{ au.switchQ }} <a href="#" onClick="{{ au.onSwitch }}">{{ au.switchLabel }}</a></p>
+        </div>
+      </div>
+      <aside data-screen-label="Feature overview" style="flex: 1.4 1 460px; min-width: 0; box-sizing: border-box; background: var(--color-neutral-100); padding: var(--space-6) clamp(20px, 5vw, 72px); display: flex; flex-direction: column; justify-content: center; gap: var(--space-6);">
+        <div style="display: grid; gap: var(--space-3); max-width: 620px;">
+          <h6 style="margin: 0; color: var(--color-accent-700);">What's inside</h6>
+          <h2 style="margin: 0; font-size: clamp(28px, 2.6vw, 38px); font-style: italic; font-weight: 400; line-height: 1.1; letter-spacing: -0.015em; text-wrap: balance;">A few goals at a time. Every project and to-do traces back to one.</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--space-4) var(--space-8); align-items: center; max-width: 900px;">
+          <div style="display: grid; gap: 6px; align-content: start;"><i class="ph-duotone ph-link-simple" style="font-size: 28px; color: var(--color-accent-700);"></i><h4 style="margin: 0;">Every to-do checked</h4><p style="margin: 0; font-size: 15px; color: var(--color-neutral-800);">Each new to-do is matched to the goal or project it serves. Anything that doesn’t fit gets flagged, so you can relink it or let it go.</p></div>
+          <div class="card elev-sm" aria-hidden="true" style="min-width: 0; display: grid; gap: 14px; padding: var(--space-4) var(--space-6); pointer-events: none;">
+            <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-700);">To-dos</span>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;"><i class="ph-duotone ph-circle" style="font-size: 20px; flex: none; color: var(--color-neutral-600);"></i><span style="flex: 1 1 140px;">Easy 5 km run</span><span class="tag tag-accent" style="gap: 5px;"><i class="ph-duotone ph-target"></i>Run a half marathon</span></div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;"><i class="ph-duotone ph-circle" style="font-size: 20px; flex: none; color: var(--color-neutral-600);"></i><span style="flex: 1 1 140px;">Transfer $20 to savings</span><span class="tag tag-accent" style="gap: 5px;"><i class="ph-duotone ph-target"></i>Build an emergency fund</span></div>
+            <div style="display: grid; gap: 4px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;"><i class="ph-duotone ph-circle" style="font-size: 20px; flex: none; color: var(--color-neutral-600);"></i><span style="flex: 1 1 140px;">Research a new video game to play</span></div>
+              <span style="display: inline-flex; align-items: center; gap: 6px; padding-left: 32px; font-size: 13px; color: var(--color-accent-2-800);"><i class="ph-duotone ph-warning" style="font-size: 16px;"></i>Doesn't relate to any active goal.</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--space-4) var(--space-8); align-items: center; max-width: 900px;">
+          <div style="display: grid; gap: 6px; align-content: start;"><i class="ph-duotone ph-footprints" style="font-size: 28px; color: var(--color-accent-700);"></i><h4 style="margin: 0;">Help me start</h4><p style="margin: 0; font-size: 15px; color: var(--color-neutral-800);">Stuck on a to-do? Get a small first step you can add to the list.</p></div>
+          <div class="card elev-sm" aria-hidden="true" style="min-width: 0; display: grid; gap: 12px; padding: var(--space-4) var(--space-6); pointer-events: none;">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;"><i class="ph-duotone ph-circle" style="font-size: 20px; flex: none; color: var(--color-neutral-600);"></i><span style="flex: 1 1 140px;">Plan the Japan trip</span><span class="btn btn-ghost btn-icon" style="width: 32px; height: 32px; color: var(--color-accent-700); background: var(--color-accent-100);"><i class="ph-duotone ph-footprints" style="font-size: 18px;"></i></span></div>
+            <div style="display: flex; align-items: flex-start; gap: 12px; margin-left: 32px; padding: 12px 14px; background: var(--color-neutral-100); border-radius: var(--radius-md);">
+              <i class="ph-duotone ph-footprints" style="font-size: 20px; flex: none; margin-top: 2px; color: var(--color-accent-700);"></i>
+              <div style="display: grid; gap: 10px; min-width: 0;">
+                <div style="display: grid; gap: 4px;">
+                  <span style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent-800);">Start here</span>
+                  <p style="margin: 0; font-size: 16px; line-height: 1.45;">Open a note and list three cities you want to see.</p>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);">
+                  <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;"><i class="ph-duotone ph-plus"></i>Add as to-do</span>
+                  <span class="btn btn-ghost" style="padding: 6px 10px; font-size: 14px;"><i class="ph-duotone ph-arrows-clockwise"></i>Another idea</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
     </main>
   </sc-if>
 
@@ -55,13 +132,17 @@
     
 
     
-      <header data-screen-label="Nav B" style="padding: var(--space-6) clamp(20px, 5vw, 64px) 0;">
-        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4) var(--space-8);">
-          <div style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px;">
+      <header data-screen-label="Nav" style="padding: var(--space-6) clamp(20px, 5vw, 64px) 0;">
+        <div style="display: grid; grid-template-columns: {{ hv.cols }}; grid-template-areas: {{ hv.areas }}; align-items: end; gap: {{ hv.rowGap }} var(--space-8);">
+          <div style="grid-area: brand; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4);">
             <span style="font-family: var(--font-heading); font-weight: 600; font-size: 48px; line-height: 1; letter-spacing: -0.03em;">Focus</span>
-            <span style="display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-800);"><span>Friday, November 20, 2026</span><span>{{ openTodoLabel }}</span><sc-if value="{{ showFlagged }}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 4px; color: var(--color-accent-2-700);"><i class="ph-duotone ph-warning"></i>{{ flaggedLabel }}</span></sc-if></span>
+            <div class="seg" role="radiogroup" aria-label="Workspace">
+              <label class="seg-opt" style="font-size: 14px;"><input type="radio" name="workspace" checked="{{ isPersonal }}" onChange="{{ goPersonal }}">Personal</label>
+              <label class="seg-opt" style="font-size: 14px;"><input type="radio" name="workspace" checked="{{ isWork }}" onChange="{{ goWork }}">Work</label>
+            </div>
           </div>
-          <nav style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2) var(--space-6);">
+          <span style="grid-area: rail; justify-self: {{ hv.railJustify }}; padding-bottom: {{ hv.railPad }}; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-800);"><span>Friday, November 20, 2026</span><span>{{ openTodoLabel }}</span><sc-if value="{{ showFlagged }}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 4px; color: var(--color-accent-2-700);"><i class="ph-duotone ph-warning"></i>{{ flaggedLabel }}</span></sc-if></span>
+          <nav style="grid-area: nav; display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2) var(--space-6);">
             <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
               <a href="#" aria-current="{{ n.current }}" onClick="{{ n.onClick }}" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: {{ n.color }};" style-hover="color: var(--color-accent-700);">
                 <span style="display: flex; align-items: flex-start; gap: 3px; padding: 0 2px;"><span style="font-family: var(--font-heading); font-weight: 600; font-size: 26px; line-height: 1; letter-spacing: -0.01em;">{{ n.label }}</span><span style="font-size: 12px; line-height: 1; color: var(--color-accent-700);">{{ n.count }}</span></span>
@@ -69,6 +150,37 @@
               </a>
             </sc-for>
           </nav>
+            <div data-screen-label="Nav timer" style="grid-area: timer; justify-self: end; position: relative; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 2px; height: 26px;">
+                <i class="ph-duotone ph-timer" style="font-size: 20px; margin-right: 4px; color: {{ tm.iconColor }};"></i>
+                <span role="timer" aria-label="Timer" style="display: inline-flex; align-items: baseline; gap: 4px; min-width: 2.7em;">
+                  <sc-if value="{{ tm.notEditing }}" hint-placeholder-val="{{ true }}"><button type="button" title="Change minutes" aria-label="{{ tm.editLabel }}" onClick="{{ tm.onEdit }}" style="border: 0; background: transparent; margin: 0; padding: 0 3px; border-radius: var(--radius-sm); cursor: text; font-family: var(--font-heading); font-weight: 600; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; color: {{ tm.color }};" style-hover="background: var(--color-accent-100);">{{ tm.display }}</button></sc-if>
+                  <sc-if value="{{ tm.editing }}" hint-placeholder-val="{{ false }}"><input type="text" inputMode="numeric" autoFocus="{{ true }}" aria-label="Timer minutes" value="{{ tm.editValue }}" onChange="{{ tm.onEditInput }}" onKeyDown="{{ tm.onEditKey }}" onBlur="{{ tm.onEditBlur }}" onFocus="{{ tm.onEditFocus }}" style="width: 2.2em; margin: 0; padding: 0 3px; border: 0; border-bottom: 2px solid var(--color-accent); background: transparent; color: var(--color-text); font-family: var(--font-heading); font-weight: 600; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; text-align: right;"><span style="font-size: 13px; color: var(--color-neutral-700);">min</span></sc-if>
+                </span>
+                <sc-if value="{{ tm.notDone }}" hint-placeholder-val="{{ true }}">
+                  <button class="btn btn-ghost btn-icon" aria-label="{{ tm.playLabel }}" title="{{ tm.playLabel }}" onClick="{{ tm.onPlay }}" style="width: 32px; height: 32px; color: var(--color-text);"><i class="{{ tm.playIcon }}" style="font-size: 18px;"></i></button>
+                  <button class="btn btn-ghost btn-icon" aria-label="Reset timer" title="Reset timer" disabled="{{ tm.resetDisabled }}" onClick="{{ tm.onReset }}" style="width: 32px; height: 32px; color: var(--color-neutral-700);"><i class="ph-duotone ph-arrow-counter-clockwise" style="font-size: 18px;"></i></button>
+                </sc-if>
+                <sc-if value="{{ tm.isDone }}" hint-placeholder-val="{{ false }}">
+                  <button class="btn btn-ghost" style="padding: 2px 8px; font-size: 14px;" onClick="{{ tm.onAgain }}"><i class="ph-duotone ph-arrow-clockwise"></i>Again</button>
+                  <button class="btn btn-ghost" style="padding: 2px 8px; font-size: 14px;" aria-expanded="{{ tm.pickerStr }}" onClick="{{ tm.onNew }}"><i class="ph-duotone ph-plus"></i>New</button>
+                </sc-if>
+              </div>
+              <span style="display: block; height: 5px; background: {{ tm.track }};"><span style="display: block; height: 100%; width: {{ tm.pct }}; background: {{ tm.fill }};"></span></span>
+              <sc-if value="{{ tm.picker }}" hint-placeholder-val="{{ false }}">
+                <div role="dialog" aria-label="New timer" style="position: absolute; right: 0; top: calc(100% + 10px); z-index: 35; width: 292px; display: grid; gap: 12px; padding: 14px; background: var(--color-surface); box-shadow: var(--shadow-lg); border-radius: var(--radius-md);">
+                  <span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-700);">New timer</span>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <sc-for list="{{ tm.presets }}" as="pr"><button class="btn {{ pr.cls }}" style="padding: 4px 10px; font-size: 14px;" onClick="{{ pr.onPick }}">{{ pr.label }}</button></sc-for>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <input class="input" type="number" min="1" max="180" aria-label="Minutes" placeholder="Minutes" value="{{ tm.custom }}" onChange="{{ tm.onCustomInput }}" onKeyDown="{{ tm.onCustomKey }}" style="width: 96px; background: var(--color-bg);">
+                    <button class="btn btn-primary" disabled="{{ tm.customDisabled }}" onClick="{{ tm.onCustom }}">Start</button>
+                    <button class="btn btn-ghost" onClick="{{ tm.closePicker }}">Cancel</button>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
         </div>
         <div style="height: 1px; background: var(--color-text);"></div>
       </header>
@@ -81,9 +193,19 @@
         <section data-screen-label="To-dos">
           <h1 style="margin: 0 0 var(--space-1); text-align: {{ alignText }};">To-dos</h1>
           <p style="font-size: 17px; margin: 0 0 var(--space-6); color: var(--color-neutral-800); text-align: {{ alignText }};">One list, in the order you set.</p>
-          <input class="input" style="display: block; font-size: 16px; min-height: 44px; max-width: 720px; margin: 0 {{ listMargin }};" placeholder="Add a to-do and press Enter" value="{{ newTodo }}" onChange="{{ onNewTodo }}" onKeyDown="{{ onNewTodoKey }}">
-          <div style="display: flex; flex-direction: column; gap: 2px; margin: var(--space-4) {{ listMargin }} 0; max-width: 720px;">
-            <sc-for list="{{ todoRows }}" as="t" hint-placeholder-count="5">
+          <input class="input" style="display: block; box-sizing: border-box; width: 100%; font-size: 16px; min-height: 44px; max-width: 720px; margin: 0 {{ listMargin }} var(--space-4);" placeholder="Add a to-do and press Enter" value="{{ newTodo }}" onChange="{{ onNewTodo }}" onKeyDown="{{ onNewTodoKey }}">
+          <div style="display: grid; grid-template-columns: {{ rv.cols }}; gap: {{ rv.gap }}; align-items: start; max-width: {{ rv.maxW }}; margin: 0 {{ listMargin }};">
+          <sc-for list="{{ todoGroups }}" as="grp" hint-placeholder-count="1">
+          <div data-screen-label="{{ grp.screen }}" style="grid-column: {{ grp.col }}; grid-row: {{ grp.row }}; min-width: 0; display: grid; grid-template-columns: {{ grp.innerCols }}; gap: {{ grp.innerGap }}; align-items: start; padding: {{ grp.pad }}; background: {{ grp.bg }}; border-radius: var(--radius-md);">
+          <sc-if value="{{ grp.showLabel }}" hint-placeholder-val="{{ false }}">
+            <div style="display: grid; gap: 4px; padding-top: {{ grp.labelPad }};">
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-heading); font-weight: 600; font-size: {{ grp.labelSize }}; letter-spacing: {{ grp.labelTrack }}; text-transform: {{ grp.labelCase }}; line-height: 1.2; color: {{ grp.labelColor }};"><sc-if value="{{ grp.isRecurring }}"><i class="ph-duotone ph-repeat" style="font-size: 0.9em;"></i></sc-if>{{ grp.label }}</span>
+              <sc-if value="{{ grp.note }}"><span style="font-size: 13px; line-height: 1.35; color: var(--color-neutral-700); text-wrap: pretty;">{{ grp.note }}</span></sc-if>
+            </div>
+          </sc-if>
+          <div style="min-width: 0;">
+          <div style="display: flex; flex-direction: column; gap: 2px; margin-top: {{ grp.listTop }};">
+            <sc-for list="{{ grp.rows }}" as="t" hint-placeholder-count="5">
               <div data-row="1" onDragOver="{{ t.dragOver }}" onDrop="{{ t.drop }}" style="padding: 6px 8px 6px 4px; border-radius: var(--radius-md); background: {{ t.rowBg }}; border-left: 3px solid {{ t.rowEdge }}; box-shadow: {{ t.dropLine }}; opacity: {{ t.dragOpacity }};">
                 <div style="display: flex; align-items: center; gap: 10px; filter: {{ t.blur }}; opacity: {{ t.blurOpacity }}; transition: filter 0.2s, opacity 0.2s;" style-hover="filter: none; opacity: 1;">
                   <span draggable="true" tabIndex="0" role="button" aria-label="Reorder (drag, or use arrow keys)" onDragStart="{{ t.dragStart }}" onDragEnd="{{ t.dragEnd }}" onKeyDown="{{ t.handleKey }}" style="display: flex; padding: 4px 2px; cursor: grab; color: var(--color-neutral-500); flex: none;"><i class="ph-duotone ph-dots-six-vertical" style="font-size: 18px;"></i></span>
@@ -93,8 +215,42 @@
                   <sc-if value="{{ t.recurring }}"><span style="display: inline-flex; align-items: center; gap: 10px; flex: none; font-size: 12px; white-space: nowrap; color: var(--color-neutral-700);"><span>{{ t.tally }}</span><sc-if value="{{ t.doneToday }}"><span style="display: inline-flex; align-items: center; gap: 3px; color: var(--color-accent-700);"><i class="ph-duotone ph-check"></i>today</span></sc-if></span></sc-if>
                   <sc-if value="{{ t.aligned }}"><span class="tag tag-accent" style="gap: 5px; max-width: 220px; flex: 0 1 auto; min-width: 0;"><i class="{{ t.matchIcon }}" style="flex: none;"></i><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ t.matchName }}</span></span></sc-if>
                   <sc-if value="{{ t.hasDate }}"><span class="tag" style="background: {{ t.dateBg }}; color: {{ t.dateFg }}; white-space: nowrap; flex: none;">{{ t.dateLabel }}</span></sc-if>
+                  <sc-if value="{{ t.hintAvailable }}"><button class="btn btn-ghost btn-icon" aria-label="Help me start" title="Help me start" aria-expanded="{{ t.startExpanded }}" onClick="{{ t.onStart }}" style="width: 32px; height: 32px; flex: none; color: var(--color-accent-700); background: {{ t.startBtnBg }};"><i class="ph-duotone ph-footprints" style="font-size: 18px;"></i></button></sc-if>
                   <button class="btn btn-ghost btn-icon" aria-label="{{ t.expandLabel }}" title="{{ t.expandLabel }}" onClick="{{ t.onExpand }}" style="width: 32px; height: 32px; flex: none; color: var(--color-neutral-700);"><i class="{{ t.expandIcon }}" style="font-size: 18px;"></i></button>
                 </div>
+                <sc-if value="{{ t.startOpen }}">
+                  <div data-screen-label="Start small" style="display: flex; align-items: flex-start; gap: 12px; margin: 4px 0 6px 56px; padding: 12px 8px 12px 14px; max-width: 600px; background: var(--color-surface); border-radius: var(--radius-md);">
+                    <i class="ph-duotone ph-footprints" style="font-size: 20px; flex: none; margin-top: 2px; color: var(--color-accent-700);"></i>
+                    <div style="display: grid; gap: 10px; flex: 1; min-width: 0;">
+                      <sc-if value="{{ t.hintBusy }}"><p role="status" style="margin: 0; font-size: 15px; color: var(--color-neutral-700);">Thinking of a first step…</p></sc-if>
+                      <sc-if value="{{ t.hintHasText }}">
+                        <div style="display: grid; gap: 4px;">
+                          <span style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent-800);">Start here</span>
+                          <p style="margin: 0; font-size: 17px; line-height: 1.45; text-wrap: pretty;">{{ t.hintText }}</p>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ t.hintReady }}">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);">
+                          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;" onClick="{{ t.onAddStarter }}"><i class="ph-duotone ph-plus"></i>Add as to-do</button>
+                          <button class="btn btn-ghost" style="padding: 6px 10px; font-size: 14px;" onClick="{{ t.onRegenerate }}"><i class="ph-duotone ph-arrows-clockwise"></i>Another idea</button>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ t.hintAdded }}">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);">
+                          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--color-accent-700);"><i class="ph-duotone ph-check"></i>Added above this to-do.</span>
+                          <button class="btn btn-ghost" style="padding: 6px 10px; font-size: 14px;" onClick="{{ t.onRegenerate }}"><i class="ph-duotone ph-arrows-clockwise"></i>Another idea</button>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ t.hintFailed }}">
+                        <div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 14px; color: var(--color-accent-2-800);">
+                          <i class="ph-duotone ph-warning-circle" style="font-size: 18px;"></i><span>{{ t.hintError }}</span>
+                          <button class="btn btn-ghost" style="color: var(--color-accent-700);" onClick="{{ t.onRetry }}">Try again</button>
+                        </div>
+                      </sc-if>
+                    </div>
+                    <button class="btn btn-ghost btn-icon" aria-label="Close" title="Close" onClick="{{ t.onStartClose }}" style="width: 28px; height: 28px; flex: none; color: var(--color-neutral-700);"><i class="ph-duotone ph-x"></i></button>
+                  </div>
+                </sc-if>
                 <sc-if value="{{ t.unaligned }}">
                   <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; padding: 0 0 4px 60px; font-size: 13px;">
                     <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-accent-2-800);"><i class="ph-duotone ph-warning" style="font-size: 16px;"></i>{{ t.reason }}</span>
@@ -127,6 +283,10 @@
                 </sc-if>
               </div>
             </sc-for>
+          </div>
+          </div>
+          </div>
+          </sc-for>
           </div>
           <sc-if value="{{ noTodos }}" hint-placeholder-val="{{ false }}"><p style="margin-top: var(--space-6); color: var(--color-neutral-700); text-align: {{ alignText }};">Nothing on the list.</p></sc-if>
         </section>
@@ -457,6 +617,50 @@
         </section>
       </sc-if>
 
+      <sc-if value="{{ isNotes }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="Notes" style="max-width: 1120px; margin: 0 auto;">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-6);">
+            <h1 style="margin: 0;">Notes</h1>
+            <button class="btn btn-primary" style="min-height: 36px;" onClick="{{ nt.onNew }}"><i class="ph-duotone ph-plus"></i>New note</button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-6) var(--space-8);">
+            <div style="flex: 1 1 260px; max-width: 360px; min-width: 0;">
+              <div style="position: relative;">
+                <i class="ph-duotone ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 17px; color: var(--color-neutral-600); pointer-events: none;"></i>
+                <input class="input" type="search" aria-label="Search notes" placeholder="Search notes" value="{{ nt.query }}" onChange="{{ nt.onQuery }}" style="padding-left: 36px; min-height: 40px;">
+              </div>
+              <sc-if value="{{ nt.searching }}"><p style="margin: 8px 0 0; font-size: 12px; color: var(--color-neutral-700);">{{ nt.matchLabel }}. Clear the search to reorder.</p></sc-if>
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; margin-top: var(--space-3);">
+                <sc-for list="{{ nt.rows }}" as="n" hint-placeholder-count="4">
+                  <div data-row="1" onDragOver="{{ n.dragOver }}" onDrop="{{ n.drop }}" onClick="{{ n.onSelect }}" style="display: flex; align-items: flex-start; gap: 6px; padding: 10px 10px 10px 2px; border-radius: var(--radius-md); cursor: pointer; background: {{ n.bg }}; box-shadow: {{ n.dropLine }}; opacity: {{ n.dragOpacity }};" style-hover="background: color-mix(in srgb, var(--color-text) 5%, transparent);">
+                    <sc-if value="{{ n.canDrag }}"><span draggable="true" tabIndex="0" role="button" aria-label="Reorder note (drag, or use arrow keys)" onClick="{{ stop }}" onDragStart="{{ n.dragStart }}" onDragEnd="{{ n.dragEnd }}" onKeyDown="{{ n.handleKey }}" style="display: flex; padding: 2px; cursor: grab; color: var(--color-neutral-500); flex: none;"><i class="ph-duotone ph-dots-six-vertical" style="font-size: 18px;"></i></span></sc-if>
+                    <sc-if value="{{ n.noDrag }}"><span style="width: 22px; flex: none;"></span></sc-if>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-family: var(--font-heading); font-weight: 600; font-size: 17px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: {{ n.titleColor }};">{{ n.title }}</div>
+                      <div style="margin-top: 2px; font-size: 13px; color: var(--color-neutral-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ n.snippet }}</div>
+                    </div>
+                    <span style="flex: none; font-size: 12px; padding-top: 3px; color: var(--color-neutral-700);">{{ n.date }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ nt.noNotes }}" hint-placeholder-val="{{ false }}"><p style="margin: var(--space-3) 0 0; color: var(--color-neutral-700);">No notes yet.</p></sc-if>
+              <sc-if value="{{ nt.noMatches }}" hint-placeholder-val="{{ false }}"><p style="margin: var(--space-3) 0 0; color: var(--color-neutral-700);">{{ nt.noMatchLabel }}</p></sc-if>
+            </div>
+            <div data-screen-label="Note editor" style="flex: 3 1 420px; min-width: 0;">
+              <sc-if value="{{ nt.hasSel }}" hint-placeholder-val="{{ true }}">
+                <input value="{{ nt.title }}" onChange="{{ nt.onTitle }}" placeholder="Untitled note" autoFocus="{{ nt.isNew }}" aria-label="Note title" style="display: block; width: 100%; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; font-family: var(--font-heading); font-weight: 600; font-size: 34px; line-height: 1.15; letter-spacing: -0.015em;">
+                <div role="status" style="display: flex; align-items: center; gap: 6px; margin: 8px 0 var(--space-4); font-size: 12px; color: var(--color-neutral-700);"><i class="{{ nt.saveIcon }}" style="font-size: 14px;"></i>{{ nt.saveLabel }}</div>
+                <textarea value="{{ nt.body }}" onChange="{{ nt.onBody }}" placeholder="Write something. Markdown works." aria-label="Note" style="display: block; width: 100%; max-width: 68ch; min-height: 360px; box-sizing: border-box; field-sizing: content; resize: none; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: 17px; line-height: 1.65;"></textarea>
+                <div style="margin-top: var(--space-6);">
+                  <button class="btn btn-ghost" style="color: var(--color-neutral-700);" onClick="{{ nt.onDelete }}"><i class="ph-duotone ph-trash"></i>Delete note</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ nt.noSel }}" hint-placeholder-val="{{ false }}"><p style="margin: 0; color: var(--color-neutral-700);">Select a note, or start a new one.</p></sc-if>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
       <sc-if value="{{ isCalendar }}" hint-placeholder-val="{{ false }}">
         <section data-screen-label="Calendar" style="max-width: 1240px; margin: 0 auto;">
           <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-2);">
@@ -529,11 +733,39 @@
         <section data-screen-label="Settings" style="display: grid; gap: var(--space-8); max-width: 720px;">
           <h1 style="margin: 0;">Settings</h1>
           <div>
-            <h3>AI alignment check</h3>
+            <h3>Account</h3>
+            <div data-screen-label="Account form" style="display: grid; gap: var(--space-3); max-width: 520px;">
+              <div class="field"><label for="aname">Display name</label><input id="aname" class="input" autoComplete="name" value="{{ acct.displayName }}" onChange="{{ acct.onName }}"></div>
+              <div class="field"><label for="aemail">Email</label><input id="aemail" class="input" type="email" autoComplete="email" value="{{ acct.email }}" onChange="{{ acct.onEmail }}"></div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3);">
+                <div class="field"><label for="acur">Current password</label><input id="acur" class="input" type="password" autoComplete="current-password" value="{{ acct.current }}" onChange="{{ acct.onCurrent }}"></div>
+                <div class="field"><label for="anew">New password</label><input id="anew" class="input" type="password" autoComplete="new-password" placeholder="Leave blank to keep" value="{{ acct.next }}" onChange="{{ acct.onNext }}"></div>
+              </div>
+              <p style="margin: 0; font-size: 13px; color: var(--color-neutral-700);">Changing your email or password needs your current password. New passwords are at least 8 characters.</p>
+              <sc-if value="{{ acct.hasError }}"><p role="alert" style="display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--color-accent-2-800);"><i class="ph-duotone ph-warning-circle" style="font-size: 18px; flex: none;"></i>{{ acct.error }}</p></sc-if>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-top: var(--space-1);">
+                <button class="btn btn-primary" disabled="{{ acct.saveDisabled }}" onClick="{{ acct.onSave }}">{{ acct.saveLabel }}</button>
+                <sc-if value="{{ acct.saved }}"><span role="status" style="display: inline-flex; align-items: center; gap: 5px; font-size: 14px; color: var(--color-accent-700);"><i class="ph-duotone ph-check"></i>Saved</span></sc-if>
+                <button class="btn btn-ghost" style="margin-left: auto;" onClick="{{ signOut }}"><i class="ph-duotone ph-sign-out"></i>Sign out</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);">AI alignment check <span class="tag tag-neutral">{{ modeLabel }}</span></h3>
             <p style="max-width: 58ch; color: var(--color-neutral-800);">Compares each open to-do with your active goals, and blurs the ones that don't serve any of them. When it's off, nothing is checked and no chips or highlights show.</p>
+            <sc-if value="{{ isWork }}" hint-placeholder-val="{{ false }}"><p style="max-width: 58ch; color: var(--color-neutral-800);">Personal and Work each have their own setting. AI is off by default in Work, so nothing from this workspace leaves Focus unless you turn it on.</p></sc-if>
+            <sc-if value="{{ workAiOn }}" hint-placeholder-val="{{ false }}"><p role="note" style="display: flex; align-items: flex-start; gap: 8px; max-width: 58ch; font-size: 14px; color: var(--color-accent-2-800);"><i class="ph-duotone ph-warning" style="font-size: 18px; flex: none; margin-top: 1px;"></i><span>AI is on for Work. Keep confidential, client and other sensitive work information out of Focus.</span></p></sc-if>
             <div class="seg" role="radiogroup" aria-label="AI alignment check">
               <label class="seg-opt"><input type="radio" name="ai" checked="{{ aiOn }}" onChange="{{ setAiOn }}">On</label>
               <label class="seg-opt"><input type="radio" name="ai" checked="{{ aiOff }}" onChange="{{ setAiOff }}">Off</label>
+            </div>
+          </div>
+          <div data-screen-label="Timer settings">
+            <h3>Timer</h3>
+            <p style="max-width: 58ch; color: var(--color-neutral-800);">The timer in the nav bar starts from this length. When it ends, you can run it again or pick a different length for that run.</p>
+            <div class="field" style="max-width: 220px;">
+              <label for="tmin">Default length (minutes)</label>
+              <input id="tmin" class="input" type="number" min="1" max="180" step="1" style="width: 120px;" value="{{ timerMinValue }}" onChange="{{ onTimerMin }}" onBlur="{{ onTimerMinBlur }}">
             </div>
           </div>
           <div>
@@ -579,23 +811,20 @@
           </div>
           <div>
             <h3>Data</h3>
-            <p style="color: var(--color-neutral-800);">Download all goals, projects, tasks and to-dos as JSON.</p>
+            <p style="color: var(--color-neutral-800);">Download goals, projects, to-dos and notes from Personal and Work as JSON.</p>
             <button class="btn btn-secondary" onClick="{{ onExport }}"><i class="ph-duotone ph-download-simple"></i>Export all</button>
-          </div>
-          <div>
-            <h3>Account</h3>
-            <p style="color: var(--color-neutral-800);">{{ email }}</p>
-            <button class="btn btn-secondary" onClick="{{ signOut }}"><i class="ph-duotone ph-sign-out"></i>Sign out</button>
           </div>
         </section>
       </sc-if>
     </main>
     <sc-if value="{{ showAlignSwitch }}" hint-placeholder-val="{{ false }}">
-      <div style="position: fixed; right: 20px; bottom: 20px; z-index: 30; display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; background: var(--color-surface); box-shadow: var(--shadow-lg); border-radius: var(--radius-md);">
-        <span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-700);">Layout</span>
-        <div class="seg" role="radiogroup" aria-label="Page alignment">
-          <label class="seg-opt"><input type="radio" name="alignopt" checked="{{ isLeft }}" onChange="{{ setLeft }}">Left</label>
-          <label class="seg-opt"><input type="radio" name="alignopt" checked="{{ isCentered }}" onChange="{{ setCentered }}">Centered</label>
+      <div style="position: fixed; right: 20px; bottom: 20px; z-index: 30; padding: 8px 10px 8px 14px; background: var(--color-surface); box-shadow: var(--shadow-lg); border-radius: var(--radius-md);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-700);">Layout</span>
+          <div class="seg" role="radiogroup" aria-label="Page alignment">
+            <label class="seg-opt"><input type="radio" name="alignopt" checked="{{ isLeft }}" onChange="{{ setLeft }}">Left</label>
+            <label class="seg-opt"><input type="radio" name="alignopt" checked="{{ isCentered }}" onChange="{{ setCentered }}">Centered</label>
+          </div>
         </div>
       </div>
     </sc-if>
@@ -636,12 +865,29 @@
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;startPage&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;goals&quot;,&quot;todos&quot;,&quot;projects&quot;,&quot;calendar&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;goals&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;sampleData&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;climbPreview&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:100000,&quot;step&quot;:10,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Climb preview (0 = real count)&quot;},&quot;fileStorage&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Project files&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;startPage&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;goals&quot;,&quot;todos&quot;,&quot;projects&quot;,&quot;notes&quot;,&quot;calendar&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;goals&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;startMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;personal&quot;,&quot;work&quot;],&quot;default&quot;:&quot;personal&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;sampleData&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;climbPreview&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:100000,&quot;step&quot;:10,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Climb preview (0 = real count)&quot;},&quot;fileStorage&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Project files&quot;},&quot;hintResult&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;success&quot;,&quot;error&quot;],&quot;default&quot;:&quot;success&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Hints&quot;}}">
 const TODAY = '2026-11-20';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmt = d => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return MONTHS[m - 1] + ' ' + dd + (y !== 2026 ? ', ' + y : ''); };
 const STATUS = { planning: 'Planning', active: 'Active', on_hold: 'On hold', done: 'Done', archived: 'Archived' };
-const SCOPES = ['goals:read', 'goals:write', 'projects:read', 'projects:write', 'todos:read', 'todos:write'];
+const SCOPES = ['goals:read', 'goals:write', 'projects:read', 'projects:write', 'todos:read', 'todos:write', 'notes:read', 'notes:write'];
+const TIMER_KEY = 'focus.timer.v1';
+const pad2 = n => String(n).padStart(2, '0');
+const fmtClock = ms => { const t = Math.ceil(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60; return h ? h + ':' + pad2(m) + ':' + pad2(sec) : m + ':' + pad2(sec); };
+const STARTERS = {
+  t10: ['Cook dinner at home tonight instead of eating out, and move the $25 you would have spent into a savings account for the trip.', 'Open a separate savings account called \u201cTrip\u201d and set up a $50 transfer every payday.', 'Look up flights for your dates tonight, so you know what the $5,000 has to cover.'],
+  t7: ['Open a blank doc and list the five endpoints a script calls most. Nothing else yet.', 'Write one curl example for creating a to-do. The rest can follow the same shape.'],
+  t1: ['Write only the test name and the expected 409, with an empty body. Fill it in after.', 'Copy an existing goal test and change the setup to three active goals.'],
+  t2: ['Search for movers near you and save the numbers of the first three with good reviews.', 'Write down the move date, number of rooms and floor, so each call takes two minutes.'],
+  t3: ['Delete the ten bookmarks at the top that you haven\u2019t opened this year.'],
+  t4: ['Put your running shoes and clothes by the door now.', 'Go out for 10 minutes. If it feels good, keep going.'],
+  t5: ['Send Sam two dates that work for you.'],
+  t6: ['Set a 15-minute timer and read one review.'],
+  t8: ['Open your banking app and move the $20 now. It takes a minute.'],
+  t9: ['Hold one stretch for 30 seconds as soon as you take your shoes off.'],
+};
+const GENERIC_STARTERS = ['Spend two minutes on it right now: open what you need and do the first small piece.', 'Write one sentence on what done looks like, then do the first thing it needs.'];
+const starterFor = (t, v) => { const list = STARTERS[t.id] || GENERIC_STARTERS; return list[v % list.length]; };
 const STOP = new Set('the and for with from that this about into some make need have what when will your after before then them more less new get buy call reply out off'.split(' '));
 const toks = s => ((s || '').toLowerCase().match(/[a-z0-9]+/g) || []).filter(w => w.length >= 3 && !STOP.has(w));
 let seq = 100;
@@ -664,7 +910,39 @@ const fmtN = n => n.toLocaleString('en-US');
 const emptyHistory = () => ({ base: { done: 0, aligned: 0, dropped: 0, relinked: 0, kept: 0, byGoal: {} }, week: { done: 0, aligned: 0 }, today: { done: 0, aligned: 0 }, prevPct: null, weeks: WEEK_LABELS.map(label => ({ label, pct: null })), days: Array(28).fill(null) });
 const freshSess = () => ({ done: 0, aligned: 0, dropped: 0, relinked: 0, kept: 0, byGoal: {} });
 const pctOf = (a, d) => d ? Math.round(a / d * 100) : null;
-const EMPTY = () => ({ goals: [], projects: [], todos: [], keys: [], history: emptyHistory(), sess: freshSess() });
+const EMPTY = () => ({ goals: [], projects: [], todos: [], keys: [], notes: [], history: emptyHistory(), sess: freshSess() });
+const WS_KEYS = ['goals', 'projects', 'todos', 'notes', 'history', 'sess', 'aiEnabled'];
+const emptyWork = () => ({ goals: [], projects: [], todos: [], notes: [], history: emptyHistory(), sess: freshSess(), aiEnabled: false });
+const seedWork = () => ({
+  goals: [
+    { id: 'wg1', title: 'Launch the new onboarding flow by March', status: 'active', details: 'Cut time-to-first-project in half for new customers.', subgoals: [
+      { id: 'ws1', title: 'Research interviews with 8 customers', done: true },
+      { id: 'ws2', title: 'Design review signed off', done: false },
+      { id: 'ws3', title: 'Beta with 10% of sign-ups', done: false }] },
+    { id: 'wg2', title: 'Move the team to weekly releases', status: 'active', details: '', subgoals: [
+      { id: 'ws4', title: 'Release checklist written', done: true },
+      { id: 'ws5', title: 'Four weekly releases in a row', done: false }] },
+  ],
+  projects: [
+    { id: 'wp1', title: 'Onboarding redesign', status: 'active', goalId: 'wg1', due: '2026-12-12', details: 'Design review on Dec 2. Beta flag ready by Dec 12.', files: [], tasks: [
+      { id: 'wk1', title: 'Synthesize interview notes', done: true, due: '', doneAt: 1 },
+      { id: 'wk2', title: 'Wireframes for the welcome steps', done: false, due: '2026-11-26' },
+      { id: 'wk3', title: 'Write the beta rollout plan', done: false, due: '2026-12-05' }] },
+    { id: 'wp2', title: 'Q1 planning', status: 'planning', goalId: null, due: '2026-12-18', details: '', files: [], tasks: [
+      { id: 'wk4', title: 'Collect team priorities', done: false, due: '2026-12-04' }] },
+  ],
+  todos: [
+    { id: 'wt1', title: 'Review the onboarding wireframes draft', notes: '', date: '2026-11-24', al: null },
+    { id: 'wt2', title: 'Send the weekly release notes', notes: '', date: '', recurring: true, count: 6, lastDone: '2026-11-13', al: null },
+    { id: 'wt3', title: 'Book 1:1s for next week', notes: '', date: '2026-11-23', al: null },
+    { id: 'wt4', title: 'Submit the October expense report', notes: '', date: '', al: null },
+  ],
+  notes: [
+    { id: 'wn1', title: 'Standup, Nov 19', body: 'Wireframes slipping two days.\nRelease checklist is in the team wiki.', updated: '2026-11-19' },
+    { id: 'wn2', title: 'Onboarding interview themes', body: 'Setup takes too many steps.\nPeople skip the tour.\nImporting is the moment they decide to stay.', updated: '2026-11-12' },
+  ],
+  history: emptyHistory(), sess: freshSess(), aiEnabled: false,
+});
 
 function seed() {
   return {
@@ -713,6 +991,7 @@ function seed() {
     ],
     todos: [
       { id: 't7', title: 'Draft the OpenAPI notes for Phase 5', notes: '', date: '', al: { status: 'pending', source: 'ai' } },
+      { id: 't10', title: 'Save $5,000 for the Japan trip', notes: '', date: '', al: { status: 'dismissed', source: 'ai' } },
       { id: 't8', title: 'Transfer $20 to savings', notes: '', date: '', recurring: true, count: 14, lastDone: '2026-11-20', al: { status: 'aligned', type: 'goal', id: 'g4', source: 'ai' } },
       { id: 't1', title: 'Write the 409 test for the goal limit', notes: '', date: '2026-11-21', al: { status: 'aligned', type: 'goal', id: 'g1', source: 'ai' } },
       { id: 't2', title: 'Call movers for a quote', notes: '', date: '2026-11-24', al: { status: 'unaligned', reason: "Doesn't relate to any active goal.", source: 'ai' } },
@@ -723,6 +1002,12 @@ function seed() {
       { id: 't6', title: 'Research a new video game to play', notes: '', date: '', al: { status: 'unaligned', reason: 'Leisure item; it doesn\u2019t move a goal forward.', source: 'ai' } },
     ],
     keys: [{ id: 'a1', name: 'Laptop scripts', prefix: 'fk_7Qm2', scopes: ['todos:read', 'todos:write'], lastUsed: 'Nov 19', expires: '', revoked: false }],
+    notes: [
+      { id: 'n1', title: 'Phase 5 API questions', body: 'Do keys need per-goal scopes, or are resource scopes enough?\n\nRate limit: 60 requests a minute per key to start.\n\nCheck whether webhooks are worth it for v1.', updated: '2026-11-19' },
+      { id: 'n2', title: 'Movers quotes', body: 'Two Guys: $1,450, 4 hour minimum.\nCity Movers: $1,280, no stairs fee.\nAsk both about reserving the elevator.', updated: '2026-11-18' },
+      { id: 'n3', title: 'Race-day checklist', body: 'Bib and safety pins\nThree gels\nWatch charged the night before\nOld sweatshirt for the start corral', updated: '2026-11-09' },
+      { id: 'n4', title: 'Books to read', body: 'The Overstory\nFour Thousand Weeks\nA Philosophy of Walking', updated: '2026-10-27' },
+    ],
     history: {
       base: { done: 1284, aligned: 831, dropped: 9, relinked: 5, kept: 9, byGoal: { g1: 412, g2: 268, g4: 151 } },
       week: { done: 12, aligned: 10 }, today: { done: 3, aligned: 3 }, prevPct: 74,
@@ -739,15 +1024,27 @@ class Component extends DCLogic {
     page: null, focusLimit: 3, aiEnabled: true, newTodo: '', expanded: {}, linking: null,
     detailsOpen: {}, subInput: {}, addingGoal: false, newGoalTitle: '', archivedOpen: false,
     confirm: null, toast: null, fStatus: 'open', fGoal: 'all', projectId: null, newProjectId: null, newTask: '',
-    tracker: 'a', drag: null, over: null, keyForm: null, newKey: null, copied: false, email: 'jav@focus.app', password: '',
+    tracker: 'a', drag: null, over: null, keyForm: null, newKey: null, copied: false, email: 'jav@focus.app', password: '', authMode: null, signupName: '',
     flash: {}, uploads: [], fileErrs: [], renaming: null, fileDrag: null,
+    displayName: 'Jav', acctForm: null, acctStatus: null, acctError: '',
+    timerMinutes: 25, timerMinInput: null, timer: { status: 'idle', lengthMin: 25, endAt: null, remainingMs: 1500000 }, timerPicker: false, timerCustom: '', timerEdit: null,
+    noteId: null, newNoteId: null, noteQuery: '', noteSave: {}, hints: {}, stepInput: {},
+    mode: 'personal', stash: { work: this.props && this.props.sampleData === false ? emptyWork() : seedWork() },
   });
 
-  componentDidMount() { this.queuePending(); this.onResize = () => this.forceUpdate(); window.addEventListener('resize', this.onResize); }
-  componentWillUnmount() { window.removeEventListener('resize', this.onResize); Object.values(this.timers).forEach(clearTimeout); }
+  switchMode(m) {
+    const s = this.state; if (m === s.mode || !s.stash || !s.stash[m]) return;
+    const cur = {}; WS_KEYS.forEach(k => { cur[k] = s[k]; });
+    const page = s.page === 'project' ? 'projects' : s.page;
+    this.setState({ ...s.stash[m], mode: m, stash: { ...s.stash, [s.mode]: cur, [m]: null }, page, projectId: null, newProjectId: null, noteId: null, newNoteId: null, noteQuery: '', expanded: {}, linking: null, hints: {}, detailsOpen: {}, subInput: {}, addingGoal: false, fGoal: 'all', newTodo: '' }, () => this.queuePending());
+  }
+
+  componentDidMount() { if (this.props.startMode === 'work') this.switchMode('work'); this.queuePending(); this.onResize = () => this.forceUpdate(); window.addEventListener('resize', this.onResize); this.loadTimer(); this.tickIv = setInterval(() => this.tickTimer(), 250); }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearInterval(this.tickIv); Object.values(this.timers).forEach(clearTimeout); }
   componentDidUpdate(prev) {
     if (prev.startPage !== this.props.startPage && this.props.startPage) this.setState({ page: this.props.startPage });
-    if (prev.sampleData !== this.props.sampleData) this.setState(this.props.sampleData === false ? EMPTY() : seed(), () => this.queuePending());
+    if (prev.startMode !== this.props.startMode) this.switchMode(this.props.startMode === 'work' ? 'work' : 'personal');
+    if (prev.sampleData !== this.props.sampleData) { const off = this.props.sampleData === false; this.setState({ ...(off ? EMPTY() : seed()), aiEnabled: true, mode: 'personal', stash: { work: off ? emptyWork() : seedWork() } }, () => this.queuePending()); }
   }
   queuePending() { this.state.todos.forEach(t => { if (t.al && t.al.status === 'pending') this.queueCheck(t.id, 1800); }); }
 
@@ -804,6 +1101,112 @@ class Component extends DCLogic {
       dragOpacity: s.drag && s.drag.list === list && s.drag.id === id ? '0.4' : '1',
     };
   }
+
+  // nav timer (end time kept in localStorage)
+  loadTimer() {
+    try {
+      const t = JSON.parse(localStorage.getItem(TIMER_KEY) || 'null');
+      if (!t || !t.lengthMin) return;
+      if (t.status === 'running' && t.endAt <= Date.now()) Object.assign(t, { status: 'done', remainingMs: 0, endAt: null });
+      this.setState({ timer: t });
+    } catch (_) {}
+  }
+  setTimer(t) { this.setState({ timer: t }); try { localStorage.setItem(TIMER_KEY, JSON.stringify(t)); } catch (_) {} }
+  tickTimer() {
+    const t = this.state.timer; if (t.status !== 'running') return;
+    const rem = t.endAt - Date.now();
+    if (rem <= 0) { this.setTimer({ ...t, status: 'done', remainingMs: 0, endAt: null }); this.chime(); return; }
+    const sec = Math.ceil(rem / 1000); if (sec !== this._sec) { this._sec = sec; this.forceUpdate(); }
+  }
+  timerStart(min) {
+    const t = this.state.timer, lengthMin = min || t.lengthMin, ms = min ? min * 60000 : t.remainingMs;
+    this.setTimer({ status: 'running', lengthMin, endAt: Date.now() + ms, remainingMs: ms });
+    this.setState({ timerPicker: false, timerCustom: '' });
+  }
+  timerPause() { const t = this.state.timer; this.setTimer({ ...t, status: 'paused', remainingMs: Math.max(0, t.endAt - Date.now()), endAt: null }); }
+  timerReset() { const t = this.state.timer; this.setTimer({ status: 'idle', lengthMin: t.lengthMin, endAt: null, remainingMs: t.lengthMin * 60000 }); this.setState({ timerPicker: false }); }
+  commitTimerEdit() {
+    const v = this.state.timerEdit; if (v == null) return;
+    const n = Number(String(v).trim());
+    if (Number.isInteger(n) && n >= 1 && n <= 180) this.setTimer({ status: 'idle', lengthMin: n, endAt: null, remainingMs: n * 60000 });
+    this.setState({ timerEdit: null, timerPicker: false });
+  }
+  setTimerMinutes(n) { this.setState({ timerMinutes: n }); if (this.state.timer.status === 'idle') this.setTimer({ status: 'idle', lengthMin: n, endAt: null, remainingMs: n * 60000 }); }
+  chime() {
+    try {
+      const C = window.AudioContext || window.webkitAudioContext, ctx = new C(), t0 = ctx.currentTime;
+      [0, 0.32, 0.64].forEach(d => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, t0 + d); g.gain.exponentialRampToValueAtTime(0.3, t0 + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + 0.28);
+        o.connect(g); g.connect(ctx.destination); o.start(t0 + d); o.stop(t0 + d + 0.3);
+      });
+      setTimeout(() => ctx.close(), 1500);
+    } catch (_) {}
+  }
+
+  // notes (autosave, like NotesField)
+  updNote(id, patch) {
+    this.setState(s => ({ notes: s.notes.map(n => n.id === id ? { ...n, ...patch } : n), noteSave: { ...s.noteSave, [id]: 'saving' } }));
+    clearTimeout(this.timers['n' + id]);
+    this.timers['n' + id] = setTimeout(() => this.setState(s => ({ noteSave: { ...s.noteSave, [id]: 'saved' }, notes: s.notes.map(n => n.id === id ? { ...n, updated: TODAY } : n) })), 700);
+  }
+  newNote() { const id = uid('n'); this.setState(s => ({ notes: [{ id, title: '', body: '', updated: TODAY }, ...s.notes], noteId: id, newNoteId: id, noteQuery: '' })); }
+  deleteNote(id) {
+    const i = this.state.notes.findIndex(n => n.id === id), item = this.state.notes[i];
+    this.setState(s => ({ notes: s.notes.filter(n => n.id !== id), noteId: null, newNoteId: null }));
+    this.showToast('Note deleted', () => this.setState(s => { const a = s.notes.slice(); a.splice(Math.min(i, a.length), 0, item); return { notes: a, noteId: id }; }));
+  }
+
+  // account (PATCH /account)
+  editAcct(k, v) { this.setState(s => ({ acctForm: { ...(s.acctForm || { displayName: s.displayName, email: s.email, current: '', next: '' }), [k]: v }, acctError: '', acctStatus: s.acctStatus === 'saved' ? null : s.acctStatus })); }
+  saveAccount() {
+    const s = this.state, af = s.acctForm; if (!af) return;
+    const name = af.displayName.trim(), em = af.email.trim();
+    let err = '';
+    if (!name) err = 'Display name can\u2019t be empty.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) err = 'Enter a valid email address.';
+    else if ((em !== s.email || af.next) && !af.current) err = 'Enter your current password to change your email or password.';
+    else if (af.next && af.next.length < 8) err = 'New password must be at least 8 characters.';
+    if (err) return this.setState({ acctError: err });
+    this.setState({ acctStatus: 'saving', acctError: '' });
+    this.timers._acct = setTimeout(() => {
+      this.setState({ displayName: name, email: em, acctForm: null, acctStatus: 'saved' });
+      this.timers._acct2 = setTimeout(() => this.setState(s2 => s2.acctStatus === 'saved' ? { acctStatus: null } : null), 3000);
+    }, 700);
+  }
+
+  // hints (polls GET /todos/:id/hint while queued)
+  requestHint(id, force) {
+    const prev = this.state.hints[id];
+    const variant = prev ? (prev.variant || 0) + (force ? 1 : 0) : 0;
+    clearTimeout(this.timers['h' + id]);
+    this.setState(s => ({ hints: { ...s.hints, [id]: { status: 'queued', variant, force, polls: 0 } } }));
+    this.pollHint(id);
+  }
+  pollHint(id) {
+    this.timers['h' + id] = setTimeout(() => {
+      const s = this.state, hn = s.hints[id], t = s.todos.find(x => x.id === id);
+      if (!hn || !t || !s.aiEnabled || (hn.status !== 'queued' && hn.status !== 'running')) return;
+      const polls = hn.polls + 1;
+      let next;
+      if (polls < 3) next = { ...hn, polls, status: 'running' };
+      else if (this.props.hintResult === 'error') next = { ...hn, status: 'error', error: 'Couldn\u2019t think of a first step. The AI service didn\u2019t respond in time.' };
+      else next = { ...hn, status: 'ready', text: starterFor(t, hn.variant) };
+      this.setState(s2 => ({ hints: { ...s2.hints, [id]: next } }));
+      if (next.status === 'running') this.pollHint(id);
+    }, 1000);
+  }
+  addStarter(id) {
+    const s0 = this.state, hn = s0.hints[id], t = s0.todos.find(x => x.id === id);
+    if (!hn || !hn.text || !t) return;
+    const al = t.al && t.al.status === 'aligned' ? { ...t.al, source: 'ai' } : (s0.aiEnabled ? { status: 'pending', source: 'ai' } : null);
+    const n = { id: uid('t'), title: hn.text, notes: '', date: '', al };
+    this.setState(s => { const a = s.todos.slice(); const i = a.findIndex(x => x.id === id); a.splice(i < 0 ? 0 : i, 0, n); return { todos: a, hints: { ...s.hints, [id]: { ...hn, status: 'added' } } }; });
+    if (al && al.status === 'pending') this.queueCheck(n.id, 1200);
+    this.showToast('Added a to-do', () => this.setState(s => ({ todos: s.todos.filter(x => x.id !== n.id), hints: { ...s.hints, [id]: hn } })));
+  }
+  closeStarter(id) { clearTimeout(this.timers['h' + id]); this.setState(s => { const hs = { ...s.hints }; delete hs[id]; return { hints: hs }; }); }
 
   // to-dos
   updTodo(id, patch) { this.setState(s => ({ todos: s.todos.map(t => t.id === id ? { ...t, ...patch } : t) })); }
@@ -953,7 +1356,11 @@ class Component extends DCLogic {
   }
 
   // settings
-  setAi(on) {
+  setAi(on, confirmed) {
+    if (on && this.state.mode === 'work' && !confirmed) return this.setState({ confirm: {
+      title: 'Turn on AI for Work?',
+      body: 'Your work to-dos, goals, projects and sub-goals will be sent to an AI service to check alignment and suggest first steps. Don\u2019t enter confidential, proprietary, client or personal data, or anything your employer doesn\u2019t allow in outside tools. You\u2019re responsible for what you add; Focus isn\u2019t responsible for work information you choose to share.',
+      action: 'I understand, turn on AI', run: () => this.setAi(true, true) } });
     this.setState(s => ({ aiEnabled: on, todos: on ? s.todos.map(t => (t.al && (t.al.source === 'manual' || t.al.status === 'dismissed')) ? t : { ...t, al: { status: 'pending', source: 'ai' } }) : s.todos }), () => on && this.queueAll());
   }
   createKey() {
@@ -966,7 +1373,10 @@ class Component extends DCLogic {
   }
   exportAll() {
     const s = this.state;
-    const data = { exported_at: new Date().toISOString(), settings: { focus_limit: s.focusLimit, ai_enabled: s.aiEnabled }, goals: s.goals, projects: s.projects, todos: s.todos };
+    const snap = {}; WS_KEYS.forEach(k => { snap[k] = s[k]; });
+    const ws = { ...s.stash, [s.mode]: snap };
+    const pick = w => w ? { ai_enabled: w.aiEnabled, goals: w.goals, projects: w.projects, todos: w.todos, notes: w.notes } : null;
+    const data = { exported_at: new Date().toISOString(), settings: { focus_limit: s.focusLimit }, personal: pick(ws.personal), work: pick(ws.work) };
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
     a.download = 'focus-export.json'; a.click();
@@ -993,7 +1403,8 @@ class Component extends DCLogic {
       ...active.map(g => ({ type: 'goal', id: g.id, label: g.title || 'Untitled goal', icon: 'ph-duotone ph-target' })),
     ];
     let flagged = 0;
-    const todoRows = s.todos.map((t, i, arr) => {
+    const recurTodos = s.todos.filter(t => t.recurring), onceTodos = s.todos.filter(t => !t.recurring);
+    const toRow = (t, i, arr) => {
       const al = t.al || {};
       const unaligned = ai && al.status === 'unaligned';
       if (unaligned) flagged++;
@@ -1025,9 +1436,27 @@ class Component extends DCLogic {
         onLinkOpen: () => this.setState(s2 => ({ linking: s2.linking === t.id ? null : t.id })),
         onLinkClose: () => this.setState({ linking: null }),
         onExpand: () => this.setState(s2 => ({ expanded: { ...s2.expanded, [t.id]: !s2.expanded[t.id] } })),
+        ...(() => {
+          const hn = s.hints[t.id], st = hn ? hn.status : 'idle', open = ai && st !== 'idle';
+          return {
+            hintAvailable: ai, startOpen: open, startExpanded: open ? 'true' : 'false', startBtnBg: open ? 'var(--color-accent-100)' : 'transparent',
+            hintBusy: st === 'queued' || st === 'running', hintHasText: st === 'ready' || st === 'added', hintText: (hn && hn.text) || '',
+            hintReady: st === 'ready', hintAdded: st === 'added', hintFailed: st === 'error', hintError: (hn && hn.error) || '',
+            onStart: () => open ? this.closeStarter(t.id) : this.requestHint(t.id, false), onStartClose: () => this.closeStarter(t.id),
+            onRegenerate: () => this.requestHint(t.id, true), onRetry: () => this.requestHint(t.id, !!(hn && hn.force)),
+            onAddStarter: () => this.addStarter(t.id),
+          };
+        })(),
         ...this.dnd('todos', t.id, (a, b) => this.setState(s2 => ({ todos: move(s2.todos, a, b) })), arr[i - 1] && arr[i - 1].id, arr[i + 1] && arr[i + 1].id),
       };
-    });
+    };
+    const hasRec = recurTodos.length > 0;
+    const rv = { cols: 'minmax(0, 1fr)', gap: 'var(--space-4)', maxW: '720px' };
+    const base = { col: 'auto', row: 'auto', innerCols: 'minmax(0, 1fr)', innerGap: 'var(--space-2)', pad: '0', bg: 'transparent', listTop: '0', showLabel: false, note: '', labelSize: '12px', labelTrack: '0.1em', labelCase: 'uppercase', labelColor: 'var(--color-accent-800)', labelPad: '0' };
+    const recG = { ...base, key: 'recurring', screen: 'Recurring', isRecurring: true, label: 'Recurring', showLabel: true, note: 'Always on your list. Check off each time.', rows: recurTodos.map(toRow),
+      bg: 'var(--color-accent-100)', pad: 'var(--space-3) var(--space-3) var(--space-2) var(--space-4)' };
+    const onceG = { ...base, key: 'once', screen: 'One-time', isRecurring: false, label: 'One-time', rows: onceTodos.map(toRow) };
+    const todoGroups = hasRec ? [recG, onceG] : [onceG];
 
     // goals
     const goalRows = active.map((g, i, arr) => {
@@ -1073,11 +1502,9 @@ class Component extends DCLogic {
     const h = s.history || emptyHistory(), ss = s.sess || freshSess();
     const doneN = h.base.done + ss.done, alignedN = h.base.aligned + ss.aligned;
     const byGoal = id => (h.base.byGoal[id] || 0) + (ss.byGoal[id] || 0);
-    const shareBase = Math.max(doneN, 1);
-    const goalShares = [
-      ...active.map(g => ({ label: g.title || 'Untitled goal', count: byGoal(g.id), icon: 'ph-duotone ph-target', iconColor: 'var(--color-accent-700)', bar: 'var(--color-accent)' })),
-      { label: 'Off-goal', count: doneN - alignedN, icon: 'ph-duotone ph-warning', iconColor: 'var(--color-accent-2-700)', bar: 'var(--color-accent-2)' },
-    ].map(r => ({ ...r, countLabel: fmtN(r.count), pct: Math.round(r.count / shareBase * 100) + '%' }));
+    const onGoalN = active.reduce((n, g) => n + byGoal(g.id), 0), shareBase = Math.max(onGoalN, 1);
+    const goalShares = active.map(g => ({ label: g.title || 'Untitled goal', count: byGoal(g.id), icon: 'ph-duotone ph-target', iconColor: 'var(--color-accent-700)', bar: 'var(--color-accent)' }))
+      .map(r => ({ ...r, countLabel: fmtN(r.count), pct: Math.round(r.count / shareBase * 100) + '%' }));
 
     const preview = +this.props.climbPreview || 0;
     const climb = preview > 0 ? preview : doneN;
@@ -1118,7 +1545,7 @@ class Component extends DCLogic {
     }).reverse();
 
     const tracker = {
-      aiPaused: !ai, doneTotalLabel: fmtN(doneN), goalShares,
+      aiPaused: !ai, doneTotalLabel: fmtN(onGoalN), goalShares,
       climbLabel: fmtN(climb),
       levelNum: lv + 1, peakLabel: fmtN(PEAK), ladder, levelsPassed,
       levelsPassedLabel: levelsPassed === 1 ? 'level passed' : 'levels passed',
@@ -1211,8 +1638,12 @@ class Component extends DCLogic {
       onRevoke: () => this.setState(s2 => ({ keys: s2.keys.map(x => x.id === k.id ? { ...x, revoked: true } : x) })),
     }));
 
+    const wideNav = typeof window === 'undefined' || window.innerWidth >= 960;
+    const hv = wideNav
+      ? { cols: 'auto minmax(0, 1fr) auto', areas: "'brand . rail' 'nav . timer'", rowGap: 'var(--space-6)', railPad: '6px', railJustify: 'end' }
+      : { cols: 'minmax(0, 1fr) auto', areas: "'brand timer' 'rail rail' 'nav nav'", rowGap: 'var(--space-3)', railPad: '0', railJustify: 'start' };
     const curKey = page === 'project' ? 'projects' : page;
-    const navDefs = [['goals', 'Goals', 'ph-target', active.length], ['todos', 'To-dos', 'ph-check-square', s.todos.length], ['projects', 'Projects', 'ph-folder-simple', s.projects.filter(p => p.status !== 'archived').length], ['calendar', 'Calendar', 'ph-calendar-blank', null], ['settings', 'Settings', 'ph-gear-six', null]];
+    const navDefs = [['goals', 'Goals', 'ph-target', active.length], ['todos', 'To-dos', 'ph-check-square', s.todos.length], ['projects', 'Projects', 'ph-folder-simple', s.projects.filter(p => p.status !== 'archived').length], ['notes', 'Notes', 'ph-note', s.notes.length], ['calendar', 'Calendar', 'ph-calendar-blank', null], ['settings', 'Settings', 'ph-gear-six', null]];
     const navSet = {
       navItems: navDefs.map(([k, label, icon, count], n) => {
         const on = curKey === k;
@@ -1283,19 +1714,98 @@ class Component extends DCLogic {
       }),
     };
 
+    // nav timer
+    const T = s.timer, running = T.status === 'running', tDone = T.status === 'done';
+    const remMs = running ? Math.max(0, T.endAt - Date.now()) : T.remainingMs;
+    const customN = Number(s.timerCustom), customOk = s.timerCustom !== '' && Number.isInteger(customN) && customN >= 1 && customN <= 180;
+    const timerV = {
+      display: fmtClock(remMs), isDone: tDone, notDone: !tDone,
+      playIcon: running ? 'ph-duotone ph-pause' : 'ph-duotone ph-play',
+      playLabel: running ? 'Pause timer' : T.status === 'paused' ? 'Resume timer' : 'Start timer',
+      onPlay: () => running ? this.timerPause() : this.timerStart(),
+      resetDisabled: T.status === 'idle' && T.remainingMs === T.lengthMin * 60000, onReset: () => this.timerReset(),
+      editing: s.timerEdit != null, notEditing: s.timerEdit == null, editValue: s.timerEdit != null ? s.timerEdit : '',
+      editLabel: fmtClock(remMs) + ' left. Change minutes',
+      onEdit: () => this.setState({ timerEdit: String(T.lengthMin), timerPicker: false }),
+      onEditInput: e => this.setState({ timerEdit: e.target.value.replace(/[^0-9]/g, '').slice(0, 3) }),
+      onEditKey: e => { if (e.key === 'Enter') { e.preventDefault(); this.commitTimerEdit(); } if (e.key === 'Escape') this.setState({ timerEdit: null }); },
+      onEditBlur: () => this.commitTimerEdit(), onEditFocus: e => e.target.select(),
+      onAgain: () => this.timerStart(T.lengthMin), onNew: () => this.setState(s2 => ({ timerPicker: !s2.timerPicker })),
+      color: tDone ? 'var(--color-accent-2-700)' : T.status === 'idle' ? 'var(--color-neutral-700)' : 'var(--color-text)',
+      iconColor: running ? 'var(--color-accent-700)' : tDone ? 'var(--color-accent-2-700)' : 'var(--color-neutral-700)',
+      track: T.status === 'idle' ? 'transparent' : 'var(--color-neutral-300)', fill: tDone ? 'var(--color-accent-2)' : 'var(--color-text)',
+      pct: T.status === 'idle' ? '0%' : Math.min(100, (1 - remMs / (T.lengthMin * 60000)) * 100).toFixed(1) + '%',
+      picker: tDone && s.timerPicker, pickerStr: String(!!s.timerPicker),
+      presets: [5, 10, 15, 25, 45, 60].map(m => ({ label: m + ' min', cls: m === T.lengthMin ? 'btn-secondary' : 'btn-ghost', onPick: () => this.timerStart(m) })),
+      custom: s.timerCustom, customDisabled: !customOk,
+      onCustomInput: e => this.setState({ timerCustom: e.target.value }),
+      onCustomKey: e => { if (e.key === 'Enter' && customOk) { e.preventDefault(); this.timerStart(customN); } if (e.key === 'Escape') this.setState({ timerPicker: false }); },
+      onCustom: () => customOk && this.timerStart(customN), closePicker: () => this.setState({ timerPicker: false, timerCustom: '' }),
+    };
+
+    // notes
+    const q = (s.noteQuery || '').trim().toLowerCase();
+    const visNotes = q ? s.notes.filter(n => (n.title + ' ' + n.body).toLowerCase().includes(q)) : s.notes;
+    const selNote = s.notes.find(n => n.id === s.noteId) || visNotes[0] || null;
+    const nSave = selNote ? s.noteSave[selNote.id] : null;
+    const nt = {
+      query: s.noteQuery, onQuery: e => this.setState({ noteQuery: e.target.value }), searching: !!q,
+      matchLabel: plural(visNotes.length, 'match', 'matches'),
+      noNotes: s.notes.length === 0, noMatches: !!q && s.notes.length > 0 && visNotes.length === 0, noMatchLabel: 'No notes match \u201c' + (s.noteQuery || '').trim() + '\u201d.',
+      onNew: () => this.newNote(),
+      rows: visNotes.map((n, i, arr) => ({
+        id: n.id, title: n.title || 'Untitled note', titleColor: n.title ? 'var(--color-text)' : 'var(--color-neutral-700)',
+        snippet: ((n.body || '').split('\n').find(l => l.trim()) || 'No text').trim(),
+        date: n.updated === TODAY ? 'Today' : fmt(n.updated),
+        bg: selNote && selNote.id === n.id ? 'var(--color-accent-100)' : 'transparent',
+        canDrag: !q, noDrag: !!q, onSelect: () => this.setState({ noteId: n.id, newNoteId: null }),
+        ...this.dnd('notes', n.id, (a, b) => this.setState(s2 => ({ notes: move(s2.notes, a, b) })), arr[i - 1] && arr[i - 1].id, arr[i + 1] && arr[i + 1].id),
+      })),
+      hasSel: !!selNote, noSel: !selNote && s.notes.length > 0,
+      title: selNote ? selNote.title : '', body: selNote ? selNote.body : '', isNew: !!selNote && s.newNoteId === selNote.id,
+      onTitle: e => selNote && this.updNote(selNote.id, { title: e.target.value }),
+      onBody: e => selNote && this.updNote(selNote.id, { body: e.target.value }),
+      saveLabel: nSave === 'saving' ? 'Saving\u2026' : nSave === 'saved' ? 'Saved' : selNote ? 'Edited ' + (selNote.updated === TODAY ? 'today' : fmt(selNote.updated)) : '',
+      saveIcon: nSave === 'saving' ? 'ph-duotone ph-cloud-arrow-up' : nSave === 'saved' ? 'ph-duotone ph-check' : 'ph-duotone ph-clock',
+      onDelete: () => selNote && this.deleteNote(selNote.id),
+    };
+
+    // account
+    const af = s.acctForm || { displayName: s.displayName, email: s.email, current: '', next: '' };
+    const acctDirty = !!s.acctForm && (af.displayName !== s.displayName || af.email !== s.email || !!af.current || !!af.next);
+    const acct = {
+      ...af, onName: e => this.editAcct('displayName', e.target.value), onEmail: e => this.editAcct('email', e.target.value),
+      onCurrent: e => this.editAcct('current', e.target.value), onNext: e => this.editAcct('next', e.target.value),
+      hasError: !!s.acctError, error: s.acctError, saved: s.acctStatus === 'saved',
+      saveDisabled: !acctDirty || s.acctStatus === 'saving', saveLabel: s.acctStatus === 'saving' ? 'Saving\u2026' : 'Save changes',
+      onSave: () => this.saveAccount(),
+    };
+
     return {
       ...tracker,
+      tm: timerV, nt, acct, hv,
+      timerMinValue: s.timerMinInput != null ? s.timerMinInput : String(s.timerMinutes),
+      onTimerMin: e => { const v = e.target.value, n = Number(v); this.setState({ timerMinInput: v }); if (v !== '' && Number.isInteger(n) && n >= 1 && n <= 180) this.setTimerMinutes(n); },
+      onTimerMinBlur: () => this.setState({ timerMinInput: null }),
       ...goalsTop,
       ...navSet,
       ...alignSet,
       cal,
-      isLogin: page === 'login', isApp: page !== 'login',
-      isTodos: page === 'todos', isGoals: page === 'goals', isProjects: page === 'projects', isProject: page === 'project', isSettings: page === 'settings', isCalendar: page === 'calendar',
+      isSplash: page === 'login' && !s.authMode, isAuth: page === 'login' && !!s.authMode, isApp: page !== 'login',
+      isNotes: page === 'notes', isTodos: page === 'todos', isGoals: page === 'goals', isProjects: page === 'projects', isProject: page === 'project', isSettings: page === 'settings', isCalendar: page === 'calendar',
       cur, goTodos: this.go('todos'), goGoals: this.go('goals'), goProjects: this.go('projects'), goSettings: this.go('settings'),
-      signOut: this.go('login'), stop: e => e.stopPropagation(),
+      signOut: this.go('login', { authMode: null }), stop: e => e.stopPropagation(),
       email: s.email, password: s.password,
       onEmail: e => this.setState({ email: e.target.value }), onPassword: e => this.setState({ password: e.target.value }),
-      onSignIn: e => { e.preventDefault(); this.setState({ page: 'goals', password: '' }); },
+      onSignIn: e => { if (e && e.preventDefault) e.preventDefault(); this.setState({ page: 'goals', password: '', authMode: null }); window.scrollTo(0, 0); },
+      openLogin: () => this.setState({ authMode: 'login' }), openSignup: () => this.setState({ authMode: 'signup' }),
+      closeAuth: () => this.setState({ authMode: null, password: '' }), stopLink: e => e.preventDefault(),
+      au: (() => { const su = s.authMode === 'signup'; return {
+        isLogin: !su, isSignup: su, name: s.signupName, onName: e => this.setState({ signupName: e.target.value }),
+        title: su ? 'Make an account' : 'Welcome back', sub: su ? 'Start with one goal. Add the rest when you need them.' : 'Pick up where you left off.',
+        cta: su ? 'Create account' : 'Log in', googleLabel: su ? 'Sign up with Google' : 'Continue with Google', microsoftLabel: su ? 'Sign up with Microsoft' : 'Continue with Microsoft', appleLabel: su ? 'Sign up with Apple' : 'Continue with Apple', passAuto: su ? 'new-password' : 'current-password',
+        switchQ: su ? 'Already have an account?' : 'New to Focus?', switchLabel: su ? 'Log in' : 'Sign up',
+        onSwitch: e => { e.preventDefault(); this.setState({ authMode: su ? 'login' : 'signup' }); } }; })(),
 
       activeCount: active.length, focusLimit: s.focusLimit, focusLimitStr: String(s.focusLimit),
       openTodoLabel: plural(s.todos.length, 'open to-do', 'open to-dos'),
@@ -1303,7 +1813,7 @@ class Component extends DCLogic {
 
       newTodo: s.newTodo, onNewTodo: e => this.setState({ newTodo: e.target.value }),
       onNewTodoKey: e => { if (e.key === 'Enter') { e.preventDefault(); this.addTodo(); } },
-      todoRows, noTodos: s.todos.length === 0,
+      todoGroups, rv, noTodos: s.todos.length === 0,
 
       atLimit, lim3Off: active.length > 3, lim5Off: active.length > 5,
       onLimit: e => { const v = +e.target.value; if (v >= this.activeCount()) this.setState({ focusLimit: v }); },
@@ -1324,6 +1834,8 @@ class Component extends DCLogic {
       onNewTaskKey: e => { if (e.key === 'Enter') { e.preventDefault(); this.addTask(); } },
 
       aiOn: ai, aiOff: !ai, setAiOn: () => this.setAi(true), setAiOff: () => this.setAi(false),
+      isWork: s.mode === 'work', isPersonal: s.mode !== 'work', modeLabel: s.mode === 'work' ? 'Work' : 'Personal',
+      goPersonal: () => this.switchMode('personal'), goWork: () => this.switchMode('work'), workAiOn: s.mode === 'work' && ai,
       keyFormOpen: !!kf, openKeyForm: () => this.setState({ keyForm: { name: '', scopes: {}, expires: '' } }), closeKeyForm: () => this.setState({ keyForm: null }),
       kfName: kf ? kf.name : '', kfExpires: kf ? kf.expires : '',
       onKfName: e => { const v = e.target.value; this.setState(s2 => ({ keyForm: { ...s2.keyForm, name: v } })); },

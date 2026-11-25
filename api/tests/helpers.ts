@@ -2,6 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 
 const TABLES = [
   'alignment_checks',
+  'workspaces',
   'api_keys',
   'todos',
   'tasks',
@@ -23,11 +24,6 @@ export async function resetDb() {
 /** A fresh database with the single account, which tests log in as. */
 export async function freshUser(focusLimit: 3 | 5 | 7 = 3) {
   await resetDb()
-  const { default: User } = await import('#models/user')
-  return User.create({
-    email: 'me@example.com',
-    password: 'secret-pass',
-    focusLimit,
-    aiEnabled: true,
-  })
+  const { createAccount } = await import('#services/accounts')
+  return createAccount({ email: 'me@example.com', password: 'secret-pass', focusLimit })
 }

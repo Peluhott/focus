@@ -8,7 +8,7 @@ import { aiActive } from './triggers.js'
  * back to the AI: they may match another goal, or turn red. AI-linked to-dos
  * are re-checked by the batched context re-check anyway.
  */
-export async function releaseManualLinks(goalId: number) {
+export async function releaseManualLinks(goalId: number, workspaceId: number) {
   try {
     const ids = await db
       .from('todos')
@@ -19,7 +19,7 @@ export async function releaseManualLinks(goalId: number) {
       .where('todos.done', false)
       .select('todos.id')
     if (ids.length === 0) return
-    const ai = await aiActive()
+    const ai = await aiActive(workspaceId)
     await db
       .from('todos')
       .whereIn(

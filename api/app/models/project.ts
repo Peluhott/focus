@@ -9,6 +9,7 @@ import {
 } from '#services/alignment/triggers'
 import Goal from '#models/goal'
 import Task from '#models/task'
+import ProjectFile from '#models/project_file'
 
 export const PROJECT_STATUSES = ['planning', 'active', 'on_hold', 'done', 'archived'] as const
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
@@ -16,6 +17,10 @@ export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
 export default class Project extends AppBaseModel {
   @column({ isPrimary: true })
   declare id: number
+
+  /** The Personal or Work workspace this row belongs to (and through it, the user). */
+  @column({ serializeAs: null })
+  declare workspaceId: number
 
   @column()
   declare title: string
@@ -48,6 +53,9 @@ export default class Project extends AppBaseModel {
   @hasMany(() => Task)
   declare tasks: HasMany<typeof Task>
 
+  @hasMany(() => ProjectFile)
+  declare files: HasMany<typeof ProjectFile>
+
   /** What the AI check sees changed: re-check open to-dos (Phase 6). */
   @beforeSave()
   static noteAlignmentContext(row: Project) {
@@ -56,11 +64,11 @@ export default class Project extends AppBaseModel {
 
   @afterSave()
   static recheckAlignment(row: Project) {
-    recheckIfContextChanged(row)
+    recheckIfContextChanged(row, row.workspaceId)
   }
 
   @afterDelete()
-  static recheckAlignmentOnDelete() {
-    void queueContextRecheck()
+  static recheckAlignmentOnDelete(row: Project) {
+    void queueContextRecheck(row.workspaceId)
   }
 }

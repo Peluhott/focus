@@ -25,11 +25,18 @@ export function matchLevel(matched: number, activeGoals: number): MatchLevel {
   return matched >= 2 ? 'several' : 'one'
 }
 
-/** Serialize to-dos with `matches` (active goals only) and `match_level`. */
+/**
+ * Serialize to-dos with `matches` (active goals only) and `match_level`.
+ * The to-dos are from one workspace (every list is).
+ */
 export async function withMatchView(todos: Todo[]) {
   if (todos.length === 0) return []
+  const workspaceIds = [...new Set(todos.map((t) => t.workspaceId))]
   const [goals, links] = await Promise.all([
-    Goal.query().where('status', 'active').select('id', 'title'),
+    Goal.query()
+      .whereIn('workspace_id', workspaceIds)
+      .where('status', 'active')
+      .select('id', 'title', 'workspace_id'),
     TodoMatch.query()
       .whereIn(
         'todo_id',
@@ -55,7 +62,10 @@ export async function withMatchView(todos: Todo[]) {
     return {
       ...todo.serialize(),
       matches,
-      match_level: matchLevel(matches.length, goals.length),
+      match_level: matchLevel(
+        matches.length,
+        goals.filter((g) => g.workspaceId === todo.workspaceId).length
+      ),
     }
   })
 }

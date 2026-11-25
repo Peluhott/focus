@@ -7,6 +7,16 @@ In the prototype: To-dos page, rows "Transfer $20 to savings" and "Stretch after
 ## Summary
 A recurring to-do is one row that never leaves the list. Checking it logs a completion, then the checkbox clears itself. It has no date.
 
+## Recurring band (page layout)
+The To-dos page is now, top to bottom:
+1. Quick-add input (unchanged; max-width 720px, margin-bottom 20px). New to-dos are one-time.
+2. **Recurring band**, only when at least one recurring to-do exists: bg `--color-accent-100`, radius 2px, padding `15px 15px 10px 20px`, max-width 720px. Inside (grid, gap 10px):
+   - Label (grid, gap 4px): `repeat` icon + "RECURRING" (heading font 12px / 600, letter-spacing 0.1em, uppercase, `--color-accent-800`, gap 6px), then "Always on your list. Check off each time." (13px / 1.35, neutral-700).
+   - The recurring rows (same row component, column, gap 2px).
+3. **One-time list**: 20px below the band, no label.
+
+Order within each group follows the user's manual order; drag and keyboard reorder work within a group. Turning Repeat on or off moves the to-do into or out of the band. An item from "Help me start" added above a recurring to-do lands in the one-time list.
+
 ## Row (main line)
 Same row as a normal to-do (README §3), with these changes:
 
@@ -15,6 +25,7 @@ Same row as a normal to-do (README §3), with these changes:
   - "Done {count}×" (multiplication sign U+00D7).
   - If checked today: `check` icon + "today" in `--color-accent-700`, gap 3px.
 - **No date chip.** Recurring to-dos have no date.
+- **Help me start** button before the panel button (see `START-SMALL.md`).
 - **Panel button:** the calendar icon becomes `dots-three`, labelled "Notes and repeat" (`aria-label` and `title`). Normal rows keep `calendar-blank` "Date and notes".
 - Goal chip, red tint, blur and reason line behave as for any to-do.
 

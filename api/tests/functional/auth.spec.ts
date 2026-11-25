@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import User from '#models/user'
+import { createAccount } from '#services/accounts'
 import { resetDb } from '#tests/helpers'
 
 const EMAIL = 'me@example.com'
@@ -8,7 +9,7 @@ const PASSWORD = 'correct horse battery'
 test.group('Auth', (group) => {
   group.each.setup(async () => {
     await resetDb()
-    await User.create({ email: EMAIL, password: PASSWORD, focusLimit: 3, aiEnabled: true })
+    await createAccount({ email: EMAIL, password: PASSWORD })
   })
 
   test('health needs no login', async ({ client }) => {

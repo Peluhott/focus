@@ -14,6 +14,13 @@ export const loginThrottle = limiter.define('login', (ctx) => {
 })
 
 /**
+ * Sign-up: 5 accounts per hour per IP.
+ */
+export const signupThrottle = limiter.define('signup', (ctx) => {
+  return limiter.allowRequests(5).every('1 hour').usingKey(`signup_${ctx.request.ip()}`)
+})
+
+/**
  * API keys: 120 requests per minute per key (spec). The web app's session
  * isn't limited. Runs after `auth`.
  */

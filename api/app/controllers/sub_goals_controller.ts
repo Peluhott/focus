@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Goal from '#models/goal'
 import SubGoal from '#models/sub_goal'
+import { findInWs, findSubGoal } from '#services/scoped'
 import { bottomPosition, inList, positionFor, wantsMove } from '#services/ordering'
 import { createSubGoalValidator, updateSubGoalValidator } from '#validators/goal'
 
@@ -8,15 +9,15 @@ const siblingsOf = (goalId: number) => () => SubGoal.query().where('goal_id', go
 
 export default class SubGoalsController {
   /** GET /goals/:id/subgoals, in checklist order. */
-  async index({ params }: HttpContext) {
-    const goal = await Goal.findOrFail(params.id)
+  async index({ params, workspace }: HttpContext) {
+    const goal = await findInWs(Goal, workspace, params.id)
     const rows = await siblingsOf(goal.id)().orderBy('position', 'asc').orderBy('id', 'asc')
     return { data: rows.map((s) => s.serialize()), next_cursor: null }
   }
 
   /** POST /goals/:id/subgoals: appended to the bottom. No limit on sub-goals. */
-  async store({ params, request, response }: HttpContext) {
-    const goal = await Goal.findOrFail(params.id)
+  async store({ params, request, response, workspace }: HttpContext) {
+    const goal = await findInWs(Goal, workspace, params.id)
     const input = await request.validateUsing(createSubGoalValidator)
     const sub = await inList(`subgoals:${goal.id}`, async (trx) =>
       SubGoal.create(
@@ -34,8 +35,8 @@ export default class SubGoalsController {
     return response.created(sub.serialize())
   }
 
-  async update({ params, request }: HttpContext) {
-    const sub = await SubGoal.findOrFail(params.id)
+  async update({ params, request, workspace }: HttpContext) {
+    const sub = await findSubGoal(workspace, params.id)
     const input = await request.validateUsing(updateSubGoalValidator)
     if (input.title !== undefined) sub.title = input.title
     if (input.details !== undefined) sub.details = input.details
@@ -51,8 +52,8 @@ export default class SubGoalsController {
     return sub.serialize()
   }
 
-  async destroy({ params, response }: HttpContext) {
-    const sub = await SubGoal.findOrFail(params.id)
+  async destroy({ params, response, workspace }: HttpContext) {
+    const sub = await findSubGoal(workspace, params.id)
     await sub.delete()
     return response.noContent()
   }

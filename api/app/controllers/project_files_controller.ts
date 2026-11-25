@@ -5,6 +5,7 @@ import storageConfig, { storageConfigured } from '#config/storage'
 import AppError from '#exceptions/app_error'
 import Project from '#models/project'
 import ProjectFile from '#models/project_file'
+import { findFile, findInWs } from '#services/scoped'
 import {
   fileExpirySeconds,
   signUpload,
@@ -38,8 +39,8 @@ function requireStorage() {
 /** Project files (feature spec "Project files"): metadata here, files in Cloudinary. */
 export default class ProjectFilesController {
   /** GET /projects/:id/files: newest first, plus whether storage is set up. */
-  async index({ params }: HttpContext) {
-    const project = await Project.findOrFail(params.id)
+  async index({ params, workspace }: HttpContext) {
+    const project = await findInWs(Project, workspace, params.id)
     const files = await ProjectFile.query()
       .where('project_id', project.id)
       .orderBy('uploaded_at', 'desc')
@@ -51,9 +52,9 @@ export default class ProjectFilesController {
   }
 
   /** POST /projects/:id/files/sign: a signature for a direct browser upload. */
-  async sign({ params }: HttpContext) {
+  async sign({ params, workspace }: HttpContext) {
     requireStorage()
-    const project = await Project.findOrFail(params.id)
+    const project = await findInWs(Project, workspace, params.id)
     return signUpload(project.id)
   }
 
@@ -62,9 +63,9 @@ export default class ProjectFilesController {
    * the `file` field to Cloudinary. JSON (web app): saves the result of a
    * direct upload after checking Cloudinary's signature.
    */
-  async store({ params, request, response }: HttpContext) {
+  async store({ params, request, response, workspace }: HttpContext) {
     requireStorage()
-    const project = await Project.findOrFail(params.id)
+    const project = await findInWs(Project, workspace, params.id)
 
     let name: string
     let result: UploadResult
@@ -110,8 +111,8 @@ export default class ProjectFilesController {
   }
 
   /** PATCH /files/:id { name } */
-  async update({ params, request }: HttpContext) {
-    const file = await ProjectFile.findOrFail(params.id)
+  async update({ params, request, workspace }: HttpContext) {
+    const file = await findFile(workspace, params.id)
     const { name } = await request.validateUsing(renameFileValidator)
     file.name = name
     await file.save()
@@ -119,17 +120,17 @@ export default class ProjectFilesController {
   }
 
   /** DELETE /files/:id: the record goes now; Cloudinary deletion is queued. */
-  async destroy({ params, response }: HttpContext) {
-    const file = await ProjectFile.findOrFail(params.id)
+  async destroy({ params, response, workspace }: HttpContext) {
+    const file = await findFile(workspace, params.id)
     await file.delete()
     await queueFileDeletes([file])
     return response.noContent()
   }
 
   /** GET /files/:id/url: signed URLs, valid for 10 minutes. */
-  async url({ params }: HttpContext) {
+  async url({ params, workspace }: HttpContext) {
     requireStorage()
-    const file = await ProjectFile.findOrFail(params.id)
+    const file = await findFile(workspace, params.id)
     return {
       url: signedUrl(file),
       download_url: signedUrl(file, true),

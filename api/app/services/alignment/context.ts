@@ -11,18 +11,20 @@ export const sha256 = (value: unknown) =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex')
 
 /**
- * Snapshot of what the model sees: active goals with their sub-goal titles,
+ * Snapshot of what the model sees, for one workspace: active goals with their sub-goal titles,
  * and under each goal its planning or active projects with pending task
  * titles. Projects without a goal are left out: to-dos match goals only.
  * Order doesn't matter, so dragging never changes it.
  */
-export async function buildContext(): Promise<AlignmentContext> {
+export async function buildContext(workspaceId: number): Promise<AlignmentContext> {
   const { limits } = aiConfig
   const goals = await Goal.query()
+    .where('workspace_id', workspaceId)
     .where('status', 'active')
     .preload('subGoals', (q) => q.orderBy('position').orderBy('id'))
     .orderBy('id')
   const projects = await Project.query()
+    .where('workspace_id', workspaceId)
     .whereIn('status', ['planning', 'active'])
     .whereNotNull('goal_id')
     .whereNot('title', '')

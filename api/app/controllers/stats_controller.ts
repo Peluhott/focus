@@ -1,19 +1,21 @@
+import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 
 /**
- * GET /stats/completions: the all-time numbers behind "Focus so far".
- * Read from todo_completions, one row per check-off (normal or recurring),
- * so 5 check-offs of one recurring to-do count as 5. Only completions logged
- * while the AI check was on are counted.
+ * GET /stats/completions: the all-time numbers behind "Focus so far", for
+ * the request's workspace. Read from todo_completions, one row per
+ * check-off (normal or recurring), so 5 check-offs of one recurring to-do
+ * count as 5. Only completions logged while the AI check was on are counted.
  * total counts each completion once; by_goal counts it toward every goal it
  * matched (the page shows the active ones); off_goal is counted completions
- * with no goal link.
+ * with no goal link (the page no longer shows it).
  */
 export default class StatsController {
-  async completions() {
+  async completions({ workspace }: HttpContext) {
     const [totals, byGoal] = await Promise.all([
       db
         .from('todo_completions')
+        .where('workspace_id', workspace.id)
         .where('counted', true)
         .select(
           db.raw('count(*) as total'),
@@ -23,8 +25,9 @@ export default class StatsController {
       db.rawQuery<{ rows: { goal_id: number; count: string }[] }>(
         `SELECT goal_id, count(*) AS count
          FROM todo_completions, unnest(goal_ids) AS goal_id
-         WHERE counted = true
-         GROUP BY goal_id`
+         WHERE counted = true AND workspace_id = ?
+         GROUP BY goal_id`,
+        [workspace.id]
       ),
     ])
     return {

@@ -5,13 +5,14 @@
 |
 | Everything lives under /api/v1. The web app (session cookie) and API keys
 | (Bearer fk_…, limited by scopes) call the same endpoints. Settings and key
-| management are session only.
+| management are session only. Data routes work in one workspace, picked by
+| the X-Focus-Workspace header (personal when missing).
 |
 */
 
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
-import { apiThrottle, loginThrottle } from '#start/limiter'
+import { apiThrottle, loginThrottle, signupThrottle } from '#start/limiter'
 
 const AuthController = () => import('#controllers/auth_controller')
 const SettingsController = () => import('#controllers/settings_controller')
@@ -27,12 +28,17 @@ const CalendarController = () => import('#controllers/calendar_controller')
 const CompletionsController = () => import('#controllers/completions_controller')
 const ProjectFilesController = () => import('#controllers/project_files_controller')
 const ApiKeysController = () => import('#controllers/api_keys_controller')
+const AccountController = () => import('#controllers/account_controller')
+const NotesController = () => import('#controllers/notes_controller')
+const TodoHintsController = () => import('#controllers/todo_hints_controller')
+const ExportController = () => import('#controllers/export_controller')
 
 router
   .group(() => {
     router.get('health', () => ({ ok: true }))
 
     router.post('auth/login', [AuthController, 'login']).use(loginThrottle)
+    router.post('auth/signup', [AuthController, 'signup']).use(signupThrottle)
     router.post('auth/logout', [AuthController, 'logout']).use(middleware.auth())
     router.get('auth/me', [AuthController, 'me']).use(middleware.auth())
 
@@ -41,13 +47,15 @@ router
       .group(() => {
         router.get('settings', [SettingsController, 'show'])
         router.patch('settings', [SettingsController, 'update'])
+        router.patch('account', [AccountController, 'update'])
+        router.get('export', [ExportController, 'show'])
 
         router.get('keys', [ApiKeysController, 'index'])
         router.post('keys', [ApiKeysController, 'store'])
         router.delete('keys/:id', [ApiKeysController, 'destroy'])
       })
       .where('id', router.matchers.number())
-      .use(middleware.auth({ guards: ['web'] }))
+      .use([middleware.auth({ guards: ['web'] }), middleware.workspace()])
 
     /** Session or API key; a key needs the scope on each route. */
     router
@@ -58,6 +66,8 @@ router
         const goalsWrite = middleware.scope('goals:write')
         const projectsRead = middleware.scope('projects:read')
         const projectsWrite = middleware.scope('projects:write')
+        const notesRead = middleware.scope('notes:read')
+        const notesWrite = middleware.scope('notes:write')
 
         router.get('todos', [TodosController, 'index']).use(todosRead)
         router.post('todos', [TodosController, 'store']).use(todosWrite)
@@ -66,6 +76,9 @@ router
         router.post('todos/:id/recheck', [TodosController, 'recheck']).use(todosWrite)
         router.post('todos/:id/dismiss', [TodosController, 'dismiss']).use(todosWrite)
         router.delete('todos/:id', [TodosController, 'destroy']).use(todosWrite)
+        router.get('todos/:id/hint', [TodoHintsController, 'show']).use(todosRead)
+        router.post('todos/:id/hint', [TodoHintsController, 'store']).use(todosWrite)
+        router.post('todos/:id/hint/add', [TodoHintsController, 'add']).use(todosWrite)
 
         router.get('goals', [GoalsController, 'index']).use(goalsRead)
         router.post('goals', [GoalsController, 'store']).use(goalsWrite)
@@ -116,8 +129,14 @@ router
           .use(goalsWrite)
 
         router.get('calendar', [CalendarController, 'index']).use(todosRead)
+
+        router.get('notes', [NotesController, 'index']).use(notesRead)
+        router.post('notes', [NotesController, 'store']).use(notesWrite)
+        router.get('notes/:id', [NotesController, 'show']).use(notesRead)
+        router.patch('notes/:id', [NotesController, 'update']).use(notesWrite)
+        router.delete('notes/:id', [NotesController, 'destroy']).use(notesWrite)
       })
       .where('id', router.matchers.number())
-      .use([middleware.auth({ guards: ['web', 'api'] }), apiThrottle])
+      .use([middleware.auth({ guards: ['web', 'api'] }), middleware.workspace(), apiThrottle])
   })
   .prefix('/api/v1')

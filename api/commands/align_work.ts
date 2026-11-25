@@ -13,7 +13,7 @@ import type { FileDeleteJob } from '#services/alignment/queue'
 export default class AlignWork extends BaseCommand {
   static commandName = 'align:work'
   static description =
-    'Run the background worker: AI alignment checks, goal suggestions, and Cloudinary file deletions'
+    'Run the background worker: AI alignment checks, goal suggestions, to-do hints, and Cloudinary file deletions'
   static options: CommandOptions = { startApp: true, staysAlive: true }
 
   async run() {
@@ -39,10 +39,12 @@ export default class AlignWork extends BaseCommand {
       const { GeminiProvider } = await import('#services/alignment/gemini')
       const { AlignmentGuard } = await import('#services/alignment/guard')
       const { GoalSuggester } = await import('#services/suggestions/suggester')
+      const { TodoHinter } = await import('#services/hints/hinter')
       // One breaker and spend cap for every model call this worker makes.
       const guard = new AlignmentGuard()
       const checker = new AlignmentChecker(new GeminiProvider(aiConfig.apiKey!), guard)
       const suggester = new GoalSuggester(aiConfig.apiKey!, guard)
+      const hinter = new TodoHinter(aiConfig.apiKey!, guard)
 
       await boss.work<{ todoId: number }>(
         QUEUES.todo,
@@ -52,10 +54,27 @@ export default class AlignWork extends BaseCommand {
           this.logger.info(`to-do ${job.data.todoId}: ${result}`)
         }
       )
-      await boss.work(QUEUES.all, { pollingIntervalSeconds: 2 }, async () => {
-        const counts = await checker.checkAll()
-        this.logger.info(`re-checked open to-dos: ${JSON.stringify(counts)}`)
-      })
+      const { default: db } = await import('@adonisjs/lucid/services/db')
+      /** Workspaces whose AI is on: the only ones whose content may be sent. */
+      const aiWorkspaces = async () => {
+        const rows: { id: number }[] = await db
+          .from('workspaces')
+          .where('ai_enabled', true)
+          .select('id')
+        return rows.map((r) => r.id)
+      }
+      await boss.work<{ workspaceId?: number }>(
+        QUEUES.all,
+        { pollingIntervalSeconds: 2 },
+        async ([job]: Job<{ workspaceId?: number }>[]) => {
+          // Jobs queued before workspaces existed have no id: run every AI-on workspace.
+          const ids = job.data.workspaceId ? [job.data.workspaceId] : await aiWorkspaces()
+          for (const id of ids) {
+            const counts = await checker.checkAll(id)
+            this.logger.info(`re-checked workspace ${id}: ${JSON.stringify(counts)}`)
+          }
+        }
+      )
       await boss.work<{ runId: number }>(
         QUEUES.suggest,
         { pollingIntervalSeconds: 2 },
@@ -64,9 +83,19 @@ export default class AlignWork extends BaseCommand {
           this.logger.info(`goal suggestions run ${job.data.runId}: ${status}`)
         }
       )
+      await boss.work<{ runId: number }>(
+        QUEUES.hint,
+        { localConcurrency: 2, pollingIntervalSeconds: 1 },
+        async ([job]: Job<{ runId: number }>[]) => {
+          const status = await hinter.run(job.data.runId)
+          this.logger.info(`to-do hint run ${job.data.runId}: ${status}`)
+        }
+      )
       // Re-check open to-dos on start, so a new model, prompt or context shape
       // applies to existing results. Unchanged ones hit the cache.
-      await boss.send(QUEUES.all, {})
+      for (const workspaceId of await aiWorkspaces()) {
+        await boss.send(QUEUES.all, { workspaceId }, { singletonKey: String(workspaceId) })
+      }
       this.logger.info(`Alignment worker running on ${aiConfig.model}`)
     }
 

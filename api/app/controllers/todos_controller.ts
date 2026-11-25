@@ -9,10 +9,15 @@ import { logCompletion, removeLatestCompletion } from '#services/completions'
 import { setMatches, withMatchView, withMatchViewOne, type GoalLink } from '#services/matches'
 import { inList, positionFor, topPosition, wantsMove } from '#services/ordering'
 import { paginateByPosition } from '#services/paginate'
+import { findInWs, inWs } from '#services/scoped'
+import type Workspace from '#models/workspace'
 import { createTodoValidator, listTodosValidator, updateTodoValidator } from '#validators/todo'
 
-/** Open to-dos, the list that drag-and-drop orders. */
-const openTodos = () => Todo.query().where('done', false)
+/** A workspace's open to-dos, the list that drag-and-drop orders. */
+export const openTodosOf = (ws: Workspace) => () => inWs(Todo, ws).where('done', false)
+
+/** The advisory-lock key for a workspace's to-do order. */
+export const todosList = (ws: Workspace) => `todos:${ws.id}`
 
 /** The to-do with its goal links (`matches`, `match_level`). Goals only. */
 const view = (todo: Todo) => withMatchViewOne(todo)
@@ -28,10 +33,10 @@ function markPending(todo: Todo): GoalLink[] {
 
 export default class TodosController {
   /** GET /todos: open to-dos in your order (done=true for completed ones). */
-  async index({ request }: HttpContext) {
+  async index({ request, workspace }: HttpContext) {
     const filters = await listTodosValidator.validate(request.qs())
     // Off-track to-dos left the list but weren't completed: never listed as done.
-    const query = Todo.query()
+    const query = inWs(Todo, workspace)
       .where('done', filters.done ?? false)
       .where('off_track', false)
     if (filters.date) query.where('date', filters.date)
@@ -45,17 +50,18 @@ export default class TodosController {
    * POST /todos: new to-dos go on top. With the AI on, the to-do is saved as
    * "pending" and the check is queued after the commit; the save never waits.
    */
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, workspace }: HttpContext) {
     const input = await request.validateUsing(createTodoValidator)
-    const check = await aiActive()
-    const todo = await inList('todos', async (trx) =>
+    const check = await aiActive(workspace.id)
+    const todo = await inList(todosList(workspace), async (trx) =>
       Todo.create(
         {
+          workspaceId: workspace.id,
           title: input.title,
           notes: input.notes ?? '',
           date: input.recurring ? null : (input.date ?? null),
           recurring: input.recurring ?? false,
-          position: await topPosition(openTodos, trx),
+          position: await topPosition(openTodosOf(workspace), trx),
           done: false,
           alignmentStatus: check ? 'pending' : null,
         },
@@ -67,8 +73,8 @@ export default class TodosController {
     return response.created(await view(todo))
   }
 
-  async show({ params }: HttpContext) {
-    const todo = await Todo.findOrFail(params.id)
+  async show({ params, workspace }: HttpContext) {
+    const todo = await findInWs(Todo, workspace, params.id)
     return view(todo)
   }
 
@@ -82,8 +88,8 @@ export default class TodosController {
    * DELETE /completions/:id). New text re-runs the AI check (even on a
    * dismissed to-do); a manual link is never touched by the AI.
    */
-  async update({ params, request }: HttpContext) {
-    const todo = await Todo.findOrFail(params.id)
+  async update({ params, request, workspace }: HttpContext) {
+    const todo = await findInWs(Todo, workspace, params.id)
     const input = await request.validateUsing(updateTodoValidator)
 
     const willRecur = input.recurring ?? todo.recurring
@@ -102,7 +108,7 @@ export default class TodosController {
     let completion: 'log' | 'unlog' | null = null
     let counted = false
     if (input.done === true && !todo.done) {
-      const ai = await aiActive()
+      const ai = await aiActive(workspace.id)
       counted = ai
       if (ai && todo.alignmentStatus === 'unaligned') {
         // Checking off a red to-do moves it to the off-track backlog. It
@@ -136,15 +142,15 @@ export default class TodosController {
     let check = false
     let goals: GoalLink[] | undefined
     if (input.matched_goal_id !== undefined) {
-      ;({ check, goals } = await this.link(todo, input.matched_goal_id))
-    } else if (textChanged && todo.alignmentSource !== 'manual' && (await aiActive())) {
+      ;({ check, goals } = await this.link(workspace, todo, input.matched_goal_id))
+    } else if (textChanged && todo.alignmentSource !== 'manual' && (await aiActive(workspace.id))) {
       goals = markPending(todo)
       check = true
     }
 
     if (wantsMove(input)) {
-      await inList('todos', async (trx) => {
-        todo.position = await positionFor(openTodos, input, todo.id, trx)
+      await inList(todosList(workspace), async (trx) => {
+        todo.position = await positionFor(openTodosOf(workspace), input, todo.id, trx)
         await todo.useTransaction(trx).save()
       })
     } else {
@@ -154,6 +160,7 @@ export default class TodosController {
 
     if (backlog === 'move') {
       await OffTrackItem.create({
+        workspaceId: workspace.id,
         todoId: todo.id,
         titleSnapshot: todo.title,
         notesSnapshot: todo.notes,
@@ -162,7 +169,7 @@ export default class TodosController {
         movedAt: DateTime.now(),
       })
     } else if (backlog === 'undo') {
-      await OffTrackItem.query().where('todo_id', todo.id).where('status', 'open').delete()
+      await inWs(OffTrackItem, workspace).where('todo_id', todo.id).where('status', 'open').delete()
     }
 
     let completionId: number | undefined
@@ -183,14 +190,14 @@ export default class TodosController {
    * manual link and hands the to-do back to the AI. Returns whether a check
    * should be queued and the new goal links.
    */
-  private async link(todo: Todo, goalId: number | null) {
+  private async link(ws: Workspace, todo: Todo, goalId: number | null) {
     if (goalId === null) {
-      const check = await aiActive()
+      const check = await aiActive(ws.id)
       if (check) markPending(todo)
       else todo.merge({ alignmentStatus: null, alignmentReason: null, alignmentSource: null })
       return { check, goals: [] }
     }
-    const goal = await Goal.find(goalId)
+    const goal = await inWs(Goal, ws).where('id', goalId).first()
     if (goal?.status !== 'active') throw AppError.validation('Pick an active goal.')
     todo.merge({
       alignmentStatus: 'aligned',
@@ -202,9 +209,9 @@ export default class TodosController {
   }
 
   /** POST /todos/:id/recheck: run the AI check again (also after an error). */
-  async recheck({ params }: HttpContext) {
-    const todo = await Todo.findOrFail(params.id)
-    if (!(await aiActive())) throw AppError.validation('The AI check is off.')
+  async recheck({ params, workspace }: HttpContext) {
+    const todo = await findInWs(Todo, workspace, params.id)
+    if (!(await aiActive(workspace.id))) throw AppError.validation('The AI check is off.')
     if (todo.done) throw AppError.validation('Completed to-dos are not checked.')
     await setMatches(todo.id, markPending(todo))
     await todo.save()
@@ -214,8 +221,8 @@ export default class TodosController {
   }
 
   /** POST /todos/:id/dismiss: "This is fine". Not re-flagged unless the text changes. */
-  async dismiss({ params }: HttpContext) {
-    const todo = await Todo.findOrFail(params.id)
+  async dismiss({ params, workspace }: HttpContext) {
+    const todo = await findInWs(Todo, workspace, params.id)
     todo.merge({ alignmentStatus: 'dismissed', alignmentReason: null, alignmentSource: null })
     await todo.save()
     await setMatches(todo.id, [])
@@ -223,8 +230,8 @@ export default class TodosController {
   }
 
   /** DELETE /todos/:id. Its past completions stay counted (todo_id → null). */
-  async destroy({ params, response }: HttpContext) {
-    const todo = await Todo.findOrFail(params.id)
+  async destroy({ params, response, workspace }: HttpContext) {
+    const todo = await findInWs(Todo, workspace, params.id)
     await todo.delete()
     return response.noContent()
   }

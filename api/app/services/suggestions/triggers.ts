@@ -8,8 +8,12 @@ import { alignmentQueue } from '#services/alignment/queue'
 /** Fewer open backlog items than this and there's no theme to find. */
 export const MIN_ITEMS = 3
 
-export async function openBacklogCount() {
-  const row = await OffTrackItem.query().where('status', 'open').count('* as total').first()
+export async function openBacklogCount(workspaceId: number) {
+  const row = await OffTrackItem.query()
+    .where('workspace_id', workspaceId)
+    .where('status', 'open')
+    .count('* as total')
+    .first()
   return Number(row?.$extras.total ?? 0)
 }
 
@@ -20,20 +24,36 @@ export async function openBacklogCount() {
  * null when nothing was queued.
  */
 export async function startSuggestionRun(
+  workspaceId: number,
   trigger: SuggestionTrigger,
   triggerGoalId: number | null = null
 ): Promise<number | null> {
   let run: GoalSuggestionRun | null = null
   try {
-    if (!(await aiActive())) return null
-    const itemCount = await openBacklogCount()
+    if (!(await aiActive(workspaceId))) return null
+    const itemCount = await openBacklogCount(workspaceId)
     if (itemCount < MIN_ITEMS) {
-      await GoalSuggestionRun.create({ trigger, triggerGoalId, status: 'skipped', itemCount })
+      await GoalSuggestionRun.create({
+        workspaceId,
+        trigger,
+        triggerGoalId,
+        status: 'skipped',
+        itemCount,
+      })
       return null
     }
     // One set of suggestions at a time: undecided ones from earlier runs go.
-    await GoalSuggestion.query().where('status', 'open').update({ status: 'dismissed' })
-    run = await GoalSuggestionRun.create({ trigger, triggerGoalId, status: 'queued', itemCount })
+    await GoalSuggestion.query()
+      .where('workspace_id', workspaceId)
+      .where('status', 'open')
+      .update({ status: 'dismissed' })
+    run = await GoalSuggestionRun.create({
+      workspaceId,
+      trigger,
+      triggerGoalId,
+      status: 'queued',
+      itemCount,
+    })
     await alignmentQueue().suggestGoals(run.id)
     return run.id
   } catch (error) {

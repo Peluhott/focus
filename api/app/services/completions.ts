@@ -14,6 +14,7 @@ import { activeGoalIds } from '#services/matches'
 export async function logCompletion(todo: Todo, counted: boolean) {
   const completion = await TodoCompletion.create({
     todoId: todo.id,
+    workspaceId: todo.workspaceId,
     titleSnapshot: todo.title,
     completedAt: DateTime.now(),
     counted,

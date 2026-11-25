@@ -38,9 +38,9 @@ export class AlignmentChecker {
 
   async checkTodo(todoId: number, context?: AlignmentContext): Promise<CheckResult> {
     const todo = await Todo.find(todoId)
-    if (!todo || !eligible(todo) || !(await aiActive())) return 'skipped'
+    if (!todo || !eligible(todo) || !(await aiActive(todo.workspaceId))) return 'skipped'
 
-    context ??= await buildContext()
+    context ??= await buildContext(todo.workspaceId)
     const input = todoInput(todo)
     const inputHash = sha256([this.provider.model, PROMPT_VERSION, input, context.version])
 
@@ -50,6 +50,7 @@ export class AlignmentChecker {
     }
 
     const cached = await AlignmentCheck.query()
+      .where('workspace_id', todo.workspaceId)
       .where('input_hash', inputHash)
       .whereNotNull('verdict')
       .orderBy('id', 'desc')
@@ -59,7 +60,7 @@ export class AlignmentChecker {
       return 'cached'
     }
 
-    const blocked = await this.guard.blocked()
+    const blocked = await this.guard.blocked(todo.workspaceId)
     if (blocked) {
       // Leave earlier verdicts alone; only a to-do waiting on this check
       // turns neutral ("error"), so it doesn't spin forever.
@@ -77,11 +78,11 @@ export class AlignmentChecker {
   }
 
   /**
-   * Re-check every open to-do the AI may judge, against one fresh context
+   * Re-check every open to-do in one workspace the AI may judge, against one fresh context
    * (after a goal, sub-goal, project or task changes). Unchanged items hit
    * the cache, so this is cheap when nothing relevant moved.
    */
-  async checkAll(): Promise<Record<CheckResult, number>> {
+  async checkAll(workspaceId: number): Promise<Record<CheckResult, number>> {
     const counts: Record<CheckResult, number> = {
       skipped: 0,
       cached: 0,
@@ -89,9 +90,10 @@ export class AlignmentChecker {
       failed: 0,
       paused: 0,
     }
-    if (!(await aiActive())) return counts
-    const context = await buildContext()
+    if (!(await aiActive(workspaceId))) return counts
+    const context = await buildContext(workspaceId)
     const todos = await Todo.query()
+      .where('workspace_id', workspaceId)
       .where('done', false)
       .where((q) => q.whereNull('alignment_source').orWhere('alignment_source', 'ai'))
       .where((q) => q.whereNull('alignment_status').orWhereNot('alignment_status', 'dismissed'))
@@ -117,12 +119,12 @@ export class AlignmentChecker {
       try {
         const result = await this.provider.classifyAlignment(input, context)
         this.guard.succeeded()
-        await this.log(todo.id, context, inputHash, result.verdict, result)
+        await this.log(todo, context, inputHash, result.verdict, result)
         return result
       } catch (error) {
         this.guard.failed()
         const failure = error instanceof ProviderError ? error : null
-        await this.log(todo.id, context, null, null, {
+        await this.log(todo, context, null, null, {
           usage: failure?.usage ?? { inputTokens: 0, outputTokens: 0 },
           latencyMs: failure?.latencyMs ?? 0,
         })
@@ -138,14 +140,15 @@ export class AlignmentChecker {
   }
 
   private async log(
-    todoId: number,
+    todo: Todo,
     context: AlignmentContext,
     inputHash: string | null,
     verdict: ProviderResult['verdict'] | null,
     stats: Pick<ProviderResult, 'usage' | 'latencyMs'>
   ) {
     await AlignmentCheck.create({
-      todoId,
+      todoId: todo.id,
+      workspaceId: todo.workspaceId,
       model: this.provider.model,
       contextVersion: context.version,
       inputHash,

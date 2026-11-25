@@ -33,6 +33,7 @@ class FakeQueue implements AlignmentQueue {
     this.all++
   }
   async suggestGoals() {}
+  async hintTodo() {}
   async deleteFile() {}
   async close() {}
 }
@@ -412,7 +413,8 @@ test.group('AI alignment check', (group) => {
     await as(client.patch(`/api/v1/todos/${done.id}`).json({ done: true }))
 
     const provider = new FakeProvider(() => unaligned(0.9))
-    const counts = await checker(provider).checkAll()
+    const personal = await db.from('workspaces').where('kind', 'personal').firstOrFail()
+    const counts = await checker(provider).checkAll(personal.id)
     assert.equal(counts.checked, 1)
     assert.deepEqual(
       provider.calls.map((c) => c.todo.title),

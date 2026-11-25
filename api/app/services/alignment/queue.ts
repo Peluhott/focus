@@ -8,6 +8,8 @@ export const QUEUES = {
   todo: 'alignment-todo',
   all: 'alignment-all',
   suggest: 'goal-suggestions',
+  /** "Help me start": one first step for a to-do. */
+  hint: 'todo-hints',
   /** Cloudinary deletions for removed files and projects (not AI). */
   fileDelete: 'files-delete',
 } as const
@@ -17,10 +19,12 @@ export type FileDeleteJob = { publicId: string; resourceType: string }
 export interface AlignmentQueue {
   /** Check one to-do in ~1.5 s (repeat requests while queued are merged). */
   checkTodo(todoId: number): Promise<void>
-  /** Re-check all open to-dos in ~5 s, after goals or projects change. */
-  checkAll(): Promise<void>
+  /** Re-check one workspace's open to-dos in ~5 s, after its goals or projects change. */
+  checkAll(workspaceId: number): Promise<void>
   /** Build goal suggestions for one run (after a goal completes or the limit rises). */
   suggestGoals(runId: number): Promise<void>
+  /** Build the "Help me start" first step for one to-do hint run. */
+  hintTodo(runId: number): Promise<void>
   /** Delete one file from Cloudinary; retried with backoff if it's down. */
   deleteFile(job: FileDeleteJob): Promise<void>
   close(): Promise<void>
@@ -92,14 +96,23 @@ class BossQueue implements AlignmentQueue {
     )
   }
 
-  async checkAll() {
+  async checkAll(workspaceId: number) {
     const boss = await this.boss()
-    await boss.send(QUEUES.all, {}, { startAfter: later(aiConfig.contextDelayMs) })
+    await boss.send(
+      QUEUES.all,
+      { workspaceId },
+      { singletonKey: String(workspaceId), startAfter: later(aiConfig.contextDelayMs) }
+    )
   }
 
   async suggestGoals(runId: number) {
     const boss = await this.boss()
     await boss.send(QUEUES.suggest, { runId }, { singletonKey: String(runId) })
+  }
+
+  async hintTodo(runId: number) {
+    const boss = await this.boss()
+    await boss.send(QUEUES.hint, { runId }, { singletonKey: String(runId) })
   }
 
   async deleteFile(job: FileDeleteJob) {

@@ -5,6 +5,7 @@ import {
   noteContextChange,
   queueContextRecheck,
   recheckIfContextChanged,
+  workspaceOf,
 } from '#services/alignment/triggers'
 
 export default class SubGoal extends AppBaseModel {
@@ -42,11 +43,11 @@ export default class SubGoal extends AppBaseModel {
 
   @afterSave()
   static recheckAlignment(row: SubGoal) {
-    recheckIfContextChanged(row)
+    recheckIfContextChanged(row, () => workspaceOf('goals', row.goalId))
   }
 
   @afterDelete()
-  static recheckAlignmentOnDelete() {
-    void queueContextRecheck()
+  static async recheckAlignmentOnDelete(row: SubGoal) {
+    void queueContextRecheck(await workspaceOf('goals', row.goalId))
   }
 }
