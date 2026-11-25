@@ -42,7 +42,44 @@ export type AlignmentStatus = 'pending' | 'aligned' | 'unaligned' | 'dismissed' 
 /** A goal a to-do can be linked to by hand ("Link to…"). */
 export type LinkTarget = { id: number; title: string }
 
-export type Settings = { focus_limit: 3 | 5 | 7; ai_enabled: boolean; ai_available: boolean }
+/**
+ * GET /settings for the request's workspace. focus_limit, timer_minutes and
+ * last_workspace are the user's (shared); ai_enabled is this workspace's.
+ */
+export type Settings = {
+  focus_limit: 3 | 5 | 7
+  timer_minutes: number
+  last_workspace: 'personal' | 'work'
+  workspace: 'personal' | 'work'
+  ai_enabled: boolean
+  ai_available: boolean
+  /** Last time AI was turned on in Work (the acknowledgement). */
+  work_ai_ack_at: string | null
+}
+
+/** A note (NOTES.md). Markdown body, manual order. */
+export type Note = {
+  id: number
+  /** '' allowed; the list shows "Untitled note". */
+  title: string
+  body: string
+  position: string
+  created_at: string
+  updated_at: string
+}
+
+/** queued while the worker thinks (the backend has no "running"). */
+export type TodoHintStatus = 'queued' | 'ready' | 'error' | 'skipped'
+
+/** "Help me start" (START-SMALL.md): one small first step. */
+export type TodoHintRun = {
+  id: number
+  todo_id: number
+  status: TodoHintStatus
+  text: string | null
+  error: string | null
+  created_at: string
+}
 
 export type SubGoal = {
   id: number
