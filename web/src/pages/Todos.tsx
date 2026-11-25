@@ -6,12 +6,14 @@ import {
   CalendarBlankIcon,
   CheckIcon,
   DotsThreeIcon,
+  FootprintsIcon,
   LinkIcon,
   RepeatIcon,
   TargetIcon,
   TrashIcon,
   WarningIcon,
 } from '@phosphor-icons/react'
+import HintCard from '../components/HintCard'
 import InlineInput from '../components/InlineInput'
 import NotesField from '../components/NotesField'
 import SortableList from '../components/SortableList'
@@ -53,6 +55,40 @@ export default function Todos() {
   useFocusTarget(!!todos)
   const [draft, setDraft] = useState('')
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
+  // Open "Help me start" cards (closing one discards it).
+  const [hints, setHints] = useState<Record<number, boolean>>({})
+
+  // Recurring to-dos sit in their own band above the one-time list
+  // (RECURRING-TODOS.md "Recurring band"); each group reorders on its own.
+  const recurring = todos?.filter((t) => t.recurring) ?? []
+  const oneTime = todos?.filter((t) => !t.recurring) ?? []
+
+  function renderGroup(items: Todo[], others: Todo[], className: string) {
+    if (items.length === 0) return null
+    return (
+      <SortableList
+        items={items}
+        noun="to-do"
+        className={className}
+        itemId={(t) => `todo-${t.id}`}
+        itemClassName={(t) => `todo-row${rowTint(t, aiOn)}`}
+        isLocked={(t) => isTemp(t.id)}
+        onMove={(id, placement, order) => move.mutate({ id, placement, order: [...order, ...others] })}
+        renderItem={(todo, handle) => (
+          <TodoRow
+            todo={todo}
+            handle={handle}
+            expanded={!!expanded[todo.id]}
+            onToggle={() => setExpanded((s) => ({ ...s, [todo.id]: !s[todo.id] }))}
+            hintOpen={aiOn && !!hints[todo.id]}
+            onToggleHint={() => setHints((s) => ({ ...s, [todo.id]: !s[todo.id] }))}
+            index={(todos ?? []).findIndex((t) => t.id === todo.id)}
+            aiOn={aiOn}
+          />
+        )}
+      />
+    )
+  }
 
   function onQuickAdd(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key !== 'Enter') return
@@ -76,25 +112,21 @@ export default function Todos() {
       />
       {isError && <p className="muted centered">Couldn't load your to-dos.</p>}
       {todos && (
-        <SortableList
-          items={todos}
-          noun="to-do"
-          className="todo-list"
-          itemId={(t) => `todo-${t.id}`}
-          itemClassName={(t) => `todo-row${rowTint(t, aiOn)}`}
-          isLocked={(t) => isTemp(t.id)}
-          onMove={(id, placement, order) => move.mutate({ id, placement, order })}
-          renderItem={(todo, handle) => (
-            <TodoRow
-              todo={todo}
-              handle={handle}
-              expanded={!!expanded[todo.id]}
-              onToggle={() => setExpanded((s) => ({ ...s, [todo.id]: !s[todo.id] }))}
-              index={todos.findIndex((t) => t.id === todo.id)}
-              aiOn={aiOn}
-            />
+        <>
+          {recurring.length > 0 && (
+            <div className="recurring-band">
+              <div className="recurring-label">
+                <span className="recurring-kicker">
+                  <RepeatIcon aria-hidden />
+                  Recurring
+                </span>
+                <span className="recurring-sub">Always on your list. Check off each time.</span>
+              </div>
+              {renderGroup(recurring, oneTime, 'recurring-list')}
+            </div>
           )}
-        />
+          {renderGroup(oneTime, recurring, `todo-list${recurring.length > 0 ? ' after-band' : ''}`)}
+        </>
       )}
       {!isPending && todos?.length === 0 && <p className="empty muted centered">Nothing on the list.</p>}
     </section>
@@ -144,6 +176,8 @@ function TodoRow({
   handle,
   expanded,
   onToggle,
+  hintOpen,
+  onToggleHint,
   index,
   aiOn,
 }: {
@@ -151,6 +185,8 @@ function TodoRow({
   handle: ReactNode
   expanded: boolean
   onToggle: () => void
+  hintOpen: boolean
+  onToggleHint: () => void
   index: number
   aiOn: boolean
 }) {
@@ -326,6 +362,17 @@ function TodoRow({
             {overdue ? `Overdue · ${shortDate(todo.date)}` : shortDate(todo.date)}
           </span>
         )}
+        {aiOn && saved && (
+          <button
+            className={`btn btn-ghost btn-icon row-icon hint-button${hintOpen ? ' is-open' : ''}`}
+            aria-label="Help me start"
+            title="Help me start"
+            aria-expanded={hintOpen}
+            onClick={onToggleHint}
+          >
+            <FootprintsIcon size={18} aria-hidden />
+          </button>
+        )}
         <button
           className="btn btn-ghost btn-icon row-icon"
           aria-label={recurring ? 'Notes and repeat' : 'Date and notes'}
@@ -337,6 +384,7 @@ function TodoRow({
           {recurring ? <DotsThreeIcon size={18} aria-hidden /> : <CalendarBlankIcon size={18} aria-hidden />}
         </button>
       </div>
+      {hintOpen && saved && <HintCard todo={todo} onClose={onToggleHint} />}
       {status === 'unaligned' && (
         <div className="flag-line">
           <span className="flag-reason">

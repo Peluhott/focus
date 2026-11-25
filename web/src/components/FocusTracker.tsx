@@ -5,7 +5,6 @@ import {
   FlagPennantIcon,
   PersonSimpleHikeIcon,
   TargetIcon,
-  WarningIcon,
 } from '@phosphor-icons/react'
 import { climbState, fmtN, PEAKS } from '../lib/climb'
 import type { CompletionStats } from '../lib/stats'
@@ -25,17 +24,15 @@ export default function FocusTracker({
   aiOn: boolean
 }) {
   const total = stats?.total ?? 0
-  const base = Math.max(total, 1)
   const countFor = (id: number) => stats?.by_goal.find((g) => g.goal_id === id)?.count ?? 0
-  const rows = [
-    ...activeGoals.map((g) => ({
-      key: `g${g.id}`,
-      label: g.title || 'Untitled goal',
-      count: countFor(g.id),
-      offGoal: false,
-    })),
-    { key: 'off', label: 'Off-goal', count: stats?.off_goal ?? 0, offGoal: true },
-  ]
+  // Goal-linked completions only (FRONTEND-TASKS §10): the bars sum to 100%.
+  const rows = activeGoals.map((g) => ({
+    key: `g${g.id}`,
+    label: g.title || 'Untitled goal',
+    count: countFor(g.id),
+  }))
+  const linked = rows.reduce((sum, r) => sum + r.count, 0)
+  const base = Math.max(linked, 1)
   const climb = climbState(total)
 
   return (
@@ -52,24 +49,20 @@ export default function FocusTracker({
 
       <div className="tracker-cols">
         <div>
-          <h6 className="tracker-h6">Completed to-dos by goal · {fmtN(total)}</h6>
+          <h6 className="tracker-h6">Completed to-dos by goal · {fmtN(linked)}</h6>
           <div className="share-list">
             {rows.map((r) => (
               <div key={r.key}>
                 <div className="share-head">
                   <span className="share-label">
-                    {r.offGoal ? (
-                      <WarningIcon className="share-icon off" aria-hidden />
-                    ) : (
-                      <TargetIcon className="share-icon" aria-hidden />
-                    )}
+                    <TargetIcon className="share-icon" aria-hidden />
                     <span className="share-name">{r.label}</span>
                   </span>
                   <span className="share-count">{fmtN(r.count)}</span>
                 </div>
                 <div className="share-track">
                   <div
-                    className={`share-fill${r.offGoal ? ' off' : ''}`}
+                    className="share-fill"
                     style={{ width: `${Math.round((r.count / base) * 100)}%` }}
                   />
                 </div>

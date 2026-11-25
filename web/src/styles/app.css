@@ -269,7 +269,6 @@ a:hover { color: var(--color-accent-800); }
 .share-head { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
 .share-label { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .share-icon { flex: none; color: var(--color-accent-700); }
-.share-icon.off { color: var(--color-accent-2-700); }
 .share-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .share-count { flex: none; color: var(--color-neutral-700); }
 .share-track {
@@ -277,7 +276,6 @@ a:hover { color: var(--color-accent-800); }
   background: var(--color-neutral-200); border-radius: var(--radius-sm);
 }
 .share-fill { height: 100%; background: var(--color-accent); }
-.share-fill.off { background: var(--color-accent-2); }
 .climb-count { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .climb-number {
   font-family: var(--font-heading); font-weight: 600; font-size: 42px; line-height: 1; letter-spacing: -0.015em;
@@ -557,4 +555,43 @@ a:hover { color: var(--color-accent-800); }
 }
 .note-body-input::placeholder { color: var(--color-neutral-600); }
 .note-delete { align-self: flex-start; margin-top: 30px; gap: 6px; }
+
+/* — "Help me start" (START-SMALL.md) — */
+.hint-button { color: var(--color-accent-700); }
+.hint-button.is-open { background: var(--color-accent-100); }
+.hint-card {
+  display: flex; align-items: flex-start; gap: 12px; max-width: 600px; box-sizing: border-box;
+  margin: 4px 0 6px 56px; padding: 12px 8px 12px 14px; background: var(--color-surface); border-radius: var(--radius-md);
+}
+.hint-card-icon { flex: none; margin-top: 2px; color: var(--color-accent-700); }
+.hint-card-main { flex: 1; min-width: 0; display: grid; gap: 10px; }
+.hint-thinking { margin: 0; font-size: 15px; color: var(--color-neutral-700); }
+.hint-kicker { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent-800); }
+.hint-text { margin: 0; font-size: 17px; line-height: 1.45; text-wrap: pretty; }
+.hint-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.hint-add { font-size: 14px; padding: 6px 12px; gap: 6px; }
+.hint-again { font-size: 14px; padding: 6px 10px; gap: 6px; }
+.hint-added { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--color-accent-700); }
+.hint-error-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.hint-error { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; color: var(--color-accent-2-800); }
+.hint-error svg { flex: none; }
+.hint-retry { font-size: 14px; color: var(--color-accent-700); }
+.hint-close { width: 28px; height: 28px; flex: none; color: var(--color-neutral-700); }
+
+/* — recurring band (RECURRING-TODOS.md) — */
+.quick-add { margin-bottom: var(--space-4); }
+.recurring-band {
+  max-width: 720px; margin: 0 auto; box-sizing: border-box; display: grid; gap: 10px;
+  padding: 15px 15px 10px 20px; background: var(--color-accent-100); border-radius: var(--radius-md);
+}
+.recurring-label { display: grid; gap: 4px; }
+.recurring-kicker {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-heading); font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--color-accent-800);
+}
+.recurring-sub { font-size: 13px; line-height: 1.35; color: var(--color-neutral-700); }
+.recurring-list { display: flex; flex-direction: column; gap: 2px; }
+.todo-list { margin-top: 0; }
+.todo-list.after-band { margin-top: var(--space-4); }
 
