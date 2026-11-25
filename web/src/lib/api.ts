@@ -1,3 +1,5 @@
+import { currentWorkspace } from './workspace'
+
 /**
  * Thin fetch wrapper for /api/v1. Same origin (Vite proxies /api in dev), so
  * the session cookie rides along. Mutating requests echo the XSRF-TOKEN
@@ -25,7 +27,11 @@ function readCookie(name: string): string | null {
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
 export async function api<T = unknown>(method: Method, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    // Which workspace the data routes act on (WORK-MODE.md).
+    'X-Focus-Workspace': currentWorkspace(),
+  }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (method !== 'GET') {
     const xsrf = readCookie('XSRF-TOKEN')

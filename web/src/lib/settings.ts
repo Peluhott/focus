@@ -5,6 +5,7 @@ import { useOptimisticMutation } from './optimistic'
 import { todosKey } from './todos'
 import type { Settings } from './types'
 
+/** Per workspace (each workspace has its own client), so ai_enabled is this workspace's. */
 export const settingsKey = ['settings'] as const
 
 export function useSettings() {
@@ -12,23 +13,40 @@ export function useSettings() {
 }
 
 /**
- * The AI check is running: switched on in Settings *and* set up on the
- * server. When false the UI shows no chips, flags, spinners or counts.
+ * The AI check is running in this workspace: switched on in Settings *and*
+ * set up on the server. When false the UI shows no chips, flags, spinners,
+ * counts or "Help me start".
  */
 export function useAiOn() {
   const { data } = useSettings()
   return !!data?.ai_enabled && !!data?.ai_available
 }
 
+/**
+ * Turning AI on in Work needs `acknowledged: true` (the warning dialog),
+ * every time; the server records it.
+ */
 export function useSetAiEnabled() {
-  return useOptimisticMutation<Settings, { enabled: boolean }, Settings>({
+  return useOptimisticMutation<Settings, { enabled: boolean; acknowledged?: boolean }, Settings>({
     scope: 'settings',
     queryKey: () => settingsKey,
-    mutationFn: ({ enabled }) => patch<Settings>('/settings', { ai_enabled: enabled }),
+    mutationFn: ({ enabled, acknowledged }) =>
+      patch<Settings>('/settings', acknowledged ? { ai_enabled: enabled, acknowledged } : { ai_enabled: enabled }),
     apply: (old, { enabled }) => ({ ...old, ai_enabled: enabled }),
-    alsoApply: (qc, { enabled }) => {
-      qc.setQueryData<User | null>(meKey, (u) => (u ? { ...u, ai_enabled: enabled } : u))
+    settle: (_old, saved) => saved,
+    alsoInvalidate: () => [todosKey],
+  })
+}
+
+/** Settings → Timer: the nav timer's default length (user level). */
+export function useSetTimerMinutes() {
+  return useOptimisticMutation<Settings, { minutes: number }, Settings>({
+    scope: 'settings',
+    queryKey: () => settingsKey,
+    mutationFn: ({ minutes }) => patch<Settings>('/settings', { timer_minutes: minutes }),
+    apply: (old, { minutes }) => ({ ...old, timer_minutes: minutes }),
+    alsoApply: (qc, { minutes }) => {
+      qc.setQueryData<User | null>(meKey, (u) => (u ? { ...u, timer_minutes: minutes } : u))
     },
-    alsoInvalidate: () => [todosKey, meKey],
   })
 }
