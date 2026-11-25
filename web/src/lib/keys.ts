@@ -7,12 +7,14 @@ import type { ApiKey } from './types'
 export const keysKey = ['keys'] as const
 
 export const API_SCOPES = [
-  'projects:read',
-  'projects:write',
   'goals:read',
   'goals:write',
+  'projects:read',
+  'projects:write',
   'todos:read',
   'todos:write',
+  'notes:read',
+  'notes:write',
 ] as const
 
 export function useApiKeys() {

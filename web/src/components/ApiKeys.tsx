@@ -98,9 +98,13 @@ export default function ApiKeys() {
           <legend className="field-label" style={{ marginBottom: 5 }}>
             Scopes
           </legend>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, max-content)', gap: '6px 24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '6px 24px' }}>
             {API_SCOPES.map((scope) => (
-              <label key={scope} className="flex items-center gap-2" style={{ fontSize: 14, cursor: 'pointer' }}>
+              <label
+                key={scope}
+                className="flex items-center gap-2"
+                style={{ fontSize: 12, fontFamily: 'var(--font-mono, ui-monospace, monospace)', cursor: 'pointer' }}
+              >
                 <input
                   type="checkbox"
                   checked={scopes.includes(scope)}
