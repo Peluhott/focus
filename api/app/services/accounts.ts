@@ -53,7 +53,6 @@ export async function createAccount(input: {
         displayName: input.displayName ?? null,
         focusLimit: input.focusLimit ?? 3,
         timerMinutes: 25,
-        lastWorkspace: 'personal',
       },
       { client: trx }
     )

@@ -81,7 +81,6 @@ export default class SettingsController {
         .first()
       if (!own) throw AppError.validation("That workspace isn't yours.")
       user.lastWorkspaceId = own.id
-      if (own.kind) user.lastWorkspace = own.kind
     }
     await user.save()
 

@@ -6,7 +6,7 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
 import AppBaseModel from '#models/app_base_model'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
-import Workspace, { type WorkspaceKind } from '#models/workspace'
+import Workspace from '#models/workspace'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email'],
@@ -35,10 +35,6 @@ export default class User extends compose(AppBaseModel, AuthFinder) {
   /** Default length of the nav-bar focus timer (the countdown runs in the browser). */
   @column()
   declare timerMinutes: number
-
-  /** Old column ("personal" | "work"), read by the previous deploy only. */
-  @column({ serializeAs: null })
-  declare lastWorkspace: WorkspaceKind
 
   /** Workspace the web app opens in next time (null: the first one). */
   @column()

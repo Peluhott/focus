@@ -144,7 +144,6 @@ export default class WorkspacesController {
         const next = rows.find((w) => w.id !== workspace.id)!
         user.useTransaction(trx)
         user.lastWorkspaceId = next.id
-        if (next.kind) user.lastWorkspace = next.kind
         await user.save()
       }
       return found as { cloudinaryPublicId: string; resourceType: string }[]
