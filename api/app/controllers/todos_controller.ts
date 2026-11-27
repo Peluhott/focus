@@ -1,17 +1,22 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import AppError from '#exceptions/app_error'
 import Goal from '#models/goal'
 import OffTrackItem from '#models/off_track_item'
 import Todo from '#models/todo'
 import { aiActive, queueTodoCheck } from '#services/alignment/triggers'
-import { logCompletion, removeLatestCompletion } from '#services/completions'
+import { latestCompletion, logCompletion, removeLatestCompletion } from '#services/completions'
 import { setMatches, withMatchView, withMatchViewOne, type GoalLink } from '#services/matches'
 import { inList, positionFor, topPosition, wantsMove } from '#services/ordering'
 import { paginateByPosition } from '#services/paginate'
 import { findInWs, inWs } from '#services/scoped'
 import type Workspace from '#models/workspace'
 import { createTodoValidator, listTodosValidator, updateTodoValidator } from '#validators/todo'
+
+/** A recurring to-do checked off twice within this window counts once (a double-click). */
+const DOUBLE_CHECK_MS = 3_000
 
 /** A workspace's open to-dos, the list that drag-and-drop orders. */
 export const openTodosOf = (ws: Workspace) => () => inWs(Todo, ws).where('done', false)
@@ -89,100 +94,121 @@ export default class TodosController {
    * dismissed to-do); a manual link is never touched by the AI.
    */
   async update({ params, request, workspace }: HttpContext) {
-    const todo = await findInWs(Todo, workspace, params.id)
+    const found = await findInWs(Todo, workspace, params.id)
     const input = await request.validateUsing(updateTodoValidator)
+    const ai = await aiActive(workspace.id)
 
-    const willRecur = input.recurring ?? todo.recurring
-    if (willRecur && input.date && input.recurring !== false) {
-      throw AppError.validation('Repeating to-dos have no date.')
-    }
+    // Everything below runs in one transaction on the locked row, so two
+    // requests at once (a double-click, two tabs) can't both complete the
+    // to-do, and a failure halfway leaves nothing half-written.
+    const write = <T>(fn: (trx: TransactionClientContract) => Promise<T>) =>
+      wantsMove(input) ? inList(todosList(workspace), fn) : db.transaction(fn)
 
-    const textChanged =
-      (input.title !== undefined && input.title !== todo.title) ||
-      (input.notes !== undefined && input.notes !== todo.notes)
-    if (input.title !== undefined) todo.title = input.title
-    if (input.notes !== undefined) todo.notes = input.notes
-    if (input.date !== undefined) todo.date = input.date
+    const result = await write(async (trx) => {
+      const todo = await Todo.query({ client: trx }).where('id', found.id).forUpdate().firstOrFail()
 
-    let backlog: 'move' | 'undo' | null = null
-    let completion: 'log' | 'unlog' | null = null
-    let counted = false
-    if (input.done === true && !todo.done) {
-      const ai = await aiActive(workspace.id)
-      counted = ai
-      if (ai && todo.alignmentStatus === 'unaligned') {
-        // Checking off a red to-do moves it to the off-track backlog. It
-        // leaves the list but isn't a completion, and stops recurring.
-        todo.merge({ offTrack: true, done: true, doneAt: DateTime.now(), recurring: false })
-        backlog = 'move'
-      } else if (todo.recurring) {
-        // One completion logged; the to-do stays open in its spot.
-        completion = 'log'
-      } else {
-        todo.merge({ done: true, doneAt: DateTime.now() })
-        completion = 'log'
+      const willRecur = input.recurring ?? todo.recurring
+      if (willRecur && input.date && input.recurring !== false) {
+        throw AppError.validation('Repeating to-dos have no date.')
       }
-    } else if (input.done === false && todo.done) {
-      if (todo.offTrack) {
-        // Undo of a move: take it back out of the backlog.
-        todo.offTrack = false
-        backlog = 'undo'
-      } else {
-        completion = 'unlog'
+
+      const textChanged =
+        (input.title !== undefined && input.title !== todo.title) ||
+        (input.notes !== undefined && input.notes !== todo.notes)
+      if (input.title !== undefined) todo.title = input.title
+      if (input.notes !== undefined) todo.notes = input.notes
+      if (input.date !== undefined) todo.date = input.date
+
+      let backlog: 'move' | 'undo' | null = null
+      let completion: 'log' | 'unlog' | 'repeat' | null = null
+      if (input.done === true && !todo.done) {
+        if (ai && todo.alignmentStatus === 'unaligned') {
+          // Checking off a red to-do moves it to the off-track backlog. It
+          // leaves the list but isn't a completion, and stops recurring.
+          todo.merge({ offTrack: true, done: true, doneAt: DateTime.now(), recurring: false })
+          backlog = 'move'
+        } else if (todo.recurring) {
+          // One completion logged; the to-do stays open in its spot. A second
+          // check-off within a few seconds is the same click arriving twice.
+          const last = todo.lastCompletedAt
+          const repeat = last && DateTime.now().diff(last).as('milliseconds') < DOUBLE_CHECK_MS
+          completion = repeat ? 'repeat' : 'log'
+        } else {
+          todo.merge({ done: true, doneAt: DateTime.now() })
+          completion = 'log'
+        }
+      } else if (input.done === false && todo.done) {
+        if (todo.offTrack) {
+          // Undo of a move: take it back out of the backlog.
+          todo.offTrack = false
+          backlog = 'undo'
+        } else {
+          completion = 'unlog'
+        }
+        todo.merge({ done: false, doneAt: null })
       }
-      todo.merge({ done: false, doneAt: null })
-    }
 
-    // After `done`, so an off-track Undo can restore a recurring to-do.
-    if (input.recurring !== undefined) {
-      todo.recurring = input.recurring
-      if (input.recurring) todo.date = null
-    }
+      // After `done`, so an off-track Undo can restore a recurring to-do.
+      if (input.recurring !== undefined) {
+        todo.recurring = input.recurring
+        if (input.recurring) todo.date = null
+      }
 
-    let check = false
-    let goals: GoalLink[] | undefined
-    if (input.matched_goal_id !== undefined) {
-      ;({ check, goals } = await this.link(workspace, todo, input.matched_goal_id))
-    } else if (textChanged && todo.alignmentSource !== 'manual' && (await aiActive(workspace.id))) {
-      goals = markPending(todo)
-      check = true
-    }
+      let check = false
+      let goals: GoalLink[] | undefined
+      if (input.matched_goal_id !== undefined) {
+        ;({ check, goals } = await this.link(workspace, todo, input.matched_goal_id, ai, trx))
+      } else if (textChanged && todo.alignmentSource !== 'manual' && ai) {
+        goals = markPending(todo)
+        check = true
+      }
 
-    if (wantsMove(input)) {
-      await inList(todosList(workspace), async (trx) => {
+      if (wantsMove(input)) {
         todo.position = await positionFor(openTodosOf(workspace), input, todo.id, trx)
-        await todo.useTransaction(trx).save()
-      })
-    } else {
-      await todo.save()
-    }
-    if (goals) await setMatches(todo.id, goals)
+      }
+      await todo.useTransaction(trx).save()
+      if (goals) await setMatches(todo.id, goals, trx)
 
-    if (backlog === 'move') {
-      await OffTrackItem.create({
-        workspaceId: workspace.id,
-        todoId: todo.id,
-        titleSnapshot: todo.title,
-        notesSnapshot: todo.notes,
-        reason: todo.alignmentReason,
-        status: 'open',
-        movedAt: DateTime.now(),
-      })
-    } else if (backlog === 'undo') {
-      await inWs(OffTrackItem, workspace).where('todo_id', todo.id).where('status', 'open').delete()
-    }
+      if (backlog === 'move') {
+        await OffTrackItem.create(
+          {
+            workspaceId: workspace.id,
+            todoId: todo.id,
+            titleSnapshot: todo.title,
+            notesSnapshot: todo.notes,
+            reason: todo.alignmentReason,
+            status: 'open',
+            movedAt: DateTime.now(),
+          },
+          { client: trx }
+        )
+      } else if (backlog === 'undo') {
+        await inWs(OffTrackItem, workspace)
+          .useTransaction(trx)
+          .where('todo_id', todo.id)
+          .where('status', 'open')
+          .delete()
+      }
 
-    let completionId: number | undefined
-    if (completion === 'log') {
-      const logged = await logCompletion(todo, counted)
-      completionId = logged.id
-    }
-    if (completion === 'unlog') await removeLatestCompletion(todo.id)
-    if (completion) await todo.refresh()
+      let completionId: number | undefined
+      if (completion === 'log') {
+        const logged = await logCompletion(todo, ai, trx)
+        completionId = logged.id
+      }
+      if (completion === 'repeat') {
+        const latest = await latestCompletion(todo.id, trx)
+        completionId = latest?.id
+      }
+      if (completion === 'unlog') await removeLatestCompletion(todo.id, trx)
+      if (completion === 'log' || completion === 'unlog') await todo.refresh()
+      return { todo, check, completionId }
+    })
 
-    if (check) await queueTodoCheck(todo.id)
-    const body = await view(todo)
-    return completionId === undefined ? body : { ...body, completion_id: completionId }
+    if (result.check) await queueTodoCheck(result.todo.id)
+    const body = await view(result.todo)
+    return result.completionId === undefined
+      ? body
+      : { ...body, completion_id: result.completionId }
   }
 
   /**
@@ -190,14 +216,20 @@ export default class TodosController {
    * manual link and hands the to-do back to the AI. Returns whether a check
    * should be queued and the new goal links.
    */
-  private async link(ws: Workspace, todo: Todo, goalId: number | null) {
+  private async link(
+    ws: Workspace,
+    todo: Todo,
+    goalId: number | null,
+    ai: boolean,
+    trx: TransactionClientContract
+  ) {
     if (goalId === null) {
-      const check = await aiActive(ws.id)
+      const check = ai
       if (check) markPending(todo)
       else todo.merge({ alignmentStatus: null, alignmentReason: null, alignmentSource: null })
       return { check, goals: [] }
     }
-    const goal = await inWs(Goal, ws).where('id', goalId).first()
+    const goal = await inWs(Goal, ws).useTransaction(trx).where('id', goalId).first()
     if (goal?.status !== 'active') throw AppError.validation('Pick an active goal.')
     todo.merge({
       alignmentStatus: 'aligned',
