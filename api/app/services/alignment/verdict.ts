@@ -4,47 +4,102 @@ import type { AlignmentStatus } from '#models/todo'
 import type { GoalLink } from '#services/matches'
 import type { AlignmentContext, Verdict } from './types.js'
 
-const verdictValidator = vine.compile(
+const resultShape = {
+  aligned: vine.boolean({ strict: true }),
+  confidence: vine.number({ strict: true }).min(0).max(1),
+  matches: vine.array(
+    vine.object({
+      id: vine.number({ strict: true }).withoutDecimals(),
+      confidence: vine.number({ strict: true }).min(0).max(1),
+    })
+  ),
+  reason: vine.string().trim().minLength(1).maxLength(2000),
+}
+
+const batchValidator = vine.compile(
   vine.object({
-    aligned: vine.boolean({ strict: true }),
-    confidence: vine.number({ strict: true }).min(0).max(1),
+    results: vine.array(vine.object({ todo: vine.string().trim(), ...resultShape })),
+  })
+)
+
+const singleValidator = vine.compile(
+  vine.object({
+    ...resultShape,
     matches: vine.array(
       vine.object({
-        type: vine.enum(['goal'] as const),
+        type: vine.enum(['goal'] as const).optional(),
         id: vine.number({ strict: true }).withoutDecimals(),
         confidence: vine.number({ strict: true }).min(0).max(1),
       })
     ),
-    reason: vine.string().trim().minLength(1).maxLength(2000),
   })
 )
 
-/** Validate the model's JSON against the schema; throws on a bad shape. */
+/** Validate one verdict (no `todo` key); throws on a bad shape. */
 export async function parseVerdict(raw: unknown): Promise<Verdict> {
-  return verdictValidator.validate(raw)
+  const v = await singleValidator.validate(raw)
+  return {
+    aligned: v.aligned,
+    confidence: v.confidence,
+    matches: v.matches.map((m) => ({ type: 'goal' as const, id: m.id, confidence: m.confidence })),
+    reason: v.reason,
+  }
 }
 
-/** JSON Schema sent to the model (structured output). */
-export const VERDICT_JSON_SCHEMA = {
+/**
+ * Validate the model's JSON (one result per to-do) against the schema;
+ * throws on a bad shape. Returns verdicts by to-do key, in the shape the
+ * cache stores (`matches[].type` is always "goal").
+ */
+export async function parseBatch(raw: unknown): Promise<Map<string, Verdict>> {
+  const { results } = await batchValidator.validate(raw)
+  const verdicts = new Map<string, Verdict>()
+  for (const r of results) {
+    if (verdicts.has(r.todo)) continue
+    verdicts.set(r.todo, {
+      aligned: r.aligned,
+      confidence: r.confidence,
+      matches: r.matches.map((m) => ({
+        type: 'goal' as const,
+        id: m.id,
+        confidence: m.confidence,
+      })),
+      reason: r.reason,
+    })
+  }
+  return verdicts
+}
+
+/** JSON Schema sent to the model (structured output): one result per to-do. */
+export const BATCH_JSON_SCHEMA = {
   type: 'object',
   properties: {
-    aligned: { type: 'boolean' },
-    confidence: { type: 'number', minimum: 0, maximum: 1 },
-    matches: {
+    results: {
       type: 'array',
       items: {
         type: 'object',
         properties: {
-          type: { type: 'string', enum: ['goal'] },
-          id: { type: 'integer' },
+          todo: { type: 'string' },
+          aligned: { type: 'boolean' },
           confidence: { type: 'number', minimum: 0, maximum: 1 },
+          matches: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'integer' },
+                confidence: { type: 'number', minimum: 0, maximum: 1 },
+              },
+              required: ['id', 'confidence'],
+            },
+          },
+          reason: { type: 'string' },
         },
-        required: ['type', 'id', 'confidence'],
+        required: ['todo', 'aligned', 'confidence', 'matches', 'reason'],
       },
     },
-    reason: { type: 'string' },
   },
-  required: ['aligned', 'confidence', 'matches', 'reason'],
+  required: ['results'],
 }
 
 export type Outcome = {

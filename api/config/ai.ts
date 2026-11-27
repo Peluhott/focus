@@ -40,8 +40,23 @@ const aiConfig = {
   todoDelayMs: 1_500,
   contextDelayMs: 5_000,
 
-  /** What the model sees is trimmed to these sizes. */
-  limits: { details: 400, notes: 1_000, subGoals: 15, tasks: 15, reason: 140 },
+  /**
+   * What the model sees is trimmed to these sizes (characters, or counts for
+   * subGoals/projects), so every call stays small: just enough to judge.
+   */
+  limits: {
+    title: 200,
+    details: 200,
+    notes: 300,
+    subGoals: 8,
+    projects: 5,
+    /** A sub-goal or project title. */
+    item: 80,
+    reason: 120,
+  },
+
+  /** Re-checks send this many to-dos per call (the goals go once per call). */
+  batchSize: 15,
 }
 
 export default aiConfig

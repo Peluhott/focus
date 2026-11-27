@@ -56,10 +56,13 @@ export default class Project extends AppBaseModel {
   @hasMany(() => ProjectFile)
   declare files: HasMany<typeof ProjectFile>
 
-  /** What the AI check sees changed: re-check open to-dos (Phase 6). */
+  /**
+   * What the AI check sees changed: re-check open to-dos (Phase 6). Only
+   * the title, status and goal are sent, so editing details doesn't count.
+   */
   @beforeSave()
   static noteAlignmentContext(row: Project) {
-    noteContextChange(row, ['title', 'details', 'status', 'goalId'])
+    noteContextChange(row, ['title', 'status', 'goalId'])
   }
 
   @afterSave()

@@ -1,12 +1,6 @@
 import { DateTime } from 'luxon'
-import { column, afterDelete, afterSave, beforeSave } from '@adonisjs/lucid/orm'
+import { column } from '@adonisjs/lucid/orm'
 import AppBaseModel from '#models/app_base_model'
-import {
-  noteContextChange,
-  queueContextRecheck,
-  recheckIfContextChanged,
-  workspaceOf,
-} from '#services/alignment/triggers'
 
 export const TASK_STATUSES = ['pending', 'complete'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
@@ -43,19 +37,7 @@ export default class Task extends AppBaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
 
-  /** What the AI check sees changed: re-check open to-dos (Phase 6). */
-  @beforeSave()
-  static noteAlignmentContext(row: Task) {
-    noteContextChange(row, ['title', 'status', 'projectId'])
-  }
-
-  @afterSave()
-  static recheckAlignment(row: Task) {
-    recheckIfContextChanged(row, () => workspaceOf('projects', row.projectId))
-  }
-
-  @afterDelete()
-  static async recheckAlignmentOnDelete(row: Task) {
-    void queueContextRecheck(await workspaceOf('projects', row.projectId))
-  }
+  // No AI re-check hooks: tasks aren't part of what the alignment check
+  // sends (only goal and project titles are), so editing or ticking one
+  // off costs nothing.
 }

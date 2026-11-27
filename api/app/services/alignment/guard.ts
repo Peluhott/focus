@@ -1,42 +1,25 @@
 import db from '@adonisjs/lucid/services/db'
 import aiConfig, { FALLBACK_PRICE, PRICES_PER_MTOK } from '#config/ai'
+import { ownerOf } from './usage.js'
 
 type SpendRow = { model: string | null; input: string | null; output: string | null }
 
-/** Spend of deleted workspaces, kept so deleting one doesn't reset the caps. */
-const CARRYOVERS = 'ai_spend_carryovers'
-const SPEND_TABLES = ['alignment_checks', 'goal_suggestion_runs', 'todo_hint_runs', CARRYOVERS]
-
-const spendThisMonth = (table: string, userId?: number): Promise<SpendRow[]> => {
-  const query = db
-    .from(table)
-    .select(`${table}.model`)
-    .sum(`${table}.input_tokens as input`)
-    .sum(`${table}.output_tokens as output`)
-    .whereRaw(
-      `${table}.created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`
-    )
-    .groupBy(`${table}.model`)
-  if (userId !== undefined) {
-    if (table === CARRYOVERS) {
-      query.where(`${table}.user_id`, userId)
-    } else {
-      query
-        .join('workspaces', 'workspaces.id', `${table}.workspace_id`)
-        .where('workspaces.user_id', userId)
-    }
-  }
-  return query
-}
-
 /**
- * Estimated spend so far this calendar month (UTC): alignment checks,
- * goal-suggestion runs and to-do hints, which share one budget. With a
- * user id, only that user's (all their workspaces, deleted ones too).
+ * Estimated spend so far this calendar month (UTC), from the ai_usage
+ * ledger: alignment checks, goal-suggestion runs and to-do hints share one
+ * budget. With a user id, only that user's (all their workspaces, deleted
+ * ones too).
  */
 export async function monthSpendUsd(userId?: number): Promise<number> {
-  const rows: SpendRow[] = []
-  for (const table of SPEND_TABLES) rows.push(...(await spendThisMonth(table, userId)))
+  const query = db
+    .from('ai_usage')
+    .select('model')
+    .sum('input_tokens as input')
+    .sum('output_tokens as output')
+    .whereRaw(`created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`)
+    .groupBy('model')
+  if (userId !== undefined) query.where('user_id', userId)
+  const rows: SpendRow[] = await query
   return rows.reduce((total, row) => {
     const price = (row.model && PRICES_PER_MTOK[row.model]) || FALLBACK_PRICE
     return (
@@ -47,9 +30,10 @@ export async function monthSpendUsd(userId?: number): Promise<number> {
 
 /**
  * Circuit breaker and spend caps (spec "Optional by design"). One per worker
- * process: after 5 failed calls in a row it pauses for 15 minutes, it
- * pauses everyone while the month's spend is over AI_MONTHLY_BUDGET_USD,
- * and it pauses one user while theirs is over AI_USER_MONTHLY_BUDGET_USD.
+ * process: after 5 outages in a row (network, timeout, 429, 5xx; never a
+ * bad answer caused by the input) it pauses for 15 minutes, it pauses
+ * everyone while the month's spend is over AI_MONTHLY_BUDGET_USD, and it
+ * pauses one user while theirs is over AI_USER_MONTHLY_BUDGET_USD.
  */
 export class AlignmentGuard {
   private failures = 0
@@ -65,9 +49,9 @@ export class AlignmentGuard {
     if ((await monthSpendUsd()) >= aiConfig.monthlyBudgetUsd) {
       return 'AI checks are paused: the monthly AI budget is used up.'
     }
-    const owner = await db.from('workspaces').where('id', workspaceId).select('user_id').first()
-    if (!owner) return 'AI checks are paused: the workspace is gone.'
-    if ((await monthSpendUsd(owner.user_id)) >= aiConfig.userMonthlyBudgetUsd) {
+    const owner = await ownerOf(workspaceId)
+    if (owner === null) return 'AI checks are paused: the workspace is gone.'
+    if ((await monthSpendUsd(owner)) >= aiConfig.userMonthlyBudgetUsd) {
       return 'AI checks are paused: your monthly AI allowance is used up.'
     }
     return null
@@ -78,10 +62,16 @@ export class AlignmentGuard {
     return this.now() < this.pausedUntil
   }
 
+  /** Milliseconds until the breaker closes again (0 when it's closed). */
+  get resumesInMs() {
+    return Math.max(0, this.pausedUntil - this.now())
+  }
+
   succeeded() {
     this.failures = 0
   }
 
+  /** Count an outage. Bad answers (ProviderError kind "content") must not be counted. */
   failed() {
     this.failures++
     if (this.failures >= aiConfig.breakerFailures) {

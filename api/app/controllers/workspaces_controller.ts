@@ -109,17 +109,8 @@ export default class WorkspacesController {
           'project_files.resource_type as resourceType'
         )
 
-      for (const table of ['alignment_checks', 'goal_suggestion_runs', 'todo_hint_runs']) {
-        await trx.rawQuery(
-          `INSERT INTO ai_spend_carryovers (user_id, model, input_tokens, output_tokens, created_at)
-           SELECT ?, model, COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0), NOW()
-           FROM ${table}
-           WHERE workspace_id = ?
-             AND created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
-           GROUP BY model`,
-          [user.id, workspace.id]
-        )
-      }
+      // AI spend needs nothing here: ai_usage rows keep counting (their
+      // workspace_id just goes null).
       await trx
         .from('ai_consents')
         .where('workspace_id', workspace.id)

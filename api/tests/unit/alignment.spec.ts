@@ -10,7 +10,7 @@ const context: AlignmentContext = {
       title: 'Get fit',
       details: '',
       sub_goals: [],
-      projects: [{ title: 'Race plan', details: '', pending_tasks: ['Book physio'] }],
+      projects: [{ title: 'Race plan' }],
     },
   ],
   version: 'v1',
