@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { get } from './api'
 import type { CalendarEntry } from './types'
 
@@ -9,5 +9,7 @@ export function useCalendar(month: string) {
   return useQuery({
     queryKey: calendarKey(month),
     queryFn: () => get<{ data: CalendarEntry[] }>(`/calendar?month=${month}`).then((r) => r.data),
+    // Switching months keeps the last month on screen until the next one loads.
+    placeholderData: keepPreviousData,
   })
 }

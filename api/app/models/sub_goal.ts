@@ -20,7 +20,8 @@ export default class SubGoal extends AppBaseModel {
   @column()
   declare title: string
 
-  @column()
+  /** No longer used (always ''); kept until the column is dropped. */
+  @column({ serializeAs: null })
   declare details: string
 
   @column()

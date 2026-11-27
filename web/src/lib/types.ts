@@ -98,7 +98,6 @@ export type SubGoal = {
   id: number
   goal_id: number
   title: string
-  details: string
   done: boolean
   position: string
 }
@@ -108,7 +107,6 @@ export type GoalStatus = 'active' | 'completed' | 'archived'
 export type Goal = {
   id: number
   title: string
-  details: string
   status: GoalStatus
   position: string
   completed_at: string | null

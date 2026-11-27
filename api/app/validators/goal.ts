@@ -12,14 +12,12 @@ export const listGoalsValidator = vine.compile(
 export const createGoalValidator = vine.compile(
   vine.object({
     title: vine.string().trim().minLength(1).maxLength(300),
-    details: vine.string().maxLength(20000).optional(),
   })
 )
 
 export const updateGoalValidator = vine.compile(
   vine.object({
     title: vine.string().trim().maxLength(300).optional(),
-    details: vine.string().maxLength(20000).optional(),
     ...placement,
   })
 )
@@ -27,14 +25,12 @@ export const updateGoalValidator = vine.compile(
 export const createSubGoalValidator = vine.compile(
   vine.object({
     title: vine.string().trim().minLength(1).maxLength(300),
-    details: vine.string().maxLength(20000).optional(),
   })
 )
 
 export const updateSubGoalValidator = vine.compile(
   vine.object({
     title: vine.string().trim().maxLength(300).optional(),
-    details: vine.string().maxLength(20000).optional(),
     done: vine.boolean().optional(),
     ...placement,
   })

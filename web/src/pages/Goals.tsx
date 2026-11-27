@@ -17,7 +17,6 @@ import ConfirmDialog, { type ConfirmRequest } from '../components/ConfirmDialog'
 import FocusTracker from '../components/FocusTracker'
 import GoalSuggestions from '../components/GoalSuggestions'
 import OffTrackBacklog from '../components/OffTrackBacklog'
-import NotesField from '../components/NotesField'
 import SortableList from '../components/SortableList'
 import { useMe } from '../lib/auth'
 import {
@@ -326,7 +325,6 @@ function GoalCard({
   const update = useUpdateGoal()
   const addSub = useAddSubGoal()
   const moveSub = useMoveSubGoal()
-  const [detailsOpen, setDetailsOpen] = useState(false)
   const [subDraft, setSubDraft] = useState('')
   const saved = !isTemp(goal.id)
 
@@ -365,28 +363,6 @@ function GoalCard({
             </span>
           </div>
         </div>
-      </div>
-
-      <div className="goal-indent">
-        <button
-          className="btn btn-ghost small-toggle"
-          aria-expanded={detailsOpen}
-          onClick={() => setDetailsOpen((o) => !o)}
-        >
-          {detailsOpen ? <CaretDownIcon aria-hidden /> : <CaretRightIcon aria-hidden />}
-          Details
-        </button>
-        {detailsOpen && (
-          <NotesField
-            className="on-bg"
-            style={{ marginTop: 'var(--space-2)', minHeight: 80 }}
-            placeholder="Why this goal matters, what done looks like. Markdown works."
-            aria-label="Goal details"
-            value={goal.details}
-            disabled={!saved}
-            onCommit={(details) => update.mutate({ id: goal.id, patch: { details } })}
-          />
-        )}
       </div>
 
       <div className="goal-indent">
@@ -435,9 +411,8 @@ function GoalCard({
 function SubGoalRow({ sub, handle }: { sub: SubGoal; handle: ReactNode }) {
   const update = useUpdateSubGoal()
   const remove = useDeleteSubGoal()
-  const [open, setOpen] = useState(false)
   const saved = !isTemp(sub.id)
-  const patch = (p: Partial<Pick<SubGoal, 'title' | 'details' | 'done'>>) =>
+  const patch = (p: Partial<Pick<SubGoal, 'title' | 'done'>>) =>
     update.mutate({ goalId: sub.goal_id, id: sub.id, patch: p })
 
   return (
@@ -461,15 +436,6 @@ function SubGoalRow({ sub, handle }: { sub: SubGoal; handle: ReactNode }) {
           onCommit={(title) => patch({ title: title.trim() })}
         />
         <button
-          className="btn btn-ghost btn-icon tiny-icon"
-          aria-label={open ? 'Hide sub-goal details' : 'Show sub-goal details'}
-          aria-expanded={open}
-          disabled={!saved}
-          onClick={() => setOpen((o) => !o)}
-        >
-          {open ? <CaretDownIcon aria-hidden /> : <CaretRightIcon aria-hidden />}
-        </button>
-        <button
           className="btn btn-ghost btn-icon tiny-icon muted"
           aria-label="Remove sub-goal"
           disabled={!saved}
@@ -478,15 +444,6 @@ function SubGoalRow({ sub, handle }: { sub: SubGoal; handle: ReactNode }) {
           <XIcon aria-hidden />
         </button>
       </div>
-      {open && (
-        <NotesField
-          className="on-bg subgoal-details"
-          placeholder="Details. Markdown works."
-          aria-label="Sub-goal details"
-          value={sub.details}
-          onCommit={(details) => patch({ details })}
-        />
-      )}
     </>
   )
 }

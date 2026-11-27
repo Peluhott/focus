@@ -7,7 +7,6 @@ export const listStatusValidator = (statuses: readonly [string, ...string[]]) =>
 export const acceptSuggestionValidator = vine.compile(
   vine.object({
     title: vine.string().trim().minLength(1).maxLength(500).optional(),
-    details: vine.string().trim().maxLength(10_000).optional(),
     sub_goals: vine
       .array(vine.string().trim().minLength(1).maxLength(500))
       .maxLength(50)

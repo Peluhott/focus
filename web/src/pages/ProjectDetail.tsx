@@ -199,7 +199,7 @@ function BackLink() {
   )
 }
 
-/** A task row. Pending rows get a drag handle; complete rows are struck through. */
+/** A task row. Pending rows get a drag handle; complete rows are struck through. Both can be deleted (with Undo). */
 function TaskRow({ task, handle }: { task: Task; handle?: ReactNode }) {
   const update = useUpdateTask(task.project_id)
   const remove = useDeleteTask(task.project_id)
@@ -249,6 +249,14 @@ function TaskRow({ task, handle }: { task: Task; handle?: ReactNode }) {
             <CalendarBlankIcon size={18} aria-hidden />
           </button>
         )}
+        <button
+          className="btn btn-ghost btn-icon row-icon muted"
+          aria-label="Delete task"
+          disabled={!saved}
+          onClick={() => remove(task)}
+        >
+          <TrashIcon size={18} aria-hidden />
+        </button>
       </div>
       {open && !isComplete && (
         <div className="row-panel">
@@ -274,10 +282,6 @@ function TaskRow({ task, handle }: { task: Task; handle?: ReactNode }) {
                 Clear date
               </button>
             )}
-            <button className="btn btn-ghost push-right muted" onClick={() => remove(task)}>
-              <TrashIcon size={16} aria-hidden />
-              Delete
-            </button>
           </div>
         </div>
       )}

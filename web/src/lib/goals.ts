@@ -46,7 +46,6 @@ export function useCreateGoal() {
       {
         id: tempId,
         title,
-        details: '',
         status: 'active',
         position: '',
         completed_at: null,
@@ -61,7 +60,7 @@ export function useCreateGoal() {
 export function useUpdateGoal() {
   return useOptimisticMutation<
     Goal,
-    { id: number; patch: Partial<Pick<Goal, 'title' | 'details'>> },
+    { id: number; patch: Partial<Pick<Goal, 'title'>> },
     Goal[]
   >({
     scope: 'goals',
@@ -137,7 +136,7 @@ export function useAddSubGoal() {
     apply: (old, { goalId, tempId, title }) =>
       withSubs(old, goalId, (subs) => [
         ...subs,
-        { id: tempId, goal_id: goalId, title, details: '', done: false, position: '' },
+        { id: tempId, goal_id: goalId, title, done: false, position: '' },
       ]),
     settle: (old, sub, { goalId, tempId }) =>
       withSubs(old, goalId, (subs) => subs.map((s) => (s.id === tempId ? sub : s))),
@@ -147,7 +146,7 @@ export function useAddSubGoal() {
 export function useUpdateSubGoal() {
   return useOptimisticMutation<
     SubGoal,
-    { goalId: number; id: number; patch: Partial<Pick<SubGoal, 'title' | 'details' | 'done'>> },
+    { goalId: number; id: number; patch: Partial<Pick<SubGoal, 'title' | 'done'>> },
     Goal[]
   >({
     scope: 'goals',

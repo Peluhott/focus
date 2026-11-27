@@ -80,7 +80,8 @@ export default class GoalSuggestionsController {
         {
           workspaceId: workspace.id,
           title: input.title ?? suggestion.title,
-          details: input.details ?? suggestion.details,
+          // Goals have no details any more; the suggestion's "why" stays on the suggestion.
+          details: '',
           status: 'active',
           position: await bottomPosition(activeGoalsOf(workspace), trx),
         },

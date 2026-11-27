@@ -204,10 +204,10 @@ test.group('AI alignment check', (group) => {
     assert.equal(await checker(provider).checkTodo(todo.id), 'cached')
     assert.lengthOf(provider.calls, 1)
 
-    // Dragging goals around doesn't change the context; new details do.
+    // Dragging goals around doesn't change the context; a new title does.
     await Goal.query().update({ position: 'b0' })
     assert.equal(await checker(provider).checkTodo(todo.id), 'cached')
-    await Goal.query().update({ details: 'Run a half marathon' })
+    await Goal.query().update({ title: 'Run a half marathon' })
     assert.equal(await checker(provider).checkTodo(todo.id), 'checked')
   })
 

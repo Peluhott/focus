@@ -15,7 +15,7 @@ export const sha256 = (value: unknown) =>
 
 /**
  * Snapshot of what the model sees, for one workspace: active goals with
- * short details, a few sub-goal titles and the titles of their planning or
+ * a few sub-goal titles and the titles of their planning or
  * active projects. Projects without a goal are left out (to-dos match goals
  * only), and so are project details and tasks. Order doesn't matter, so
  * dragging never changes it.
@@ -39,7 +39,6 @@ export async function buildContext(workspaceId: number): Promise<AlignmentContex
     goals: goals.map((g) => ({
       id: g.id,
       title: trim(g.title, limits.title),
-      details: trim(g.details, limits.details),
       sub_goals: g.subGoals.slice(0, limits.subGoals).map((s) => trim(s.title, limits.item)),
       projects: projects
         .filter((p) => p.goalId === g.id)
@@ -56,13 +55,12 @@ export function isEmpty(context: AlignmentContext) {
 
 /**
  * The goals as compact lines, e.g.
- * `[3] Run a marathon: Train 4x a week | sub-goals: Buy shoes; 10k race | projects: Training plan`
+ * `[3] Run a marathon | sub-goals: Buy shoes; 10k race | projects: Training plan`
  */
 export function renderGoals(context: AlignmentContext) {
   return context.goals
     .map((g) => {
       let line = `[${g.id}] ${g.title}`
-      if (g.details) line += `: ${g.details}`
       if (g.sub_goals.length) line += ` | sub-goals: ${g.sub_goals.join('; ')}`
       if (g.projects.length) line += ` | projects: ${g.projects.map((p) => p.title).join('; ')}`
       return line

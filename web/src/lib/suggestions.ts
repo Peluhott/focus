@@ -20,7 +20,7 @@ export function useSuggestions() {
   })
 }
 
-export type SuggestionEdits = { title?: string; details?: string; sub_goals?: string[] }
+export type SuggestionEdits = { title?: string; sub_goals?: string[] }
 
 /** Accept (optionally edited): creates the goal. Not optimistic; it needs the server's goal. */
 export function useAcceptSuggestion() {

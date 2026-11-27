@@ -8,7 +8,6 @@ const context: AlignmentContext = {
     {
       id: 1,
       title: 'Get fit',
-      details: '',
       sub_goals: [],
       projects: [{ title: 'Race plan' }],
     },

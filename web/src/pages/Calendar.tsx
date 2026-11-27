@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckSquareIcon } from '@phosphor-icons/react'
+import { CaretLeftIcon, CaretRightIcon, CheckSquareIcon } from '@phosphor-icons/react'
 import { useCalendar } from '../lib/calendar'
 import { todayISO } from '../lib/dates'
 import type { CalendarEntry } from '../lib/types'
@@ -17,14 +17,20 @@ const longDay = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 /**
- * Calendar (docs "Calendar view"): the current month, Sunday to Saturday,
- * with every open dated to-do on its day. Read-only; a to-do opens on the
- * To-dos page. No AI state, no month navigation.
+ * Calendar (docs "Calendar view"): one month, Sunday to Saturday, with
+ * every open dated to-do on its day. Opens on the current month; ‹ › step
+ * through months and "Today" jumps back. Read-only; a to-do opens on the
+ * To-dos page. No AI state.
  */
 export default function Calendar() {
   // Plain calendar dates in local time, fixed for this visit.
   const [today] = useState(todayISO)
-  const [y, m] = today.split('-').map(Number)
+  const [ty, tm] = today.split('-').map(Number)
+  const thisMonth = ty * 12 + tm - 1
+  // The month shown, as a count of months (year * 12 + month index).
+  const [shown, setShown] = useState(thisMonth)
+  const y = Math.floor(shown / 12)
+  const m = (shown % 12) + 1
   const month = `${y}-${pad(m)}`
   const { data: entries, isPending, isError } = useCalendar(month)
 
@@ -42,14 +48,35 @@ export default function Calendar() {
   return (
     <section ref={ref} className="calendar" data-screen-label="Calendar">
       <header className="cal-header">
-        <h1 className="cal-title">
-          {monthName} <span className="cal-year">{y}</span>
-        </h1>
+        <div className="cal-nav">
+          <button
+            className="btn btn-ghost btn-icon cal-nav-btn"
+            aria-label="Previous month"
+            onClick={() => setShown((s) => s - 1)}
+          >
+            <CaretLeftIcon size={22} aria-hidden />
+          </button>
+          <h1 className="cal-title" aria-live="polite">
+            {monthName} <span className="cal-year">{y}</span>
+          </h1>
+          <button
+            className="btn btn-ghost btn-icon cal-nav-btn"
+            aria-label="Next month"
+            onClick={() => setShown((s) => s + 1)}
+          >
+            <CaretRightIcon size={22} aria-hidden />
+          </button>
+        </div>
+        {shown !== thisMonth && (
+          <button className="btn btn-ghost cal-today-btn" onClick={() => setShown(thisMonth)}>
+            Today
+          </button>
+        )}
         <p className="cal-summary">
           {isPending ? (
             ' '
           ) : (
-            <span>{total ? `${plural(total, 'item', 'items')} due this month` : 'Nothing due this month'}</span>
+            <span>{total ? `${plural(total, 'item', 'items')} due in ${monthName}` : `Nothing due in ${monthName}`}</span>
           )}
           {overdue > 0 && <span className="cal-overdue">{overdue} overdue</span>}
         </p>
@@ -62,7 +89,7 @@ export default function Calendar() {
         ) : (
           <Agenda first={first} today={today} byDay={byDay} />
         ))}
-      {entries && !wide && total === 0 && <p className="muted centered cal-empty">Nothing due this month.</p>}
+      {entries && !wide && total === 0 && <p className="muted centered cal-empty">Nothing due in {monthName}.</p>}
     </section>
   )
 }

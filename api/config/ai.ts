@@ -46,7 +46,6 @@ const aiConfig = {
    */
   limits: {
     title: 200,
-    details: 200,
     notes: 300,
     subGoals: 8,
     projects: 5,

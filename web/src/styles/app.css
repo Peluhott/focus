@@ -322,7 +322,6 @@ a:hover { color: var(--color-accent-800); }
 .subgoal-main .tiny-icon { margin-top: 1px; }
 .subgoal-title { flex: 1; min-width: 0; font-size: 15px; line-height: 1.4; padding: 5px 2px; }
 .subgoal-title.is-done { text-decoration: line-through; color: var(--color-neutral-600); }
-.subgoal-details { margin: 2px 0 6px 52px; width: calc(100% - 52px); min-height: 64px; }
 .archived { margin: var(--space-8) auto 0; max-width: 1400px; }
 .archived-toggle { padding: 4px 0; font-size: 17px; color: var(--color-text); }
 .archived-list { display: grid; gap: 4px; margin-top: var(--space-2); }
@@ -433,6 +432,9 @@ a:hover { color: var(--color-accent-800); }
   letter-spacing: -0.02em;
 }
 .cal-year { font-style: normal; color: var(--color-neutral-600); }
+.cal-nav { display: flex; align-items: center; gap: var(--space-3); }
+.cal-nav-btn { width: 40px; height: 40px; flex: none; color: var(--color-neutral-700); }
+.cal-today-btn { min-height: 32px; font-size: 14px; }
 .cal-summary {
   display: flex; flex-wrap: wrap; justify-content: center; gap: 4px var(--space-4);
   margin: 0; font-size: 14px; color: var(--color-neutral-800);
@@ -661,6 +663,11 @@ a:hover { color: var(--color-accent-800); }
 .note-row-title.is-empty { color: var(--color-neutral-700); }
 .note-row-snippet { font-size: 13px; color: var(--color-neutral-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note-row-date { flex: none; font-size: 12px; color: var(--color-neutral-700); padding-top: 3px; }
+.note-row-delete { flex: none; margin-top: -2px; opacity: 0; transition: opacity 120ms; }
+.note-row:hover .note-row-delete,
+.note-row.is-selected .note-row-delete,
+.note-row-delete:focus-visible { opacity: 1; }
+@media (hover: none) { .note-row-delete { opacity: 1; } }
 .note-editor { display: flex; flex-direction: column; }
 .note-title-input {
   width: 100%; padding: 0; border: 0; background: transparent; outline: none;
@@ -675,7 +682,6 @@ a:hover { color: var(--color-accent-800); }
   font: inherit; font-size: 17px; line-height: 1.65; color: var(--color-text);
 }
 .note-body-input::placeholder { color: var(--color-neutral-600); }
-.note-delete { align-self: flex-start; margin-top: 30px; gap: 6px; }
 
 /* — "Help me start" (START-SMALL.md) — */
 .hint-button { color: var(--color-accent-700); }

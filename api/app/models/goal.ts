@@ -28,7 +28,8 @@ export default class Goal extends AppBaseModel {
   @column()
   declare title: string
 
-  @column()
+  /** No longer used (always ''); kept until the column is dropped. */
+  @column({ serializeAs: null })
   declare details: string
 
   @column()
@@ -55,7 +56,7 @@ export default class Goal extends AppBaseModel {
   /** What the AI check sees changed: re-check open to-dos (Phase 6). */
   @beforeSave()
   static noteAlignmentContext(row: Goal) {
-    noteContextChange(row, ['title', 'details', 'status'])
+    noteContextChange(row, ['title', 'status'])
     if (row.$isPersisted && 'status' in row.$dirty && row.$original.status === 'active') {
       leftActive.add(row)
     }

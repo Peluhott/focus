@@ -63,7 +63,12 @@ export default function Notes() {
     })
   }
 
-  /** Delete now; Undo puts it back where it was and selects it again (UNDO.md). */
+  /**
+   * Delete from the list row; Undo puts it back where it was and selects it
+   * again (UNDO.md). If it's the open note, clearing the selection unmounts
+   * the editor, which saves any unsaved typing first (the real DELETE waits
+   * for the toast).
+   */
   function onDelete(note: Note) {
     remove(note, () => setSelectedId(note.id))
     // Clear the selection (-1 = "nothing", not "the first one").
@@ -79,6 +84,15 @@ export default function Notes() {
           <span className="note-row-snippet">{snippet(note.body) || 'No text'}</span>
         </span>
         <span className="note-row-date">{dayLabel(note.updated_at)}</span>
+      </button>
+      <button
+        type="button"
+        className="btn btn-ghost btn-icon tiny-icon muted note-row-delete"
+        aria-label={`Delete ${note.title || 'untitled note'}`}
+        disabled={isTemp(note.id)}
+        onClick={() => onDelete(note)}
+      >
+        <TrashIcon aria-hidden />
       </button>
     </div>
   )
@@ -135,12 +149,7 @@ export default function Notes() {
         </div>
         <div className="notes-editor-col">
           {selected && !isTemp(selected.id) ? (
-            <NoteEditor
-              key={selected.id}
-              note={selected}
-              autoFocus={focusTitle === selected.id}
-              onDelete={() => onDelete(selected)}
-            />
+            <NoteEditor key={selected.id} note={selected} autoFocus={focusTitle === selected.id} />
           ) : (
             notes && <p className="muted">Select a note, or start a new one.</p>
           )}
@@ -156,7 +165,7 @@ type SaveState = 'idle' | 'saving' | 'saved'
  * Autosave like NotesField, but while typing: the list updates on every
  * keystroke, and the PATCH goes 700 ms after typing stops.
  */
-function NoteEditor({ note, autoFocus, onDelete }: { note: Note; autoFocus: boolean; onDelete: () => void }) {
+function NoteEditor({ note, autoFocus }: { note: Note; autoFocus: boolean }) {
   const qc = useQueryClient()
   const update = useUpdateNote()
   const [title, setTitle] = useState(note.title)
@@ -233,17 +242,6 @@ function NoteEditor({ note, autoFocus, onDelete }: { note: Note; autoFocus: bool
         value={body}
         onChange={(e) => onEdit({ title, body: e.target.value })}
       />
-      <button
-        className="btn btn-ghost muted note-delete"
-        onClick={() => {
-          // Save first, so the save can't land after the delete.
-          flush()
-          onDelete()
-        }}
-      >
-        <TrashIcon size={16} aria-hidden />
-        Delete note
-      </button>
     </div>
   )
 }

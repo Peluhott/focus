@@ -150,7 +150,6 @@ function SuggestionEditor({
   onCancel: () => void
 }) {
   const [title, setTitle] = useState(suggestion.title)
-  const [details, setDetails] = useState(suggestion.details)
   const [subs, setSubs] = useState(suggestion.sub_goals)
   const [subDraft, setSubDraft] = useState('')
   const valid = title.trim().length > 0
@@ -166,16 +165,6 @@ function SuggestionEditor({
           value={title}
           autoFocus
           onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor={`sg-details-${suggestion.id}`}>Details</label>
-        <textarea
-          id={`sg-details-${suggestion.id}`}
-          className="input on-bg"
-          style={{ minHeight: 80 }}
-          value={details}
-          onChange={(e) => setDetails(e.target.value)}
         />
       </div>
       <div className="field">
@@ -218,7 +207,6 @@ function SuggestionEditor({
           onClick={() =>
             onSave({
               title: title.trim(),
-              details: details.trim(),
               sub_goals: subs.map((t) => t.trim()).filter(Boolean),
             })
           }

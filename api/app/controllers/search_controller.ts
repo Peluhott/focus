@@ -88,7 +88,6 @@ export default class SearchController {
         .where((w) =>
           w
             .whereILike('goals.title', pattern)
-            .orWhereILike('goals.details', pattern)
             .orWhereExists((s) =>
               s
                 .from('sub_goals')
@@ -103,7 +102,6 @@ export default class SearchController {
         .select(
           'goals.id',
           'goals.title',
-          'goals.details',
           'goals.status',
           db.raw(
             `(SELECT title FROM sub_goals WHERE goal_id = goals.id AND title ILIKE ?
@@ -117,11 +115,7 @@ export default class SearchController {
         items: rows.map((r) => {
           const titleHit = r.title.toLowerCase().includes(q.toLowerCase())
           const status = r.status === 'active' ? null : r.status === 'archived' ? 'Archived' : 'Completed'
-          const detail = titleHit
-            ? null
-            : r.sub_goal
-              ? `Sub-goal: ${r.sub_goal}`
-              : snippet(r.details, q)
+          const detail = titleHit || !r.sub_goal ? null : `Sub-goal: ${r.sub_goal}`
           return {
             type: 'goal',
             id: r.id,

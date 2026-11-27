@@ -24,7 +24,7 @@ export default class SubGoalsController {
         {
           goalId: goal.id,
           title: input.title,
-          details: input.details ?? '',
+          details: '',
           done: false,
           position: await bottomPosition(siblingsOf(goal.id), trx),
         },
@@ -39,7 +39,6 @@ export default class SubGoalsController {
     const sub = await findSubGoal(workspace, params.id)
     const input = await request.validateUsing(updateSubGoalValidator)
     if (input.title !== undefined) sub.title = input.title
-    if (input.details !== undefined) sub.details = input.details
     if (input.done !== undefined) sub.done = input.done
     if (wantsMove(input)) {
       await inList(`subgoals:${sub.goalId}`, async (trx) => {

@@ -65,24 +65,45 @@ function format(ms: number) {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`
 }
 
-/** Three short 880 Hz beeps (Web Audio, no asset). */
+/** Rings of the end-of-timer alarm, and the gap between their starts. */
+const RINGS = 3
+const RING_GAP_S = 3
+
+/** The alarm that's sounding now, if any (closing it stops the rest of the rings). */
+let ringing: AudioContext | null = null
+
+/** Stop the alarm early: the timer was reset, restarted or edited. */
+function stopChime() {
+  if (!ringing) return
+  void ringing.close().catch(() => {})
+  ringing = null
+}
+
+/**
+ * The end-of-timer alarm (Web Audio, no asset): three short 880 Hz beeps,
+ * rung RINGS times, RING_GAP_S seconds apart.
+ */
 function chime() {
   try {
+    stopChime()
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     const ctx = new Ctx()
-    for (let i = 0; i < 3; i++) {
-      const start = ctx.currentTime + i * 0.32
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.value = 880
-      gain.gain.setValueAtTime(0.3, start)
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.3)
-      osc.connect(gain).connect(ctx.destination)
-      osc.start(start)
-      osc.stop(start + 0.3)
+    ringing = ctx
+    for (let ring = 0; ring < RINGS; ring++) {
+      for (let i = 0; i < 3; i++) {
+        const start = ctx.currentTime + ring * RING_GAP_S + i * 0.32
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.value = 880
+        gain.gain.setValueAtTime(0.3, start)
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.3)
+        osc.connect(gain).connect(ctx.destination)
+        osc.start(start)
+        osc.stop(start + 0.3)
+      }
     }
-    window.setTimeout(() => void ctx.close(), 1500)
+    window.setTimeout(() => ringing === ctx && stopChime(), ((RINGS - 1) * RING_GAP_S + 1.5) * 1000)
   } catch {
     // No audio: the red "done" state still shows.
   }
@@ -129,6 +150,12 @@ export default function NavTimer({ defaultMinutes }: { defaultMinutes: number | 
     }, 250)
     return () => window.clearInterval(timer)
   }, [state.status, state.endAt])
+
+  // Leaving "done" (reset, restart, new length) silences the alarm. Not on
+  // unmount, so a workspace switch doesn't cut it off.
+  useEffect(() => {
+    if (state.status !== 'done') stopChime()
+  }, [state.status])
 
   // Close the "New" popover on outside click or Esc.
   useEffect(() => {

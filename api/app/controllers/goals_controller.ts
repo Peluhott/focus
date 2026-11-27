@@ -61,7 +61,7 @@ export default class GoalsController {
         {
           workspaceId: workspace.id,
           title: input.title,
-          details: input.details ?? '',
+          details: '',
           status: 'active',
           position: await bottomPosition(activeGoalsOf(workspace), trx),
         },
@@ -71,12 +71,11 @@ export default class GoalsController {
     return response.created(viewGoal(await loadGoal(workspace, goal.id)))
   }
 
-  /** PATCH /goals/:id: title, details or position (status has its own routes). */
+  /** PATCH /goals/:id: title or position (status has its own routes). */
   async update({ params, request, workspace }: HttpContext) {
     const goal = await findInWs(Goal, workspace, params.id)
     const input = await request.validateUsing(updateGoalValidator)
     if (input.title !== undefined) goal.title = input.title
-    if (input.details !== undefined) goal.details = input.details
     if (wantsMove(input)) {
       await inList(goalsList(workspace), async (trx) => {
         goal.position = await positionFor(activeGoalsOf(workspace), input, goal.id, trx)

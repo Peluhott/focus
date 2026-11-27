@@ -21,7 +21,7 @@ export type TodoInput = { title: string; notes: string }
 
 /**
  * The active goals a to-do is compared with, kept small on purpose: each
- * goal's title, short details, a few sub-goal titles and the titles of its
+ * goal's title, a few sub-goal titles and the titles of its
  * planning/active projects (evidence for the goal; never a match on their
  * own). Project details and tasks are left out: they rarely change a
  * verdict, and every change to them would re-check every to-do.
@@ -30,7 +30,6 @@ export type AlignmentContext = {
   goals: {
     id: number
     title: string
-    details: string
     sub_goals: string[]
     projects: { title: string }[]
   }[]
