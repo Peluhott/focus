@@ -23,6 +23,8 @@ async function dump(ws: Workspace) {
     inWs(Note, ws).orderBy('position').orderBy('id'),
   ])
   return {
+    id: ws.id,
+    name: ws.displayName,
     ai_enabled: ws.aiEnabled,
     goals: goals.map((g) => g.serialize()),
     projects: projects.map((p) => p.serialize()),
@@ -32,27 +34,25 @@ async function dump(ws: Workspace) {
 }
 
 /**
- * GET /export (session only): "Export all" for both workspaces in one JSON
- * file (designhandoff WORK-MODE.md → Export). Project files are listed by
- * name and size; the files themselves stay in storage.
+ * GET /export (session only): "Export all", every workspace in one JSON
+ * file, in the user's order. Project files are listed by name and size;
+ * the files themselves stay in storage.
  */
 export default class ExportController {
   async show({ auth, response }: HttpContext) {
     const user = auth.getUserOrFail()
-    const workspaces = await Workspace.query().where('user_id', user.id)
-    const byKind = (kind: 'personal' | 'work') => workspaces.find((w) => w.kind === kind)
-    const personal = byKind('personal')
-    const work = byKind('work')
+    const workspaces = await Workspace.ofUser(user.id)
     const now = DateTime.now()
     response.header(
       'content-disposition',
       `attachment; filename="focus-export-${now.toISODate()}.json"`
     )
+    const dumps = []
+    for (const ws of workspaces) dumps.push(await dump(ws))
     return {
       exported_at: now.toISO(),
       settings: { focus_limit: user.focusLimit, timer_minutes: user.timerMinutes },
-      personal: personal ? await dump(personal) : null,
-      work: work ? await dump(work) : null,
+      workspaces: dumps,
     }
   }
 }

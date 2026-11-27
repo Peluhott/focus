@@ -4,6 +4,7 @@ import db from '@adonisjs/lucid/services/db'
 import AppError from '#exceptions/app_error'
 import type User from '#models/user'
 import Workspace from '#models/workspace'
+import { storageConfigured } from '#config/storage'
 import { aiConfigured, queueContextRecheck } from '#services/alignment/triggers'
 import { activeGoalCount } from '#services/goal_limit'
 import { inWs } from '#services/scoped'
@@ -13,19 +14,22 @@ import { updateSettingsValidator } from '#validators/settings'
 
 /**
  * Settings for the request's workspace (X-Focus-Workspace). focus_limit,
- * timer_minutes and last_workspace are the user's and shared by both
- * workspaces; ai_enabled is this workspace's toggle (off by default in
- * Work). ai_available says whether the server can run checks at all
+ * timer_minutes and last_workspace_id are the user's and shared by every
+ * workspace; ai_enabled is this workspace's toggle (off by default except
+ * in Personal). ai_available says whether the server can run checks at all
  * (AI_ENABLED and GEMINI_API_KEY): the check runs only when both are true.
+ * storage_enabled says whether uploads (files, feedback screenshots) work.
  */
 const view = (user: User, workspace: Workspace) => ({
   focus_limit: user.focusLimit,
   timer_minutes: user.timerMinutes,
-  last_workspace: user.lastWorkspace,
-  workspace: workspace.kind,
+  last_workspace_id: user.lastWorkspaceId,
+  workspace: { id: workspace.id, name: workspace.displayName },
   ai_enabled: workspace.aiEnabled,
   ai_available: aiConfigured(),
-  work_ai_ack_at: workspace.workAiAckAt?.toISO() ?? null,
+  ai_ack_required: workspace.aiAckRequired,
+  ai_ack_at: workspace.workAiAckAt?.toISO() ?? null,
+  storage_enabled: storageConfigured(),
 })
 
 export default class SettingsController {
@@ -34,12 +38,13 @@ export default class SettingsController {
   }
 
   /**
-   * PATCH /settings. Lowering focus_limit below the active goals of either
+   * PATCH /settings. Lowering focus_limit below the active goals of any
    * workspace is refused: archive or complete goals first. Raising it
    * returns a suggestion_run_id for this workspace (null otherwise).
    *
-   * Turning AI on in Work needs acknowledged: true (the warning dialog),
-   * every time, else 422 ack_required. Each one is recorded.
+   * Turning AI on where the workspace asks for the warning (every one but
+   * the original Personal) needs acknowledged: true, every time, else 422
+   * ack_required. Each one is recorded in ai_consents.
    */
   async update({ auth, request, workspace }: HttpContext) {
     const user = auth.getUserOrFail()
@@ -48,10 +53,10 @@ export default class SettingsController {
     const turningOn = input.ai_enabled === true && !workspace.aiEnabled
     const turningOff = input.ai_enabled === false && workspace.aiEnabled
 
-    if (turningOn && workspace.kind === 'work' && input.acknowledged !== true) {
+    if (turningOn && workspace.aiAckRequired && input.acknowledged !== true) {
       throw new AppError(
         'ack_required',
-        'Confirm the warning to turn on AI for Work (acknowledged: true).',
+        `Confirm the warning to turn on AI for ${workspace.displayName} (acknowledged: true).`,
         422
       )
     }
@@ -69,18 +74,27 @@ export default class SettingsController {
       user.focusLimit = input.focus_limit
     }
     if (input.timer_minutes !== undefined) user.timerMinutes = input.timer_minutes
-    if (input.last_workspace !== undefined) user.lastWorkspace = input.last_workspace
+    if (input.last_workspace_id !== undefined) {
+      const own = await Workspace.query()
+        .where('user_id', user.id)
+        .where('id', input.last_workspace_id)
+        .first()
+      if (!own) throw AppError.validation("That workspace isn't yours.")
+      user.lastWorkspaceId = own.id
+      if (own.kind) user.lastWorkspace = own.kind
+    }
     await user.save()
 
     if (turningOn || turningOff) {
       await db.transaction(async (trx) => {
         workspace.useTransaction(trx)
         workspace.aiEnabled = turningOn
-        if (turningOn && workspace.kind === 'work') {
+        if (turningOn && workspace.aiAckRequired) {
           workspace.workAiAckAt = DateTime.now()
           await trx.table('ai_consents').insert({
             user_id: user.id,
             workspace_id: workspace.id,
+            workspace_name: workspace.displayName,
             ip: request.ip(),
             created_at: new Date(),
           })

@@ -32,6 +32,9 @@ const AccountController = () => import('#controllers/account_controller')
 const NotesController = () => import('#controllers/notes_controller')
 const TodoHintsController = () => import('#controllers/todo_hints_controller')
 const ExportController = () => import('#controllers/export_controller')
+const WorkspacesController = () => import('#controllers/workspaces_controller')
+const SearchController = () => import('#controllers/search_controller')
+const FeedbackController = () => import('#controllers/feedback_controller')
 
 router
   .group(() => {
@@ -49,6 +52,12 @@ router
         router.patch('settings', [SettingsController, 'update'])
         router.patch('account', [AccountController, 'update'])
         router.get('export', [ExportController, 'show'])
+        router.post('feedback', [FeedbackController, 'store'])
+
+        router.get('workspaces', [WorkspacesController, 'index'])
+        router.post('workspaces', [WorkspacesController, 'store'])
+        router.patch('workspaces/:id', [WorkspacesController, 'update'])
+        router.delete('workspaces/:id', [WorkspacesController, 'destroy'])
 
         router.get('keys', [ApiKeysController, 'index'])
         router.post('keys', [ApiKeysController, 'store'])
@@ -113,6 +122,7 @@ router
         router.delete('tasks/:id', [TasksController, 'destroy']).use(projectsWrite)
 
         router.get('stats/completions', [StatsController, 'completions']).use(todosRead)
+        router.get('stats/today', [StatsController, 'today']).use(todosRead)
         router.get('completions', [CompletionsController, 'index']).use(todosRead)
         router.delete('completions/:id', [CompletionsController, 'destroy']).use(todosWrite)
 
@@ -129,6 +139,8 @@ router
           .use(goalsWrite)
 
         router.get('calendar', [CalendarController, 'index']).use(todosRead)
+        /** Groups the key can't read are left out (no scope needed for the route). */
+        router.get('search', [SearchController, 'index'])
 
         router.get('notes', [NotesController, 'index']).use(notesRead)
         router.post('notes', [NotesController, 'store']).use(notesWrite)

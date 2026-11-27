@@ -36,9 +36,13 @@ export default class User extends compose(AppBaseModel, AuthFinder) {
   @column()
   declare timerMinutes: number
 
-  /** Workspace the web app opens in next time ("personal" | "work"). */
-  @column()
+  /** Old column ("personal" | "work"), read by the previous deploy only. */
+  @column({ serializeAs: null })
   declare lastWorkspace: WorkspaceKind
+
+  /** Workspace the web app opens in next time (null: the first one). */
+  @column()
+  declare lastWorkspaceId: number | null
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

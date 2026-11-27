@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import AppError from '#exceptions/app_error'
 import User from '#models/user'
 import env from '#start/env'
-import { createAccount, emailTaken } from '#services/accounts'
+import { createAccount, emailTaken, meView } from '#services/accounts'
 import { loginValidator, signupValidator } from '#validators/auth'
 
 export default class AuthController {
@@ -10,7 +10,7 @@ export default class AuthController {
     const { email, password } = await request.validateUsing(loginValidator)
     const user = await User.verifyCredentials(email, password)
     await auth.use('web').login(user)
-    return response.ok({ user: user.serialize() })
+    return response.ok(await meView(user))
   }
 
   /**
@@ -33,7 +33,7 @@ export default class AuthController {
     })
     await auth.use('web').login(user)
     await user.refresh()
-    return response.created({ user: user.serialize() })
+    return response.created(await meView(user))
   }
 
   async logout({ auth, response }: HttpContext) {
@@ -42,7 +42,6 @@ export default class AuthController {
   }
 
   async me({ auth }: HttpContext) {
-    const user = auth.getUserOrFail()
-    return { user: user.serialize() }
+    return meView(auth.getUserOrFail())
   }
 }

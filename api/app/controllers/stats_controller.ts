@@ -1,5 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
+import AppError from '#exceptions/app_error'
 
 /**
  * GET /stats/completions: the all-time numbers behind "Focus so far", for
@@ -38,5 +40,22 @@ export default class StatsController {
       })),
       off_goal: Number(totals?.off_goal ?? 0),
     }
+  }
+
+  /**
+   * GET /stats/today?since=<ISO timestamp>: how many check-offs (normal or
+   * recurring, counted or not) this workspace logged since `since`, the
+   * caller's local midnight. Drives the To-dos page's "N done today".
+   */
+  async today({ request, workspace }: HttpContext) {
+    const since = DateTime.fromISO(String(request.input('since') ?? ''))
+    if (!since.isValid) throw AppError.validation('Give since as an ISO timestamp.')
+    const row = await db
+      .from('todo_completions')
+      .where('workspace_id', workspace.id)
+      .where('completed_at', '>=', since.toJSDate())
+      .count('* as count')
+      .first()
+    return { count: Number(row?.count ?? 0) }
   }
 }

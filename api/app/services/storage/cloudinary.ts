@@ -77,6 +77,16 @@ export async function uploadFile(projectId: number, path: string): Promise<Uploa
   return result as unknown as UploadResult
 }
 
+/** A screenshot sent with feedback (FEEDBACK.md), kept private in its own folder. */
+export async function uploadFeedbackImage(path: string): Promise<UploadResult> {
+  const result = await client().uploader.upload(path, {
+    resource_type: 'image',
+    type: 'authenticated',
+    folder: 'focus/feedback',
+  })
+  return result as unknown as UploadResult
+}
+
 const expiresAt = () => Math.round(Date.now() / 1000) + storageConfig.urlTtlSeconds
 
 /** Signed, expiring URL to open (or, with attachment, download) the file. */

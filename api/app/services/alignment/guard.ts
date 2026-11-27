@@ -3,7 +3,9 @@ import aiConfig, { FALLBACK_PRICE, PRICES_PER_MTOK } from '#config/ai'
 
 type SpendRow = { model: string | null; input: string | null; output: string | null }
 
-const SPEND_TABLES = ['alignment_checks', 'goal_suggestion_runs', 'todo_hint_runs'] as const
+/** Spend of deleted workspaces, kept so deleting one doesn't reset the caps. */
+const CARRYOVERS = 'ai_spend_carryovers'
+const SPEND_TABLES = ['alignment_checks', 'goal_suggestion_runs', 'todo_hint_runs', CARRYOVERS]
 
 const spendThisMonth = (table: string, userId?: number): Promise<SpendRow[]> => {
   const query = db
@@ -16,9 +18,13 @@ const spendThisMonth = (table: string, userId?: number): Promise<SpendRow[]> => 
     )
     .groupBy(`${table}.model`)
   if (userId !== undefined) {
-    query
-      .join('workspaces', 'workspaces.id', `${table}.workspace_id`)
-      .where('workspaces.user_id', userId)
+    if (table === CARRYOVERS) {
+      query.where(`${table}.user_id`, userId)
+    } else {
+      query
+        .join('workspaces', 'workspaces.id', `${table}.workspace_id`)
+        .where('workspaces.user_id', userId)
+    }
   }
   return query
 }
@@ -26,7 +32,7 @@ const spendThisMonth = (table: string, userId?: number): Promise<SpendRow[]> => 
 /**
  * Estimated spend so far this calendar month (UTC): alignment checks,
  * goal-suggestion runs and to-do hints, which share one budget. With a
- * user id, only that user's (both workspaces).
+ * user id, only that user's (all their workspaces, deleted ones too).
  */
 export async function monthSpendUsd(userId?: number): Promise<number> {
   const rows: SpendRow[] = []
