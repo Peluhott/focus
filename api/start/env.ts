@@ -40,6 +40,11 @@ export default await Env.create(new URL('../', import.meta.url), {
    * /api so the browser only ever sees one origin.
    */
   WEB_ORIGIN: Env.schema.string.optional(),
+  /**
+   * Proxies in front of the API in production (Render + Vercel = 2), so
+   * request.ip() is the client's address. See config/app.ts.
+   */
+  TRUSTED_PROXY_HOPS: Env.schema.number.optional(),
 
   /**
    * AI alignment check (Phase 6), run on Google Gemini. Off unless enabled

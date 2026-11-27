@@ -3,6 +3,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { generateKeyBetween } from 'fractional-indexing'
 import User from '#models/user'
 import Workspace, { workspaceView } from '#models/workspace'
+import { legacyEmail } from '#validators/auth'
 
 /**
  * The workspaces every account starts with: Personal (AI on, no warning)
@@ -86,9 +87,24 @@ export async function meView(user: User) {
   return { user: user.serialize(), workspaces: workspaces.map(workspaceView) }
 }
 
-/** Whether an account already uses this email (case-insensitive). */
+/**
+ * Whether an account already uses this email (case-insensitive), or the
+ * form older sign-ups stored it in (Gmail dots and +tags removed), so a
+ * new account can't take over an older one's login.
+ */
 export async function emailTaken(email: string, exceptUserId?: number) {
-  const query = User.query().whereRaw('lower(email) = ?', [email.toLowerCase()])
+  const lower = email.trim().toLowerCase()
+  const legacy = await legacyEmail(lower)
+  const candidates = [...new Set([lower, legacy].filter((e): e is string => !!e))]
+  const query = User.query().whereRaw(
+    `lower(email) IN (${candidates.map(() => '?').join(', ')})`,
+    candidates
+  )
   if (exceptUserId !== undefined) query.whereNot('id', exceptUserId)
   return !!(await query.first())
 }
+
+/** A unique-index violation on users' email (two sign-ups racing). */
+export const isEmailConflict = (error: unknown) =>
+  (error as { code?: string })?.code === '23505' &&
+  String((error as { constraint?: string }).constraint ?? '').startsWith('users_email')

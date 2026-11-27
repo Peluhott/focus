@@ -14,6 +14,16 @@ export const loginThrottle = limiter.define('login', (ctx) => {
 })
 
 /**
+ * Login: also 10 attempts per 15 minutes per account, which a spoofed
+ * X-Forwarded-For (or a botnet) can't get around.
+ */
+export const loginAccountThrottle = limiter.define('login_account', (ctx) => {
+  const email = String(ctx.request.input('email', '')).trim().toLowerCase()
+  if (!email) return limiter.noLimit()
+  return limiter.allowRequests(10).every('15 minutes').usingKey(`login_email_${email}`)
+})
+
+/**
  * Sign-up: 5 accounts per hour per IP.
  */
 export const signupThrottle = limiter.define('signup', (ctx) => {

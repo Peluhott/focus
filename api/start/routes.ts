@@ -12,7 +12,7 @@
 
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
-import { apiThrottle, loginThrottle, signupThrottle } from '#start/limiter'
+import { apiThrottle, loginAccountThrottle, loginThrottle, signupThrottle } from '#start/limiter'
 
 const AuthController = () => import('#controllers/auth_controller')
 const SettingsController = () => import('#controllers/settings_controller')
@@ -40,7 +40,7 @@ router
   .group(() => {
     router.get('health', () => ({ ok: true }))
 
-    router.post('auth/login', [AuthController, 'login']).use(loginThrottle)
+    router.post('auth/login', [AuthController, 'login']).use([loginThrottle, loginAccountThrottle])
     router.post('auth/signup', [AuthController, 'signup']).use(signupThrottle)
     router.post('auth/logout', [AuthController, 'logout']).use(middleware.auth())
     router.get('auth/me', [AuthController, 'me']).use(middleware.auth())

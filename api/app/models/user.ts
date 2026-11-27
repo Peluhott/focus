@@ -1,12 +1,14 @@
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
-import { column, hasMany } from '@adonisjs/lucid/orm'
+import type { NormalizeConstructor } from '@adonisjs/core/types/helpers'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 import AppBaseModel from '#models/app_base_model'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import Workspace from '#models/workspace'
+import { legacyEmail } from '#validators/auth'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email'],
@@ -48,6 +50,27 @@ export default class User extends compose(AppBaseModel, AuthFinder) {
 
   @hasMany(() => Workspace)
   declare workspaces: HasMany<typeof Workspace>
+
+  /**
+   * Login lookup (used by verifyCredentials, which keeps its constant-time
+   * check when nothing matches). Case-insensitive, and it also tries the
+   * form older sign-ups stored (Gmail dots and +tags removed), so those
+   * accounts still log in with what the person types. An exact match wins.
+   */
+  static async findForAuth<T extends NormalizeConstructor<typeof BaseModel>>(
+    this: T,
+    _uids: string[],
+    value: string
+  ): Promise<InstanceType<T> | null> {
+    const email = value.trim().toLowerCase()
+    const legacy = await legacyEmail(email)
+    const candidates = [...new Set([email, legacy].filter((e): e is string => !!e))]
+    const row = await this.query()
+      .whereRaw(`lower(email) IN (${candidates.map(() => '?').join(', ')})`, candidates)
+      .orderByRaw('lower(email) = ? DESC', [email])
+      .first()
+    return (row as InstanceType<T> | null) ?? null
+  }
 
   /** API keys ("fk_…"), stored hashed in api_keys; abilities are the scopes. */
   static accessTokens = DbAccessTokensProvider.forModel(User, {

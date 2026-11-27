@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import AppError from '#exceptions/app_error'
 import User from '#models/user'
 import env from '#start/env'
-import { createAccount, emailTaken, meView } from '#services/accounts'
+import { createAccount, emailTaken, isEmailConflict, meView } from '#services/accounts'
 import { loginValidator, signupValidator } from '#validators/auth'
 
 export default class AuthController {
@@ -30,6 +30,12 @@ export default class AuthController {
       email: input.email,
       password: input.password,
       displayName: input.name,
+    }).catch((error) => {
+      // Two sign-ups with the same email at once: the unique index stops one.
+      if (isEmailConflict(error)) {
+        throw new AppError('email_taken', 'That email already has an account.', 422)
+      }
+      throw error
     })
     await auth.use('web').login(user)
     await user.refresh()
