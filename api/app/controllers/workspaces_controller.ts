@@ -11,24 +11,13 @@ import { createWorkspaceValidator, updateWorkspaceValidator } from '#validators/
 const list = (userId: number) => `workspaces:${userId}`
 const siblings = (userId: number) => () => Workspace.query().where('user_id', userId)
 
-/** Rows the old deploy made have no position yet: put them at the bottom. */
-async function fillPositions(userId: number, trx: TransactionClientContract) {
-  const rows = await Workspace.ofUser(userId).useTransaction(trx)
-  let last: string | null = null
-  for (const row of rows) {
-    if (row.position === null) {
-      row.position = generateKeyBetween(last, null)
-      await row.useTransaction(trx).save()
-    }
-    last = row.position
-  }
-  return rows
-}
+const listed = (userId: number, trx: TransactionClientContract) =>
+  Workspace.ofUser(userId).useTransaction(trx)
 
 async function assertNameFree(userId: number, name: string, exceptId?: number) {
   const query = Workspace.query()
     .where('user_id', userId)
-    .whereRaw('lower(coalesce(name, kind)) = ?', [name.toLowerCase()])
+    .whereRaw('lower(name) = ?', [name.toLowerCase()])
   if (exceptId !== undefined) query.whereNot('id', exceptId)
   if (await query.first()) {
     throw AppError.validation(`You already have a workspace called "${name}".`)
@@ -52,7 +41,7 @@ export default class WorkspacesController {
     const { name } = await request.validateUsing(createWorkspaceValidator)
     await workspacesOf(user.id)
     const workspace = await inList(list(user.id), async (trx) => {
-      const rows = await fillPositions(user.id, trx)
+      const rows = await listed(user.id, trx)
       if (rows.length >= MAX_WORKSPACES) {
         throw AppError.validation(`You can have up to ${MAX_WORKSPACES} workspaces.`)
       }
@@ -86,7 +75,6 @@ export default class WorkspacesController {
     }
     if (wantsMove(input)) {
       await inList(list(user.id), async (trx) => {
-        await fillPositions(user.id, trx)
         workspace.position = await positionFor(siblings(user.id), input, workspace.id, trx)
         await workspace.useTransaction(trx).save()
       })

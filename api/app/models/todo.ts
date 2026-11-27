@@ -63,10 +63,7 @@ export default class Todo extends AppBaseModel {
   @column.dateTime()
   declare checkedAt: DateTime | null
 
-  /*
-   * Goal links live in todo_matches (#services/matches). The old
-   * matched_goal_id, matched_project_id and counted columns are unused.
-   */
+  /* Goal links live in todo_matches (#services/matches). */
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

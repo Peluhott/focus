@@ -28,12 +28,11 @@ export default class Workspace extends AppBaseModel {
   @column({ serializeAs: null })
   declare kind: WorkspaceKind | null
 
-  /** Null only on rows the old deploy made; use `displayName`. */
   @column({ serializeAs: null })
-  declare name: string | null
+  declare name: string
 
   @column()
-  declare position: string | null
+  declare position: string
 
   @column()
   declare aiEnabled: boolean
@@ -56,14 +55,14 @@ export default class Workspace extends AppBaseModel {
 
   @computed({ serializeAs: 'name' })
   get displayName(): string {
-    return this.name ?? (this.kind === 'work' ? 'Work' : 'Personal')
+    return this.name
   }
 
   /** The user's workspaces in list order. */
   static ofUser(userId: number) {
     return Workspace.query()
       .where('user_id', userId)
-      .orderByRaw('position COLLATE "C" ASC NULLS LAST')
+      .orderBy('position')
       .orderBy('id')
   }
 }
