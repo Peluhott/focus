@@ -15,6 +15,10 @@
     body { margin: 0; text-wrap: pretty; }
     a { color: var(--color-accent-700); }
     a:hover { color: var(--color-accent-800); }
+    @keyframes fx-drain { from { width: 100%; } to { width: 0%; } }
+    @keyframes fx-rise { 0% { opacity: 0; transform: translate(-50%, 6px); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -28px); } }
+    @keyframes fx-strike { from { width: 0; } to { width: 100%; } }
+    @keyframes fx-bump { 0% { transform: scale(1); } 35% { transform: scale(1.14); color: var(--color-accent-700); } 100% { transform: scale(1); } }
   </style>
 </helmet>
 <div style="min-height: 100vh; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body);">
@@ -141,7 +145,7 @@
               <label class="seg-opt" style="font-size: 14px;"><input type="radio" name="workspace" checked="{{ isWork }}" onChange="{{ goWork }}">Work</label>
             </div>
           </div>
-          <span style="grid-area: rail; justify-self: {{ hv.railJustify }}; padding-bottom: {{ hv.railPad }}; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-800);"><span>Friday, November 20, 2026</span><span>{{ openTodoLabel }}</span><sc-if value="{{ showFlagged }}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 4px; color: var(--color-accent-2-700);"><i class="ph-duotone ph-warning"></i>{{ flaggedLabel }}</span></sc-if></span>
+          <span style="grid-area: rail; justify-self: {{ hv.railJustify }}; padding-bottom: {{ hv.railPad }}; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-800);"><span>Friday, November 20, 2026</span><span>{{ openTodoLabel }}</span><sc-if value="{{ showFlagged }}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 4px; color: var(--color-accent-2-700);"><i class="ph-duotone ph-warning"></i>{{ flaggedLabel }}</span></sc-if><button type="button" onClick="{{ sx.onOpen }}" aria-label="Search everything (⌘K)" style="display: flex; align-items: center; gap: 8px; width: 240px; margin-left: 10px; padding: 0 0 3px; border: 0; border-bottom: 1px solid var(--color-neutral-500); background: transparent; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--color-neutral-700); text-align: left;" style-hover="border-bottom-color: var(--color-accent); color: var(--color-text);"><i class="ph-duotone ph-magnifying-glass" style="font-size: 15px;"></i><span style="flex: 1;">Search everything</span><span style="letter-spacing: 0.04em; text-transform: none;">{{ sx.hint }}</span></button></span>
           <nav style="grid-area: nav; display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2) var(--space-6);">
             <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
               <a href="#" aria-current="{{ n.current }}" onClick="{{ n.onClick }}" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: {{ n.color }};" style-hover="color: var(--color-accent-700);">
@@ -193,6 +197,9 @@
         <section data-screen-label="To-dos">
           <h1 style="margin: 0 0 var(--space-1); text-align: {{ alignText }};">To-dos</h1>
           <p style="font-size: 17px; margin: 0 0 var(--space-6); color: var(--color-neutral-800); text-align: {{ alignText }};">One list, in the order you set.</p>
+          <sc-if value="{{ hasDoneToday }}" hint-placeholder-val="{{ false }}">
+            <div role="status" style="display: flex; justify-content: {{ alignFlex }}; align-items: center; gap: 8px; margin: calc(-1 * var(--space-4)) 0 var(--space-4); font-size: 15px; color: var(--color-neutral-800);"><i class="ph-duotone ph-check-circle" style="font-size: 18px; color: var(--color-accent-700);"></i>{{ doneTodayEl }}<span>done today</span></div>
+          </sc-if>
           <input class="input" style="display: block; box-sizing: border-box; width: 100%; font-size: 16px; min-height: 44px; max-width: 720px; margin: 0 {{ listMargin }} var(--space-4);" placeholder="Add a to-do and press Enter" value="{{ newTodo }}" onChange="{{ onNewTodo }}" onKeyDown="{{ onNewTodoKey }}">
           <div style="display: grid; grid-template-columns: {{ rv.cols }}; gap: {{ rv.gap }}; align-items: start; max-width: {{ rv.maxW }}; margin: 0 {{ listMargin }};">
           <sc-for list="{{ todoGroups }}" as="grp" hint-placeholder-count="1">
@@ -206,12 +213,13 @@
           <div style="min-width: 0;">
           <div style="display: flex; flex-direction: column; gap: 2px; margin-top: {{ grp.listTop }};">
             <sc-for list="{{ grp.rows }}" as="t" hint-placeholder-count="5">
-              <div data-row="1" onDragOver="{{ t.dragOver }}" onDrop="{{ t.drop }}" style="padding: 6px 8px 6px 4px; border-radius: var(--radius-md); background: {{ t.rowBg }}; border-left: 3px solid {{ t.rowEdge }}; box-shadow: {{ t.dropLine }}; opacity: {{ t.dragOpacity }};">
+              <div data-row="1" onDragOver="{{ t.dragOver }}" onDrop="{{ t.drop }}" style="padding: {{ t.foldPad }}; max-height: {{ t.foldMaxH }}; overflow: {{ t.foldOvf }}; transition: max-height 0.35s ease, padding 0.35s ease, opacity 0.3s ease; border-radius: var(--radius-md); background: {{ t.rowBg }}; border-left: 3px solid {{ t.rowEdge }}; box-shadow: {{ t.dropLine }}; opacity: {{ t.rowOp }};">
                 <div style="display: flex; align-items: center; gap: 10px; filter: {{ t.blur }}; opacity: {{ t.blurOpacity }}; transition: filter 0.2s, opacity 0.2s;" style-hover="filter: none; opacity: 1;">
                   <span draggable="true" tabIndex="0" role="button" aria-label="Reorder (drag, or use arrow keys)" onDragStart="{{ t.dragStart }}" onDragEnd="{{ t.dragEnd }}" onKeyDown="{{ t.handleKey }}" style="display: flex; padding: 4px 2px; cursor: grab; color: var(--color-neutral-500); flex: none;"><i class="ph-duotone ph-dots-six-vertical" style="font-size: 18px;"></i></span>
-                  <input type="checkbox" aria-label="Complete" checked="{{ t.checked }}" onChange="{{ t.onDone }}" style="width: 18px; height: 18px; margin: 0; flex: none; cursor: pointer; accent-color: var(--color-accent);">
+                  <span style="position: relative; display: flex; flex: none;"><input type="checkbox" aria-label="Complete" checked="{{ t.checked }}" onChange="{{ t.onDone }}" style="width: 18px; height: 18px; margin: 0; flex: none; cursor: pointer; accent-color: var(--color-accent);">{{ t.pop }}</span>
                   <sc-if value="{{ t.recurring }}"><i class="ph-duotone ph-repeat" title="Repeats" aria-label="Repeats" style="font-size: 16px; flex: none; margin-left: -4px; color: var(--color-accent-700);"></i></sc-if>
-                  <input value="{{ t.title }}" onChange="{{ t.onTitle }}" aria-label="To-do" style="flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 16px; color: inherit; padding: 5px 2px;">
+                  <sc-if value="{{ t.struck }}" hint-placeholder-val="{{ false }}"><span style="flex: 1; min-width: 0; padding: 5px 2px; font-size: 16px; color: var(--color-neutral-600);"><span style="position: relative; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;">{{ t.title }}{{ t.strike }}</span></span></sc-if>
+                  <sc-if value="{{ t.notStruck }}" hint-placeholder-val="{{ true }}"><input value="{{ t.title }}" onChange="{{ t.onTitle }}" aria-label="To-do" style="flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 16px; color: inherit; padding: 5px 2px;"></sc-if>
                   <sc-if value="{{ t.recurring }}"><span style="display: inline-flex; align-items: center; gap: 10px; flex: none; font-size: 12px; white-space: nowrap; color: var(--color-neutral-700);"><span>{{ t.tally }}</span><sc-if value="{{ t.doneToday }}"><span style="display: inline-flex; align-items: center; gap: 3px; color: var(--color-accent-700);"><i class="ph-duotone ph-check"></i>today</span></sc-if></span></sc-if>
                   <sc-if value="{{ t.aligned }}"><span class="tag tag-accent" style="gap: 5px; max-width: 220px; flex: 0 1 auto; min-width: 0;"><i class="{{ t.matchIcon }}" style="flex: none;"></i><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ t.matchName }}</span></span></sc-if>
                   <sc-if value="{{ t.hasDate }}"><span class="tag" style="background: {{ t.dateBg }}; color: {{ t.dateFg }}; white-space: nowrap; flex: none;">{{ t.dateLabel }}</span></sc-if>
@@ -857,10 +865,92 @@
     </div>
   </sc-if>
 
+  <sc-if value="{{ fb.showButton }}" hint-placeholder-val="{{ false }}">
+    <button class="btn btn-secondary" type="button" onClick="{{ fb.onOpen }}" style="position: fixed; right: clamp(20px, 5vw, 64px); bottom: 24px; z-index: 39; gap: 8px; background: var(--color-bg); box-shadow: var(--shadow-md);"><i class="ph-duotone ph-chat-circle-text" style="font-size: 18px;"></i>Feedback</button>
+  </sc-if>
+  <sc-if value="{{ fb.open }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ fb.onClose }}" style="position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--color-text) 28%, transparent);"></div>
+    <div role="dialog" aria-modal="true" aria-label="Send feedback" onKeyDown="{{ fb.onKey }}" style="position: fixed; z-index: 51; left: 50%; top: 8vh; transform: translateX(-50%); width: min(480px, calc(100vw - 32px)); max-height: 84vh; overflow-y: auto; box-sizing: border-box; display: grid; gap: var(--space-4); padding: var(--space-6); background: var(--color-bg); box-shadow: var(--shadow-lg); border-radius: var(--radius-lg);">
+      <sc-if value="{{ fb.editing }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3);">
+          <div style="display: grid; gap: 4px;"><h3 style="margin: 0;">Send feedback</h3><span style="font-size: 14px; font-style: italic; color: var(--color-neutral-700);">Ideas, bugs, or anything else.</span></div>
+          <button class="btn btn-ghost btn-icon" type="button" aria-label="Close" onClick="{{ fb.onClose }}" style="width: 32px; height: 32px; color: var(--color-neutral-700);"><i class="ph-duotone ph-x" style="font-size: 18px;"></i></button>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="Type" style="justify-self: start;">
+          <sc-for list="{{ fb.types }}" as="ty" hint-placeholder-count="3">
+            <label class="seg-opt" style="padding: 8px 14px; font-size: 14px; gap: 6px;"><input type="radio" name="fb-type" checked="{{ ty.on }}" onChange="{{ ty.onPick }}"><i class="{{ ty.icon }}"></i>{{ ty.label }}</label>
+          </sc-for>
+        </div>
+        <div class="field">
+          <label for="fb-feature">Feature</label>
+          <select id="fb-feature" class="input" value="{{ fb.feature }}" onChange="{{ fb.onFeature }}">
+            <sc-for list="{{ fb.features }}" as="ft" hint-placeholder-count="6"><option value="{{ ft }}">{{ ft }}</option></sc-for>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fb-msg">Message</label>
+          <textarea id="fb-msg" class="input" rows="4" autoFocus="{{ true }}" placeholder="{{ fb.placeholder }}" value="{{ fb.msg }}" onChange="{{ fb.onMsg }}" style="font: inherit; font-size: 15px;"></textarea>
+        </div>
+        <sc-if value="{{ fb.isBug }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ fb.noShot }}" hint-placeholder-val="{{ true }}"><div style="display: flex;"><button class="btn btn-ghost" type="button" onClick="{{ fb.onShot }}" style="margin-left: -10px;"><i class="ph-duotone ph-paperclip"></i>Attach a screenshot</button></div></sc-if>
+          <sc-if value="{{ fb.hasShot }}" hint-placeholder-val="{{ false }}"><div style="display: flex; align-items: center; gap: 8px; font-size: 14px;"><i class="ph-duotone ph-image" style="font-size: 18px; color: var(--color-accent-700);"></i><span style="flex: 1;">screenshot-nov-20.png</span><button class="btn btn-ghost btn-icon" type="button" aria-label="Remove screenshot" onClick="{{ fb.onShot }}" style="width: 28px; height: 28px; color: var(--color-neutral-700);"><i class="ph-duotone ph-x"></i></button></div></sc-if>
+        </sc-if>
+        <label class="radio" style="font-size: 14px; gap: 10px;"><input type="checkbox" checked="{{ fb.contact }}" onChange="{{ fb.onContact }}" style="width: 16px; height: 16px; margin: 0; accent-color: var(--color-accent);">{{ fb.contactLabel }}</label>
+        <div style="display: flex; justify-content: flex-end; gap: var(--space-2);">
+          <button class="btn btn-ghost" type="button" onClick="{{ fb.onClose }}">Cancel</button>
+          <button class="btn btn-primary" type="button" disabled="{{ fb.cantSend }}" onClick="{{ fb.onSend }}"><i class="ph-duotone ph-paper-plane-tilt"></i>Send</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ fb.sent }}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; justify-items: start; gap: var(--space-3); padding: var(--space-2) 0;">
+          <i class="ph-duotone ph-check-circle" style="font-size: 36px; color: var(--color-accent-700);"></i>
+          <h3 style="margin: 0;">{{ fb.thanks }}</h3>
+          <p style="margin: 0; font-size: 15px; color: var(--color-neutral-800);">{{ fb.sentLine }}</p>
+          <button class="btn btn-secondary" type="button" autoFocus="{{ true }}" onClick="{{ fb.onClose }}">Close</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{ sx.open }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ sx.onClose }}" style="position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--color-text) 28%, transparent);"></div>
+    <div role="dialog" aria-modal="true" aria-label="Search" style="position: fixed; z-index: 51; left: 50%; top: 12vh; transform: translateX(-50%); width: min(600px, calc(100vw - 32px)); display: grid; background: var(--color-bg); box-shadow: var(--shadow-lg); border-radius: var(--radius-lg);">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 14px 18px;">
+        <i class="ph-duotone ph-magnifying-glass" style="font-size: 22px; color: var(--color-neutral-700);"></i>
+        <input autoFocus="{{ true }}" aria-label="Search everything" placeholder="Search goals, to-dos, projects, notes…" value="{{ sx.q }}" onChange="{{ sx.onQ }}" onKeyDown="{{ sx.onKey }}" style="flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font: inherit; font-size: 20px; color: var(--color-text);">
+        <span style="font-size: 12px; padding: 1px 6px; border: 1px solid var(--color-divider); border-radius: var(--radius-md); color: var(--color-neutral-700);">esc</span>
+      </div>
+      <div role="listbox" style="max-height: min(400px, 60vh); overflow-y: auto; padding: 4px 8px 10px; display: grid; gap: var(--space-3); box-shadow: inset 0 1px 0 var(--color-divider);">
+        <sc-for list="{{ sx.groups }}" as="grp" hint-placeholder-count="2">
+          <div style="display: grid; gap: 2px; padding-top: 8px;">
+            <span style="padding: 0 12px 4px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-700);">{{ grp.label }}</span>
+            <sc-for list="{{ grp.items }}" as="it" hint-placeholder-count="2">
+              <div role="option" aria-selected="{{ it.selStr }}" onClick="{{ it.onClick }}" onMouseEnter="{{ it.onHover }}" style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--radius-md); background: {{ it.bg }}; cursor: pointer;">
+                <i class="{{ it.icon }}" style="font-size: 18px; flex: none; color: var(--color-accent-700);"></i>
+                <div style="flex: 1; min-width: 0; display: grid; gap: 1px;">
+                  <span style="font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><sc-for list="{{ it.parts }}" as="p"><span style="background: {{ p.bg }}; font-weight: {{ p.w }};">{{ p.t }}</span></sc-for></span>
+                  <span style="font-size: 13px; color: var(--color-neutral-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ it.sub }}</span>
+                </div>
+                <sc-if value="{{ it.sel }}"><span style="display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 12px; color: var(--color-neutral-700);">Open<i class="ph-duotone ph-arrow-elbow-down-left"></i></span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <sc-if value="{{ sx.none }}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 16px 12px; color: var(--color-neutral-700);">Nothing matches “{{ sx.qTrim }}”.</p></sc-if>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 18px; font-size: 12px; color: var(--color-neutral-700); box-shadow: inset 0 1px 0 var(--color-divider);"><span>↑ ↓ to move</span><span>↵ to open</span><span>esc to close</span><span style="margin-left: auto;">{{ sx.scope }}</span></div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
-    <div role="status" style="position: fixed; left: clamp(20px, 5vw, 64px); bottom: 24px; z-index: 40; display: flex; align-items: center; gap: var(--space-4); padding: 8px 8px 8px 16px; background: var(--color-surface); box-shadow: var(--shadow-lg); border-radius: var(--radius-md); font-size: 14px;">
-      <span>{{ toastMsg }}</span>
-      <sc-if value="{{ hasUndo }}"><button class="btn btn-ghost" onClick="{{ onUndo }}">Undo</button></sc-if>
+    <div role="status" onMouseEnter="{{ onToastIn }}" onMouseLeave="{{ onToastOut }}" style="position: fixed; left: clamp(20px, 5vw, 64px); bottom: 24px; z-index: 40; display: grid; overflow: hidden; max-width: min(520px, calc(100vw - 40px)); background: var(--color-surface); box-shadow: var(--shadow-lg); border-radius: var(--radius-md); font-size: 14px;">
+      <div style="display: flex; align-items: center; gap: var(--space-3); padding: 8px 8px 8px 16px;">
+        <div style="flex: 1; min-width: 0; display: grid; gap: 2px;">
+          <span>{{ toastMsg }}</span>
+          <sc-if value="{{ toastMulti }}"><span style="font-size: 13px; font-style: italic; color: var(--color-neutral-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ toastList }}</span></sc-if>
+        </div>
+        <sc-if value="{{ hasUndo }}"><span style="flex: none; font-size: 12px; color: var(--color-neutral-700);">{{ toastStatus }}</span><button class="btn btn-ghost" onClick="{{ onUndo }}" style="flex: none; gap: 8px;">{{ undoLabel }}<span style="font-size: 12px; padding: 0 5px; border: 1px solid var(--color-divider); border-radius: var(--radius-md); color: var(--color-neutral-700);">⌘Z</span></button></sc-if>
+      </div>
+      {{ toastBar }}
     </div>
   </sc-if>
 </div>
@@ -1025,10 +1115,10 @@ class Component extends DCLogic {
     detailsOpen: {}, subInput: {}, addingGoal: false, newGoalTitle: '', archivedOpen: false,
     confirm: null, toast: null, fStatus: 'open', fGoal: 'all', projectId: null, newProjectId: null, newTask: '',
     tracker: 'a', drag: null, over: null, keyForm: null, newKey: null, copied: false, email: 'jav@focus.app', password: '', authMode: null, signupName: '',
-    flash: {}, uploads: [], fileErrs: [], renaming: null, fileDrag: null,
+    flash: {}, fold: {}, popKey: {}, doneToday: 0, doneKey: 0, uploads: [], fileErrs: [], renaming: null, fileDrag: null,
     displayName: 'Jav', acctForm: null, acctStatus: null, acctError: '',
     timerMinutes: 25, timerMinInput: null, timer: { status: 'idle', lengthMin: 25, endAt: null, remainingMs: 1500000 }, timerPicker: false, timerCustom: '', timerEdit: null,
-    noteId: null, newNoteId: null, noteQuery: '', noteSave: {}, hints: {}, stepInput: {},
+    search: null, feedback: null, noteId: null, newNoteId: null, noteQuery: '', noteSave: {}, hints: {}, stepInput: {},
     mode: 'personal', stash: { work: this.props && this.props.sampleData === false ? emptyWork() : seedWork() },
   });
 
@@ -1039,8 +1129,8 @@ class Component extends DCLogic {
     this.setState({ ...s.stash[m], mode: m, stash: { ...s.stash, [s.mode]: cur, [m]: null }, page, projectId: null, newProjectId: null, noteId: null, newNoteId: null, noteQuery: '', expanded: {}, linking: null, hints: {}, detailsOpen: {}, subInput: {}, addingGoal: false, fGoal: 'all', newTodo: '' }, () => this.queuePending());
   }
 
-  componentDidMount() { if (this.props.startMode === 'work') this.switchMode('work'); this.queuePending(); this.onResize = () => this.forceUpdate(); window.addEventListener('resize', this.onResize); this.loadTimer(); this.tickIv = setInterval(() => this.tickTimer(), 250); }
-  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearInterval(this.tickIv); Object.values(this.timers).forEach(clearTimeout); }
+  componentDidMount() { this.onSearchKey = e => { if ((this.state.page || this.props.startPage || 'goals') === 'login') return; const tag = (e.target.tagName || '').toLowerCase(), typing = tag === 'input' || tag === 'textarea' || e.target.isContentEditable; if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !typing && this.state.toast && (this.state.toast.undo || this.state.toast.dels)) { e.preventDefault(); return this.runUndo(); } if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') || (e.key === '/' && !typing && !this.state.search)) { e.preventDefault(); this.openSearch(); } }; window.addEventListener('keydown', this.onSearchKey); if (this.props.startMode === 'work') this.switchMode('work'); this.queuePending(); this.onResize = () => this.forceUpdate(); window.addEventListener('resize', this.onResize); this.loadTimer(); this.tickIv = setInterval(() => this.tickTimer(), 250); }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onSearchKey); window.removeEventListener('resize', this.onResize); clearInterval(this.tickIv); Object.values(this.timers).forEach(clearTimeout); }
   componentDidUpdate(prev) {
     if (prev.startPage !== this.props.startPage && this.props.startPage) this.setState({ page: this.props.startPage });
     if (prev.startMode !== this.props.startMode) this.switchMode(this.props.startMode === 'work' ? 'work' : 'personal');
@@ -1076,10 +1166,109 @@ class Component extends DCLogic {
     this.timers._all = setTimeout(() => this.setState(s => s.aiEnabled ? { todos: s.todos.map(t => (t.al && (t.al.source === 'manual' || t.al.status === 'dismissed')) ? t : { ...t, al: this.classify(t, s) }) } : null), 1500);
   }
 
-  showToast(msg, undo) {
+  feedbackView(s) {
+    const PAGE_FEATURE = { goals: 'Goals', todos: 'To-dos', projects: 'Projects', project: 'Projects', notes: 'Notes', calendar: 'Calendar', settings: 'Settings' };
+    const pg = s.page || this.props.startPage || 'goals';
+    const F = s.feedback, close = () => this.setState({ feedback: null });
+    const upd = p => this.setState(st => ({ feedback: { ...st.feedback, ...p } }));
+    const base = { showButton: pg !== 'login' && !F, open: !!F, onOpen: () => this.setState({ search: null, feedback: { type: 'idea', feature: PAGE_FEATURE[pg] || 'General', msg: '', contact: true, shot: false, sent: false } }), onClose: close };
+    if (!F) return base;
+    const TYPES = [['idea', 'Idea', 'ph-duotone ph-lightbulb'], ['bug', "Something's broken", 'ph-duotone ph-bug'], ['other', 'Other', 'ph-duotone ph-chat-circle']];
+    const PH = { idea: 'What would make Focus better for you?', bug: 'What happened, and what did you expect?', other: 'Anything on your mind.' };
+    return { ...base,
+      editing: !F.sent, sent: F.sent,
+      types: TYPES.map(([k, label, icon]) => ({ label, icon, on: F.type === k, onPick: () => upd({ type: k }) })),
+      features: ['General', 'Goals', 'To-dos', 'Projects', 'Notes', 'Calendar', 'Timer', 'Search', 'Help me start', 'Off-goal flags', 'Settings'],
+      feature: F.feature, onFeature: e => upd({ feature: e.target.value }),
+      msg: F.msg, onMsg: e => upd({ msg: e.target.value }), placeholder: PH[F.type],
+      isBug: F.type === 'bug', hasShot: F.shot, noShot: !F.shot, onShot: () => upd({ shot: !F.shot }),
+      contact: F.contact, onContact: e => upd({ contact: e.target.checked }), contactLabel: 'OK to email me about this at ' + s.email,
+      cantSend: !F.msg.trim(), onSend: () => F.msg.trim() && upd({ sent: true }),
+      thanks: 'Thanks, ' + (s.displayName || 'there') + '.',
+      sentLine: 'Your note about ' + F.feature + ' was sent.' + (F.contact ? ' If there are questions, a reply will come to ' + s.email + '.' : ''),
+      onKey: e => { if (e.key === 'Escape') { e.preventDefault(); close(); } },
+    };
+  }
+  openSearch() { this.setState({ search: { q: '', sel: 0 }, feedback: null }); }
+  closeSearch() { this.setState({ search: null }); }
+  searchIndex(s) {
+    const goalName = id => { const g = s.goals.find(x => x.id === id); return g ? g.title : ''; };
+    const out = [];
+    s.todos.forEach(t => out.push({ g: 'To-dos', icon: 'ph-duotone ph-check-square', title: t.title || 'Untitled to-do', sub: [t.recurring ? 'Repeats' : '', t.date ? fmt(t.date) : '', t.notes].filter(Boolean).join(' · ') || 'To-do', text: t.notes, go: { page: 'todos', expanded: { ...s.expanded, [t.id]: true } } }));
+    s.goals.forEach(g => out.push({ g: 'Goals', icon: 'ph-duotone ph-target', title: g.title || 'Untitled goal', sub: (g.status === 'archived' ? 'Archived goal' : 'Goal') + ' · ' + g.subgoals.filter(x => x.done).length + ' of ' + g.subgoals.length + ' sub-goals done', text: g.details + ' ' + g.subgoals.map(x => x.title).join(' '), go: { page: 'goals', archivedOpen: g.status === 'archived' ? true : s.archivedOpen } }));
+    s.projects.forEach(p => {
+      const go = { page: 'project', projectId: p.id, newProjectId: null, newTask: '' };
+      out.push({ g: 'Projects', icon: 'ph-duotone ph-folder-simple', title: p.title || 'Untitled project', sub: ['Project', goalName(p.goalId), p.tasks.filter(k => !k.done).length + ' open tasks'].filter(Boolean).join(' · '), text: p.details, go });
+      p.tasks.forEach(k => out.push({ g: 'Projects', icon: 'ph-duotone ph-list-checks', title: k.title, sub: 'Task in ' + (p.title || 'Untitled project') + (k.done ? ' · Done' : ''), text: '', go }));
+      (p.files || []).forEach(f => out.push({ g: 'Files', icon: 'ph-duotone ph-file', title: f.name, sub: p.title || 'Untitled project', text: '', go }));
+    });
+    s.notes.forEach(n => out.push({ g: 'Notes', icon: 'ph-duotone ph-note', title: n.title || 'Untitled note', sub: (n.body || '').split('\n')[0] || 'Empty note', text: n.body, go: { page: 'notes', noteId: n.id, newNoteId: null, noteQuery: '' } }));
+    const cal = (date, title) => { const [y, m] = date.split('-').map(Number); out.push({ g: 'Calendar', icon: 'ph-duotone ph-calendar-blank', title: fmt(date) + ' · ' + title, sub: 'Calendar', text: '', go: { page: 'calendar', calMonth: { y, m: m - 1 } } }); };
+    s.todos.filter(t => t.date).forEach(t => cal(t.date, t.title || 'Untitled to-do'));
+    s.projects.forEach(p => { if (p.due) cal(p.due, (p.title || 'Untitled project') + ' due'); p.tasks.filter(k => k.due && !k.done).forEach(k => cal(k.due, k.title)); });
+    return out;
+  }
+  searchView(s) {
+    const S = s.search; if (!S) return { open: false, hint: '⌘K', onOpen: () => this.openSearch() };
+    const q = S.q.trim(), ql = q.toLowerCase();
+    let groups;
+    if (!ql) {
+      groups = [
+        { label: 'Jump to', items: this.searchIndex(s).filter(x => x.g === 'To-dos').slice(0, 2) },
+        { label: 'Quick actions', items: [
+          { icon: 'ph-duotone ph-plus', title: 'New to-do', sub: 'Opens To-dos', run: () => { this.setState({ page: 'todos' }); window.scrollTo(0, 0); setTimeout(() => { const el = document.querySelector('input[placeholder*="to-do"]'); if (el) el.focus(); }, 80); } },
+          { icon: 'ph-duotone ph-timer', title: 'Start the timer', sub: 'Stays on this page', run: () => this.timerStart() },
+          { icon: 'ph-duotone ph-note-pencil', title: 'New note', sub: 'Opens a blank note', run: () => { this.setState({ page: 'notes' }); this.newNote(); } },
+          { icon: 'ph-duotone ph-folder-simple-plus', title: 'New project', sub: 'Opens a blank project', run: () => this.newProject() },
+          { icon: 'ph-duotone ph-chat-circle-text', title: 'Send feedback', sub: 'Ideas, bugs, or anything else', run: () => this.feedbackView(this.state).onOpen() },
+        ] },
+      ].filter(g => g.items.length);
+    } else {
+      const hits = this.searchIndex(s).filter(x => (x.title + ' ' + x.sub + ' ' + (x.text || '')).toLowerCase().includes(ql));
+      hits.sort((a, b) => (a.title.toLowerCase().includes(ql) ? 0 : 1) - (b.title.toLowerCase().includes(ql) ? 0 : 1));
+      groups = ['To-dos', 'Goals', 'Projects', 'Notes', 'Files', 'Calendar'].map(g => ({ label: g, items: hits.filter(x => x.g === g).slice(0, 4) })).filter(g => g.items.length);
+      groups.push({ label: 'Add', items: [{ icon: 'ph-duotone ph-plus', title: 'Add \u201c' + q + '\u201d as a to-do', sub: 'Goes to the top of To-dos', plain: true, run: () => { const id = uid('t'); this.setState(st => ({ todos: [{ id, title: q, notes: '', date: '', al: st.aiEnabled ? { status: 'pending', source: 'ai' } : null }, ...st.todos], page: 'todos' })); if (this.state.aiEnabled) this.queueCheck(id, 1800); window.scrollTo(0, 0); } }] });
+    }
+    const flat = []; groups.forEach(g => g.items.forEach(it => flat.push(it)));
+    const sel = Math.min(S.sel, Math.max(0, flat.length - 1));
+    const open = it => { this.closeSearch(); if (it.run) it.run(); else { this.setState({ linking: null, ...it.go }); window.scrollTo(0, 0); } };
+    const mark = (text, plain) => { const i = plain || !ql ? -1 : text.toLowerCase().indexOf(ql); const n = w => ({ t: w, bg: 'transparent', w: 400 }); return i < 0 ? [n(text)] : [n(text.slice(0, i)), { t: text.slice(i, i + q.length), bg: 'var(--color-accent-100)', w: 600 }, n(text.slice(i + q.length))]; };
+    let idx = 0;
+    return {
+      open: true, hint: '⌘K', q: S.q, qTrim: q, onOpen: () => this.openSearch(), onClose: () => this.closeSearch(),
+      scope: s.mode === 'work' ? 'Searching Work' : 'Searching Personal',
+      none: !!ql && groups.length === 1,
+      groups: groups.map(g => ({ label: g.label, items: g.items.map(it => { const i = idx++, on = i === sel; return { icon: it.icon, sub: it.sub, parts: mark(it.title, it.plain), sel: on, selStr: on ? 'true' : 'false', bg: on ? 'var(--color-neutral-200)' : 'transparent', onClick: () => open(it), onHover: () => this.setState(st => st.search && st.search.sel !== i ? { search: { ...st.search, sel: i } } : null) }; }) })),
+      onQ: e => { const v = e.target.value; this.setState(st => ({ search: { ...st.search, q: v, sel: 0 } })); },
+      onKey: e => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); this.setState(st => ({ search: { ...st.search, sel: Math.min(sel + 1, flat.length - 1) } })); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); this.setState(st => ({ search: { ...st.search, sel: Math.max(sel - 1, 0) } })); }
+        else if (e.key === 'Enter') { e.preventDefault(); if (flat[sel]) open(flat[sel]); }
+        else if (e.key === 'Escape') { e.preventDefault(); this.closeSearch(); }
+      },
+    };
+  }
+  showToast(msg, undo, del) {
     clearTimeout(this.timers._toast);
-    this.setState({ toast: { msg, undo } });
-    this.timers._toast = setTimeout(() => this.setState({ toast: null }), 5000);
+    const prev = this.state.toast;
+    const dels = del ? (prev && prev.dels ? [...prev.dels, del] : [del]) : null;
+    const total = undo || dels ? 10000 : 5000;
+    this.toastLeft = total; this.toastEnd = Date.now() + total;
+    this.setState({ toast: { id: uid('toast'), msg, undo, dels, total, hover: false } });
+    this.timers._toast = setTimeout(() => this.setState({ toast: null }), total);
+  }
+  delToast(label, undo) { this.showToast('', null, { label, undo }); }
+  toastHover(on) {
+    const t = this.state.toast; if (!t || t.hover === on) return;
+    if (on) { clearTimeout(this.timers._toast); this.toastLeft = Math.max(0, this.toastEnd - Date.now()); }
+    else { this.toastEnd = Date.now() + this.toastLeft; this.timers._toast = setTimeout(() => this.setState({ toast: null }), this.toastLeft); }
+    this.setState({ toast: { ...t, hover: on } });
+  }
+  runUndo() {
+    const t = this.state.toast; if (!t) return;
+    clearTimeout(this.timers._toast); this.setState({ toast: null });
+    if (t.dels) t.dels.slice().reverse().forEach(d => d.undo());
+    else if (t.undo) t.undo();
   }
 
   dnd(list, id, onMove, prevId, nextId) {
@@ -1155,7 +1344,7 @@ class Component extends DCLogic {
   deleteNote(id) {
     const i = this.state.notes.findIndex(n => n.id === id), item = this.state.notes[i];
     this.setState(s => ({ notes: s.notes.filter(n => n.id !== id), noteId: null, newNoteId: null }));
-    this.showToast('Note deleted', () => this.setState(s => { const a = s.notes.slice(); a.splice(Math.min(i, a.length), 0, item); return { notes: a, noteId: id }; }));
+    this.delToast(item.title || 'Untitled note', () => this.setState(s => { const a = s.notes.slice(); a.splice(Math.min(i, a.length), 0, item); return { notes: a, noteId: id }; }));
   }
 
   // account (PATCH /account)
@@ -1259,15 +1448,32 @@ class Component extends DCLogic {
     this.setState(s => ({ sess, flash: { ...s.flash, [id]: true }, todos: s.todos.map(t => t.id === id ? { ...t, count, lastDone: TODAY } : t) }));
     clearTimeout(this.timers['f' + id]);
     this.timers['f' + id] = setTimeout(() => this.setState(s => ({ flash: { ...s.flash, [id]: false } })), 1000);
-    this.showToast(`Completion logged · Done ${count}\u00d7.` + this.milestone(s0, prevSess, sess), () => this.setState(s => ({ sess: prevSess, todos: s.todos.map(t => t.id === id ? { ...t, count: item.count, lastDone: item.lastDone } : t) })));
+    this.markDone(id);
+    this.showToast(`Completion logged · Done ${count}\u00d7.` + this.milestone(s0, prevSess, sess), () => this.setState(s => ({ doneToday: Math.max(0, s.doneToday - 1), sess: prevSess, todos: s.todos.map(t => t.id === id ? { ...t, count: item.count, lastDone: item.lastDone } : t) })));
+  }
+  markDone(id) {
+    const k = Date.now();
+    this.setState(s => ({ popKey: { ...s.popKey, [id]: k }, doneToday: s.doneToday + 1, doneKey: k }));
+    clearTimeout(this.timers._doneKey);
+    this.timers._doneKey = setTimeout(() => this.setState(s => s.doneKey === k ? { doneKey: 0 } : null), 550);
+    clearTimeout(this.timers['pop' + id]);
+    this.timers['pop' + id] = setTimeout(() => this.setState(s => { if (s.popKey[id] !== k) return null; const n = { ...s.popKey }; delete n[id]; return { popKey: n }; }), 950);
   }
   completeTodo(id) {
-    const s0 = this.state;
-    const i = s0.todos.findIndex(t => t.id === id); const item = s0.todos[i];
-    const prevSess = s0.sess, sess = this.tally(item, s0, prevSess);
-    this.setState(s => ({ todos: s.todos.filter(t => t.id !== id), sess }));
-    const m = this.milestone(s0, prevSess, sess);
-    this.showToast(m ? 'To-do completed.' + m : 'To-do completed', () => this.setState(s => { const a = s.todos.slice(); a.splice(Math.min(i, a.length), 0, item); return { todos: a, sess: prevSess }; }));
+    if (this.state.fold[id]) return;
+    this.markDone(id);
+    this.setState(s => ({ fold: { ...s.fold, [id]: 'done' } }));
+    this.timers['fold' + id] = setTimeout(() => this.setState(s => ({ fold: { ...s.fold, [id]: 'leaving' } })), 1000);
+    this.timers['fold2' + id] = setTimeout(() => {
+      const s0 = this.state;
+      const i = s0.todos.findIndex(t => t.id === id); const item = s0.todos[i];
+      const clearFold = f => { const n = { ...f }; delete n[id]; return n; };
+      if (!item) return this.setState(s => ({ fold: clearFold(s.fold) }));
+      const prevSess = s0.sess, sess = this.tally(item, s0, prevSess);
+      this.setState(s => ({ todos: s.todos.filter(t => t.id !== id), sess, fold: clearFold(s.fold), popKey: clearFold(s.popKey) }));
+      const m = this.milestone(s0, prevSess, sess);
+      this.showToast(m ? 'To-do completed.' + m : 'To-do completed', () => this.setState(s => { const a = s.todos.slice(); a.splice(Math.min(i, a.length), 0, item); return { todos: a, sess: prevSess, doneToday: Math.max(0, s.doneToday - 1) }; }));
+    }, 1350);
   }
 
   // goals
@@ -1288,8 +1494,15 @@ class Component extends DCLogic {
     });
   }
   deleteGoal(id) {
+    const s0 = this.state, i = s0.goals.findIndex(g => g.id === id), item = s0.goals[i]; if (!item) return;
+    const linked = s0.projects.filter(p => p.goalId === id).map(p => p.id);
     this.setState(s => ({ goals: s.goals.filter(g => g.id !== id), projects: s.projects.map(p => p.goalId === id ? { ...p, goalId: null } : p), confirm: null }));
     this.queueAll();
+    this.delToast(item.title || 'Untitled goal', () => {
+      if (item.status === 'active' && this.activeCount() >= this.state.focusLimit) return this.showToast("Can't undo: you're at your limit.");
+      this.setState(s => { const a = s.goals.slice(); a.splice(Math.min(i, a.length), 0, item); return { goals: a, projects: s.projects.map(p => linked.includes(p.id) ? { ...p, goalId: id } : p) }; });
+      this.queueAll();
+    });
   }
   addSub(gid) {
     const title = (this.state.subInput[gid] || '').trim(); if (!title) return;
@@ -1411,7 +1624,7 @@ class Component extends DCLogic {
       const matchName = ai && al.status === 'aligned' && al.type === 'goal' ? goalName(al.id) : '';
       const overdue = !!t.date && t.date < TODAY;
       return {
-        id: t.id, title: t.title, notes: t.notes, date: t.date, checked: !!s.flash[t.id],
+        id: t.id, title: t.title, notes: t.notes, date: t.date, checked: !!s.flash[t.id] || !!s.fold[t.id],
         recurring: !!t.recurring, notRecurring: !t.recurring, tally: 'Done ' + (t.count || 0) + '\u00d7', doneToday: !!t.recurring && t.lastDone === TODAY,
         expandIcon: t.recurring ? 'ph-duotone ph-dots-three' : 'ph-duotone ph-calendar-blank', expandLabel: t.recurring ? 'Notes and repeat' : 'Date and notes',
         onRepeat: () => { const on = !t.recurring; this.updTodo(t.id, on ? { recurring: true, date: '' } : { recurring: false }); if (on && t.date) this.showToast('Repeat is on. The date was removed.'); },
@@ -1431,7 +1644,17 @@ class Component extends DCLogic {
         onDate: e => this.updTodo(t.id, { date: e.target.value }),
         onClearDate: () => this.updTodo(t.id, { date: '' }),
         onDone: () => t.recurring ? this.checkRecurring(t.id) : this.completeTodo(t.id),
-        onDelete: () => { this.setState(s2 => ({ todos: s2.todos.filter(x => x.id !== t.id) })); if (unaligned) this.bump('dropped'); },
+        ...(() => {
+          const f = s.fold[t.id], pk = s.popKey[t.id], leaving = f === 'leaving', dragging = s.drag && s.drag.list === 'todos' && s.drag.id === t.id;
+          return {
+            struck: !!f, notStruck: !f,
+            strike: f ? React.createElement('span', { 'aria-hidden': true, style: { position: 'absolute', left: 0, top: '54%', height: 1.5, width: '100%', background: 'currentColor', animation: 'fx-strike 380ms ease-out' } }) : null,
+            pop: pk ? React.createElement('span', { key: pk, 'aria-hidden': true, style: { position: 'absolute', left: '50%', bottom: '100%', marginBottom: 2, fontFamily: 'var(--font-heading)', fontWeight: 600, fontStyle: 'italic', fontSize: 20, lineHeight: 1, color: 'var(--color-accent-700)', pointerEvents: 'none', whiteSpace: 'nowrap', animation: 'fx-rise 900ms cubic-bezier(.2,.7,.3,1) forwards' } }, '+1') : null,
+            foldPad: leaving ? '0 8px 0 4px' : '6px 8px 6px 4px', foldMaxH: leaving ? '0px' : f ? '400px' : 'none', foldOvf: leaving ? 'hidden' : 'visible',
+            rowOp: leaving ? '0' : dragging ? '0.4' : '1',
+          };
+        })(),
+        onDelete: () => { const ti = s.todos.findIndex(x => x.id === t.id), item = s.todos[ti]; this.setState(s2 => ({ todos: s2.todos.filter(x => x.id !== t.id) })); if (unaligned) this.bump('dropped'); this.delToast(t.title || 'Untitled to-do', () => this.setState(s2 => { const a = s2.todos.slice(); a.splice(Math.min(ti, a.length), 0, item); return { todos: a }; })); },
         onDismiss: () => { this.updTodo(t.id, { al: { ...al, status: 'dismissed' } }); this.bump('kept'); },
         onLinkOpen: () => this.setState(s2 => ({ linking: s2.linking === t.id ? null : t.id })),
         onLinkClose: () => this.setState({ linking: null }),
@@ -1475,7 +1698,7 @@ class Component extends DCLogic {
           onToggle: () => this.updSub(g.id, x.id, { done: !x.done }),
           onTitle: e => { this.updSub(g.id, x.id, { title: e.target.value }); this.queueAll(); },
           onTitleKey: e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } },
-          onDelete: () => { this.updGoal(g.id, gg => ({ ...gg, subgoals: gg.subgoals.filter(y => y.id !== x.id) })); this.queueAll(); },
+          onDelete: () => { const si = g.subgoals.findIndex(y => y.id === x.id); this.updGoal(g.id, gg => ({ ...gg, subgoals: gg.subgoals.filter(y => y.id !== x.id) })); this.queueAll(); this.delToast(x.title || 'Sub-goal', () => { this.updGoal(g.id, gg => { const a = gg.subgoals.slice(); a.splice(Math.min(si, a.length), 0, x); return { ...gg, subgoals: a }; }); this.queueAll(); }); },
         })),
         subInput: s.subInput[g.id] || '',
         onSubInput: e => { const v = e.target.value; this.setState(s2 => ({ subInput: { ...s2.subInput, [g.id]: v } })); },
@@ -1486,7 +1709,7 @@ class Component extends DCLogic {
         onToggleDetails: () => this.setState(s2 => ({ detailsOpen: { ...s2.detailsOpen, [g.id]: !s2.detailsOpen[g.id] } })),
         onComplete: () => this.setGoalStatus(g.id, 'completed', 'Goal completed'),
         onArchive: () => this.setGoalStatus(g.id, 'archived', 'Goal archived'),
-        onDelete: () => this.setState({ confirm: { title: 'Delete this goal?', body: `\u201c${g.title}\u201d and its sub-goals will be deleted. Linked projects stay, without a goal.`, action: 'Delete goal', run: () => this.deleteGoal(g.id) } }),
+        onDelete: () => this.deleteGoal(g.id),
         ...this.dnd('goals', g.id, (a, b) => this.setState(s2 => ({ goals: move(s2.goals, a, b) })), arr[i - 1] && arr[i - 1].id, arr[i + 1] && arr[i + 1].id),
       };
     });
@@ -1495,7 +1718,7 @@ class Component extends DCLogic {
     const archivedRows = archived.map(g => ({
       id: g.id, title: g.title, restoreDisabled: atLimit, restoreTitle: atLimit ? "You're at your limit" : 'Restore to active',
       onRestore: () => { if (this.activeCount() < s.focusLimit) { this.updGoal(g.id, x => ({ ...x, status: 'active' })); this.queueAll(); } },
-      onDelete: () => this.setState({ confirm: { title: 'Delete this goal?', body: `\u201c${g.title}\u201d will be deleted permanently.`, action: 'Delete goal', run: () => this.deleteGoal(g.id) } }),
+      onDelete: () => this.deleteGoal(g.id),
     }));
 
     // focus tracker
@@ -1597,7 +1820,7 @@ class Component extends DCLogic {
             onRenameInput: e => { const v = e.target.value; this.setState(s2 => ({ renaming: { ...s2.renaming, value: v } })); },
             onRenameKey: e => { if (e.key === 'Enter') { e.preventDefault(); this.saveRename(proj.id); } if (e.key === 'Escape') this.setState({ renaming: null }); },
             onRenameBlur: () => this.saveRename(proj.id),
-            onDelete: () => this.setState({ confirm: { title: 'Delete this file?', body: `\u201c${f.name}\u201d will be removed from this project and deleted from storage.`, action: 'Delete file', run: () => { this.updFiles(proj.id, fs => fs.filter(x => x.id !== f.id)); this.showToast('File deleted'); } } }),
+            onDelete: () => { const fi = (proj.files || []).findIndex(x => x.id === f.id); this.updFiles(proj.id, fs => fs.filter(x => x.id !== f.id)); this.delToast(f.name, () => this.updFiles(proj.id, fs => { const a = fs.slice(); a.splice(Math.min(fi, a.length), 0, f); return a; })); },
           };
         }) : [],
       };
@@ -1624,7 +1847,7 @@ class Component extends DCLogic {
           ...this.dnd('tasks', k.id, (a, b) => this.updTasks(proj.id, ts => move(ts, a, b)), arr[i - 1] && arr[i - 1].id, arr[i + 1] && arr[i + 1].id),
         })),
         completeTasks: comp.map(k => ({ id: k.id, title: k.title, checked: true, onToggle: () => this.toggleTask(proj.id, k.id) })),
-        onDelete: () => this.setState({ confirm: { title: 'Delete this project?', body: `\u201c${proj.title || 'Untitled project'}\u201d and its tasks and files will be deleted.`, action: 'Delete project', run: () => this.setState(s2 => ({ projects: s2.projects.filter(p => p.id !== proj.id), confirm: null, page: 'projects' })) } }),
+        onDelete: () => { const pi = s.projects.findIndex(p => p.id === proj.id); this.setState(s2 => ({ projects: s2.projects.filter(p => p.id !== proj.id), page: 'projects', projectId: null })); window.scrollTo(0, 0); this.delToast(proj.title || 'Untitled project', () => this.setState(s2 => { const a = s2.projects.slice(); a.splice(Math.min(pi, a.length), 0, proj); return { projects: a }; })); },
       };
     }
 
@@ -1793,6 +2016,8 @@ class Component extends DCLogic {
       cal,
       isSplash: page === 'login' && !s.authMode, isAuth: page === 'login' && !!s.authMode, isApp: page !== 'login',
       isNotes: page === 'notes', isTodos: page === 'todos', isGoals: page === 'goals', isProjects: page === 'projects', isProject: page === 'project', isSettings: page === 'settings', isCalendar: page === 'calendar',
+      hasDoneToday: s.doneToday > 0,
+      doneTodayEl: React.createElement('span', { key: s.doneKey, style: { display: 'inline-block', fontWeight: 600, color: 'var(--color-text)', animation: s.doneKey ? 'fx-bump 500ms ease-out' : 'none' } }, String(s.doneToday)),
       cur, goTodos: this.go('todos'), goGoals: this.go('goals'), goProjects: this.go('projects'), goSettings: this.go('settings'),
       signOut: this.go('login', { authMode: null }), stop: e => e.stopPropagation(),
       email: s.email, password: s.password,
@@ -1850,8 +2075,19 @@ class Component extends DCLogic {
       hasNewKey: !!s.newKey, newKeyValue: s.newKey || '', copyLabel: s.copied ? 'Copied' : 'Copy',
       copyKey: () => { try { navigator.clipboard.writeText(s.newKey).catch(() => {}); } catch (_) {} this.setState({ copied: true }); },
       closeNewKey: () => this.setState({ newKey: null }),
-      hasToast: !!s.toast, toastMsg: s.toast ? s.toast.msg : '', hasUndo: !!(s.toast && s.toast.undo),
-      onUndo: () => { const u = this.state.toast && this.state.toast.undo; clearTimeout(this.timers._toast); this.setState({ toast: null }); if (u) u(); },
+      sx: this.searchView(s), fb: this.feedbackView(s),
+      ...(() => {
+        const t = s.toast, dels = t && t.dels, n = dels ? dels.length : 0, canUndo = !!(t && (t.undo || dels));
+        return {
+          hasToast: !!t, hasUndo: canUndo,
+          toastMsg: !t ? '' : dels ? (n === 1 ? '\u201c' + dels[0].label + '\u201d deleted' : n + ' items deleted') : t.msg,
+          toastMulti: n > 1, toastList: dels ? dels.map(d => d.label).join(', ') : '',
+          undoLabel: n > 1 ? 'Undo all' : 'Undo', toastStatus: t && t.hover ? 'Paused' : '',
+          toastBar: t && canUndo ? React.createElement('span', { key: t.id, 'aria-hidden': true, style: { display: 'block', height: 2, background: t.hover ? 'var(--color-neutral-500)' : 'var(--color-accent)', animation: 'fx-drain ' + t.total + 'ms linear forwards', animationPlayState: t.hover ? 'paused' : 'running' } }) : null,
+          onToastIn: () => this.toastHover(true), onToastOut: () => this.toastHover(false),
+          onUndo: () => this.runUndo(),
+        };
+      })(),
     };
   }
 }

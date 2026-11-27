@@ -14,6 +14,10 @@ Screens: Login splash, Login / Sign-up panel, Goals (home, with the focus tracke
 - `SETTINGS.md`: Settings with Account first and the Timer section. Replaces §6.
 - `LOGIN.md`: the "Depth of field" login splash. Replaces §1.
 - `LOGIN-SIGNUP.md`: Log in / Sign up buttons on the splash, and the split auth panel (Google, Microsoft, Apple and email on the left; feature previews on the right). Overrides the form in `LOGIN.md`.
+- `TODO-COMPLETE.md`: the +1, strike-through and fold-away animation when a to-do is completed, plus the "done today" count.
+- `SEARCH.md`: "Search everything" in the date line and the ⌘K command palette across goals, to-dos, projects, files, notes and calendar.
+- `UNDO.md`: instant deletes with a 10-second stacking Undo toast and ⌘Z. Replaces the delete confirm dialogs.
+- `FEEDBACK.md`: the corner Feedback button and the feedback form.
 - `RECURRING-TODOS.md`: recurring to-dos and the Recurring band on the To-dos page (§3).
 - `PROJECT-FILES.md`: the Files section on Project detail (§5).
 - `CALENDAR.md`: the Calendar page.

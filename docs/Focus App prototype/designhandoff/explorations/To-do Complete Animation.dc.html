@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="../support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="../_ds/broadsheet-acaa9821-8bb4-43a7-9e1b-f85d9d70fd94/styles.css">
+  <script src="../_ds/broadsheet-acaa9821-8bb4-43a7-9e1b-f85d9d70fd94/_ds_bundle.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+  <style>
+    body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); text-wrap: pretty; }
+    a { color: var(--color-accent-700); }
+    a:hover { color: var(--color-accent-800); }
+    @keyframes fx-rise { 0% { opacity: 0; transform: translate(-50%, 6px); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -28px); } }
+    @keyframes fx-lift { 0% { opacity: 0; transform: translate(-50%, 2px) scale(1.15); } 10% { opacity: 1; } 55% { opacity: 1; transform: translate(-50%, -4px) scale(1); } 100% { opacity: 0; transform: translate(-50%, -30px); } }
+    @keyframes fx-reg-c { from { transform: translate(-7px, 4px); } to { transform: none; } }
+    @keyframes fx-reg-m { from { transform: translate(7px, -4px); } to { transform: none; } }
+    @keyframes fx-ink { 0%, 60% { opacity: 0; } 100% { opacity: 1; } }
+    @keyframes fx-strike { from { width: 0; } to { width: calc(100% - 4px); } }
+    @keyframes fx-bump { 0% { transform: scale(1); } 35% { transform: scale(1.14); color: var(--color-accent-700); } 100% { transform: scale(1); } }
+  </style>
+</helmet>
+<section style="box-sizing: border-box; padding: var(--space-8); display: grid; gap: var(--space-6);">
+  <div style="display: grid; gap: var(--space-2); max-width: 720px;">
+    <h6 style="margin: 0; color: var(--color-accent-700);">Turn 1 · To-do complete</h6>
+    <h2 style="margin: 0; font-style: italic; font-weight: 400;">Four ways to mark a finished to-do</h2>
+    <p style="margin: 0; color: var(--color-neutral-800);">Tick the boxes to play each one. Reset to run it again.</p>
+  </div>
+  <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-8);">
+    <sc-for list="{{ opts }}" as="o" hint-placeholder-count="4">
+      <div id="{{ o.id }}" style="width: 420px; display: grid; gap: var(--space-3);">
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+          <span class="tag tag-accent" style="font-weight: 600;">{{ o.id }}</span>
+          <h4 style="margin: 0;">{{ o.title }}</h4>
+        </div>
+        <p style="margin: 0; font-size: 15px; color: var(--color-neutral-800); min-height: 46px;">{{ o.desc }}</p>
+        <div class="card elev-sm" style="display: grid; gap: 2px; padding: var(--space-4) var(--space-4) var(--space-3); background: var(--color-bg);">
+          <sc-if value="{{ o.isClimb }}" hint-placeholder-val="{{ false }}">
+            <div style="display: grid; gap: 6px; padding: 0 4px var(--space-4);">
+              <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-700);">The climb · Level 1</span>
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;">
+                <span style="font-family: var(--font-heading); font-weight: 600; font-size: 32px; line-height: 1;">{{ o.climbNum }}</span>
+                <span style="font-size: 14px; color: var(--color-neutral-800);">{{ o.climbSentence }}</span>
+              </div>
+              <div style="position: relative; height: 2px; margin-top: 26px; background: var(--color-neutral-300);">
+                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{ o.pct }}; background: var(--color-accent); transition: width 0.7s cubic-bezier(0.3, 1.4, 0.5, 1);"></div>
+                <i class="ph-duotone ph-person-simple-hike" style="position: absolute; left: {{ o.pct }}; bottom: 3px; transform: translateX(-50%); font-size: 22px; color: var(--color-accent-700); transition: left 0.7s cubic-bezier(0.3, 1.4, 0.5, 1);"></i>
+                <i class="ph-duotone ph-flag-pennant" style="position: absolute; right: -4px; bottom: 3px; font-size: 18px; color: var(--color-neutral-600);"></i>
+              </div>
+            </div>
+          </sc-if>
+          <span style="padding: 0 4px 6px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-700);">To-dos</span>
+          <sc-for list="{{ o.rows }}" as="t" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; padding: {{ t.pad }}; max-height: {{ t.maxH }}; opacity: {{ t.op }}; overflow: {{ t.ovf }}; transition: max-height 0.35s ease, opacity 0.3s ease, padding 0.35s ease;">
+              <span style="position: relative; display: flex; flex: none;">
+                <input type="checkbox" aria-label="Complete" checked="{{ t.checked }}" onChange="{{ t.onDone }}" style="width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: var(--color-accent);">
+                {{ t.pop }}
+              </span>
+              <span style="position: relative; flex: 1; min-width: 0; font-size: 16px; padding: 5px 2px; color: {{ t.color }}; transition: color 0.3s;">{{ t.title }}{{ t.strike }}</span>
+              <span class="tag tag-accent" style="position: relative; gap: 5px; flex: none;"><i class="ph-duotone ph-target"></i>{{ t.goal }}{{ t.countEl }}{{ t.tagPop }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ o.showDone }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; align-items: center; gap: 8px; padding: var(--space-3) 4px 0; font-size: 14px; color: var(--color-neutral-800);"><i class="ph-duotone ph-check-circle" style="font-size: 18px; color: var(--color-accent-700);"></i>{{ o.doneEl }}<span>done today</span></div>
+          </sc-if>
+        </div>
+        <div style="display: flex;">
+          <button class="btn btn-ghost" type="button" onClick="{{ o.onReset }}"><i class="ph-duotone ph-arrow-counter-clockwise"></i>Reset</button>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const TASKS = [
+  { id: 'a', title: 'Easy 5 km run', goal: 'Half marathon' },
+  { id: 'b', title: 'Transfer $20 to savings', goal: 'Emergency fund' },
+  { id: 'c', title: 'Read 20 pages', goal: '12 books' },
+];
+const OPTS = [
+  { id: '1a', title: 'Rise and clear', desc: 'A serif +1 floats up from the box, the title is struck through, and the row folds away into a "done today" count.' },
+  { id: '1b', title: 'Credit the goal', desc: 'The +1 comes out of the goal tag instead, and that goal\u2019s tally ticks up. Shows which goal the work counted toward.' },
+  { id: '1c', title: 'Take a step', desc: 'The +1 rises from the box while the climb total bumps and the hiker steps up the trail toward the summit.' },
+  { id: '1d', title: 'Press stamp', desc: 'The +1 prints as cyan and magenta plates that snap into register as ink, then lifts away. Uses Broadsheet\u2019s print look.' },
+];
+const fresh = () => ({ done: {}, key: {}, gone: {}, counts: { a: 13, b: 6, c: 4 }, climb: 87, today: 2 });
+const el = React.createElement;
+const rise = (k, extra) => el('span', { key: k, 'aria-hidden': true, style: { position: 'absolute', left: '50%', bottom: '100%', marginBottom: 2, fontFamily: 'var(--font-heading)', fontWeight: 600, fontStyle: 'italic', fontSize: 20, lineHeight: 1, color: 'var(--color-accent-700)', pointerEvents: 'none', whiteSpace: 'nowrap', animation: 'fx-rise 900ms cubic-bezier(.2,.7,.3,1) forwards', ...extra } }, '+1');
+const plate = (color, anim, extra) => el('span', { style: { position: 'absolute', inset: 0, color, mixBlendMode: 'multiply', animation: anim, ...extra } }, '+1');
+const stamp = k => el('span', { key: k, 'aria-hidden': true, style: { position: 'absolute', left: '50%', bottom: '100%', marginBottom: 4, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 26, lineHeight: 1, pointerEvents: 'none', whiteSpace: 'nowrap', animation: 'fx-lift 1200ms ease-out forwards' } },
+  el('span', { style: { visibility: 'hidden' } }, '+1'),
+  plate('var(--color-accent)', 'fx-reg-c 420ms cubic-bezier(.2,.8,.3,1) forwards'),
+  plate('var(--color-accent-2)', 'fx-reg-m 420ms cubic-bezier(.2,.8,.3,1) forwards'),
+  plate('var(--color-text)', 'fx-ink 520ms ease-out forwards', { mixBlendMode: 'normal' }));
+const bump = (k, text, style) => el('span', { key: k, style: { display: 'inline-block', animation: k ? 'fx-bump 500ms ease-out' : 'none', ...style } }, text);
+
+class Component extends DCLogic {
+  state = { s: Object.fromEntries(OPTS.map(o => [o.id, fresh()])) };
+  upd(opt, fn) { this.setState(st => ({ s: { ...st.s, [opt]: fn(st.s[opt]) } })); }
+  toggle(opt, id) {
+    const cur = this.state.s[opt];
+    const on = !cur.done[id], d = on ? 1 : -1;
+    this.upd(opt, x => ({ ...x, done: { ...x.done, [id]: on }, key: { ...x.key, [id]: on ? Date.now() : 0 }, gone: { ...x.gone, [id]: false },
+      counts: { ...x.counts, [id]: x.counts[id] + d }, climb: x.climb + d, today: x.today + d, lastKey: on ? Date.now() : x.lastKey }));
+    if (on && opt === '1a') setTimeout(() => this.upd(opt, x => x.done[id] ? { ...x, gone: { ...x.gone, [id]: true } } : x), 1000);
+  }
+  renderVals() {
+    return {
+      opts: OPTS.map(o => {
+        const s = this.state.s[o.id];
+        const rows = TASKS.map(t => {
+          const done = !!s.done[t.id], k = s.key[t.id], gone = !!s.gone[t.id];
+          return {
+            title: t.title, goal: t.goal, checked: done,
+            onDone: () => this.toggle(o.id, t.id),
+            color: done ? 'var(--color-neutral-600)' : 'var(--color-text)',
+            strike: done ? el('span', { key: k || 'x', 'aria-hidden': true, style: { position: 'absolute', left: 2, top: '52%', height: 1.5, background: 'currentColor', width: 'calc(100% - 4px)', animation: k ? 'fx-strike 380ms ease-out' : 'none' } }) : null,
+            pop: k && o.id !== '1b' ? (o.id === '1d' ? stamp(k) : rise(k)) : null,
+            tagPop: k && o.id === '1b' ? rise(k, { fontSize: 18 }) : null,
+            countEl: o.id === '1b' ? bump(k, ` \u00b7 ${s.counts[t.id]}`, { whiteSpace: 'pre' }) : null,
+            maxH: gone ? '0px' : '60px', op: gone ? 0 : 1, pad: gone ? '0 8px 0 4px' : '6px 8px 6px 4px', ovf: gone ? 'hidden' : 'visible',
+          };
+        });
+        const toGo = 100 - s.climb;
+        return {
+          ...o, rows,
+          isClimb: o.id === '1c', showDone: o.id === '1a',
+          climbNum: bump(o.id === '1c' ? s.lastKey : 0, String(s.climb), { transformOrigin: 'left bottom' }),
+          climbSentence: `completed \u00b7 ${toGo} to the summit`,
+          pct: s.climb + '%',
+          doneEl: bump(s.lastKey, String(s.today), { fontWeight: 600, color: 'var(--color-text)' }),
+          onReset: () => this.upd(o.id, () => fresh()),
+        };
+      }),
+    };
+  }
+}
+</script>
+</body>
+</html>

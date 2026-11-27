@@ -71,3 +71,27 @@ See `LOGIN-SIGNUP.md`.
 - [ ] Email sign-up: Name field, `POST /api/v1/auth/signup`, validation, error and loading states.
 - [ ] Feature overview aside with the two static previews (Every to-do checked, Help me start).
 - [ ] "Forgot it?" link (reset flow not designed yet).
+
+## To-do completion animation
+See `TODO-COMPLETE.md`.
+- [ ] +1 rise, strike-through, and fold-away before removal. Toast after removal.
+- [ ] "Done today" count with bump.
+- [ ] Reduced-motion fallback.
+
+## Search
+See `SEARCH.md`.
+- [ ] Date-line trigger, ⌘K and / shortcuts.
+- [ ] Command palette: grouped results, highlight, keyboard nav, quick actions, "Add as a to-do".
+- [ ] Search endpoint scoped to the workspace.
+
+## Undo
+See `UNDO.md`.
+- [ ] Remove delete confirm dialogs (goal, project, file).
+- [ ] Stacking toast: 10 s, pause on hover, progress bar, Undo all, ⌘Z.
+- [ ] Soft-delete with purge on the server.
+
+## Feedback
+See `FEEDBACK.md`.
+- [ ] Corner Feedback button and search quick action.
+- [ ] Feedback form with type, feature preset, message, screenshot, contact opt-in, sent state.
+- [ ] `POST /api/v1/feedback` and the error state.
