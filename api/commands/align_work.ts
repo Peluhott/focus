@@ -29,6 +29,19 @@ export default class AlignWork extends BaseCommand {
       return
     }
     const { createBoss, ensureQueues, QUEUES } = await import('#services/alignment/queue')
+    // The app logger (not this.logger, the CLI one) so job lines reach storage/logs.
+    const { default: logger } = await import('@adonisjs/core/services/logger')
+    /** Logs a job that throws, then rethrows so pg-boss still retries it. */
+    const logged =
+      <T extends object>(queue: string, handle: (job: Job<T>) => Promise<void>) =>
+      async ([job]: Job<T>[]) => {
+        try {
+          await handle(job)
+        } catch (err) {
+          logger.error({ err, queue, jobId: job.id, data: job.data }, `job failed on ${queue}`)
+          throw err
+        }
+      }
 
     const boss = createBoss(4, 'worker')
     await boss.start()
@@ -49,10 +62,10 @@ export default class AlignWork extends BaseCommand {
       await boss.work<{ todoId: number }>(
         QUEUES.todo,
         { localConcurrency: 2, pollingIntervalSeconds: 2 },
-        async ([job]: Job<{ todoId: number }>[]) => {
+        logged<{ todoId: number }>(QUEUES.todo, async (job) => {
           const result = await checker.checkTodo(job.data.todoId)
-          this.logger.info(`to-do ${job.data.todoId}: ${result}`)
-        }
+          logger.info(`to-do ${job.data.todoId}: ${result}`)
+        })
       )
       const { default: db } = await import('@adonisjs/lucid/services/db')
       /** Workspaces whose AI is on: the only ones whose content may be sent. */
@@ -66,37 +79,37 @@ export default class AlignWork extends BaseCommand {
       await boss.work<{ workspaceId?: number }>(
         QUEUES.all,
         { pollingIntervalSeconds: 2 },
-        async ([job]: Job<{ workspaceId?: number }>[]) => {
+        logged<{ workspaceId?: number }>(QUEUES.all, async (job) => {
           // Jobs queued before workspaces existed have no id: run every AI-on workspace.
           const ids = job.data.workspaceId ? [job.data.workspaceId] : await aiWorkspaces()
           for (const id of ids) {
             const counts = await checker.checkAll(id)
-            this.logger.info(`re-checked workspace ${id}: ${JSON.stringify(counts)}`)
+            logger.info(`re-checked workspace ${id}: ${JSON.stringify(counts)}`)
           }
-        }
+        })
       )
       await boss.work<{ runId: number }>(
         QUEUES.suggest,
         { pollingIntervalSeconds: 2 },
-        async ([job]: Job<{ runId: number }>[]) => {
+        logged<{ runId: number }>(QUEUES.suggest, async (job) => {
           const status = await suggester.run(job.data.runId)
-          this.logger.info(`goal suggestions run ${job.data.runId}: ${status}`)
-        }
+          logger.info(`goal suggestions run ${job.data.runId}: ${status}`)
+        })
       )
       await boss.work<{ runId: number }>(
         QUEUES.hint,
         { localConcurrency: 2, pollingIntervalSeconds: 1 },
-        async ([job]: Job<{ runId: number }>[]) => {
+        logged<{ runId: number }>(QUEUES.hint, async (job) => {
           const status = await hinter.run(job.data.runId)
-          this.logger.info(`to-do hint run ${job.data.runId}: ${status}`)
-        }
+          logger.info(`to-do hint run ${job.data.runId}: ${status}`)
+        })
       )
       // Re-check open to-dos on start, so a new model, prompt or context shape
       // applies to existing results. Unchanged ones hit the cache.
       for (const workspaceId of await aiWorkspaces()) {
         await boss.send(QUEUES.all, { workspaceId }, { singletonKey: String(workspaceId) })
       }
-      this.logger.info(`Alignment worker running on ${aiConfig.model}`)
+      logger.info(`Alignment worker running on ${aiConfig.model}`)
     }
 
     if (storage) {
@@ -105,12 +118,12 @@ export default class AlignWork extends BaseCommand {
       await boss.work<FileDeleteJob>(
         QUEUES.fileDelete,
         { pollingIntervalSeconds: 5 },
-        async ([job]: Job<FileDeleteJob>[]) => {
+        logged<FileDeleteJob>(QUEUES.fileDelete, async (job) => {
           const result = await destroyAsset(job.data.publicId, job.data.resourceType)
-          this.logger.info(`deleted file ${job.data.publicId}: ${result}`)
-        }
+          logger.info(`deleted file ${job.data.publicId}: ${result}`)
+        })
       )
-      this.logger.info('File deletion worker running')
+      logger.info('File deletion worker running')
     }
 
     const stop = async () => {
