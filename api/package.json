@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "worker": "node ace align:work",
-    "eval": "node ace align:eval"
+    "eval": "node ace align:eval",
+    "logs": "sh scripts/logs.sh"
   },
   "imports": {
     "#controllers/*": "./app/controllers/*.js",
@@ -67,6 +68,7 @@
     "luxon": "^3.7.2",
     "pg": "^8.23.1",
     "pg-boss": "^12.38.2",
+    "pino-roll": "^4.0.0",
     "reflect-metadata": "^0.2.2"
   },
   "hotHook": {

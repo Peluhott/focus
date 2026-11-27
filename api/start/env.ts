@@ -15,6 +15,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   APP_KEY: Env.schema.string(),
   HOST: Env.schema.string({ format: 'host' }),
   LOG_LEVEL: Env.schema.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']),
+  /**
+   * Daily log files in storage/logs (api.YYYY-MM-DD.N.log, worker.…). On
+   * unless set to false; LOG_DAYS is how many files to keep (default 14).
+   */
+  LOG_FILES: Env.schema.boolean.optional(),
+  LOG_DAYS: Env.schema.number.optional(),
 
   /**
    * Neon Postgres. The pooled URL serves the app; the direct URL is used
