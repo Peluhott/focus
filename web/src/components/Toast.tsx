@@ -1,45 +1,90 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { ToastContext, type ShowToast } from '../lib/toast'
+import { useEffect, type ReactNode } from 'react'
+import {
+  canUndo,
+  pauseToast,
+  resumeToast,
+  runUndo,
+  useToastState,
+} from '../lib/toast'
 
-type Toast = { id: number; message: string; undo?: () => void }
+const inTextField = (el: Element | null) =>
+  el instanceof HTMLElement &&
+  (el.isContentEditable ||
+    el.tagName === 'TEXTAREA' ||
+    el.tagName === 'SELECT' ||
+    (el.tagName === 'INPUT' &&
+      !['checkbox', 'radio', 'button', 'submit'].includes((el as HTMLInputElement).type)))
 
 /**
- * Undo toast (README "Shared components"): bottom-left at the page gutter,
- * auto-dismisses after 5 s. A new toast replaces the current one.
+ * The toast (UNDO.md, option 1b): bottom-left at the page gutter. Deletes
+ * stack into one toast ("N items deleted", Undo all); a progress bar drains
+ * over its time and pauses while hovered. ⌘Z / Ctrl+Z undoes outside text
+ * fields. State lives in lib/toast.ts.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<Toast | null>(null)
-  const timer = useRef<number | undefined>(undefined)
-  const nextId = useRef(1)
+  const toast = useToastState()
 
-  const show = useCallback<ShowToast>((message, undo) => {
-    window.clearTimeout(timer.current)
-    setToast({ id: nextId.current++, message, undo })
-    timer.current = window.setTimeout(() => setToast(null), 5000)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'z' || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return
+      if (!canUndo() || inTextField(document.activeElement)) return
+      e.preventDefault()
+      runUndo()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  useEffect(() => () => window.clearTimeout(timer.current), [])
+  let message: ReactNode = null
+  let undoLabel: string | null = null
+  if (toast?.kind === 'info') {
+    message = <span className="toast-msg">{toast.message}</span>
+    if (toast.undo) undoLabel = 'Undo'
+  } else if (toast?.kind === 'delete') {
+    const n = toast.items.length
+    message =
+      n === 1 ? (
+        <span className="toast-msg">“{toast.items[0].title || 'Untitled'}” deleted</span>
+      ) : (
+        <span className="toast-msg">
+          {n} items deleted
+          <span className="toast-list">
+            {toast.items.map((i) => i.title || 'Untitled').join(', ')}
+          </span>
+        </span>
+      )
+    undoLabel = n === 1 ? 'Undo' : 'Undo all'
+  }
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
   return (
-    <ToastContext.Provider value={show}>
+    <>
       {children}
       {toast && (
-        <div className="toast" role="status" key={toast.id}>
-          <span>{toast.message}</span>
-          {toast.undo && (
-            <button
-              className="btn btn-ghost"
-              onClick={() => {
-                window.clearTimeout(timer.current)
-                setToast(null)
-                toast.undo?.()
-              }}
-            >
-              Undo
-            </button>
-          )}
+        <div
+          className={`toast${toast.paused ? ' is-paused' : ''}`}
+          role="status"
+          key={toast.id}
+          onMouseEnter={pauseToast}
+          onMouseLeave={resumeToast}
+        >
+          <div className="toast-row">
+            {message}
+            {toast.paused && <span className="toast-paused">Paused</span>}
+            {undoLabel && (
+              <button className="btn btn-ghost toast-undo" onClick={() => runUndo()}>
+                {undoLabel}
+                <kbd className="toast-kbd">{isMac ? '⌘Z' : 'Ctrl+Z'}</kbd>
+              </button>
+            )}
+          </div>
+          <span
+            className="toast-bar"
+            aria-hidden
+            style={{ animationDuration: `${toast.duration}ms` }}
+          />
         </div>
       )}
-    </ToastContext.Provider>
+    </>
   )
 }

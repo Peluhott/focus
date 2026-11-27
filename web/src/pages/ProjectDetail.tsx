@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { ArrowLeftIcon, CalendarBlankIcon, TrashIcon } from '@phosphor-icons/react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog, { type ConfirmRequest } from '../components/ConfirmDialog'
-import InlineInput from '../components/InlineInput'
+import AutoGrowTextarea from '../components/AutoGrowTextarea'
 import NotesField from '../components/NotesField'
 import ProjectFiles from '../components/ProjectFiles'
 import SortableList from '../components/SortableList'
@@ -60,7 +60,7 @@ export default function ProjectDetail() {
   return (
     <section data-screen-label="Project detail" className="project-detail">
       <BackLink />
-      <InlineInput
+      <AutoGrowTextarea
         key={project.id}
         value={project.title}
         placeholder="Untitled project"
@@ -175,14 +175,11 @@ export default function ProjectDetail() {
       <div style={{ marginTop: 'var(--space-8)' }}>
         <button
           className="btn btn-ghost muted"
-          onClick={() =>
-            setConfirm({
-              title: 'Delete this project?',
-              body: `“${project.title || 'Untitled project'}” and its tasks and files will be deleted.`,
-              action: 'Delete project',
-              run: () => remove.mutate(id, { onSuccess: () => navigate('/projects') }),
-            })
-          }
+          onClick={() => {
+            // Delete with Undo (UNDO.md); Undo brings it back on the Projects list.
+            remove({ id, title: project.title || 'Untitled project' })
+            navigate('/projects')
+          }}
         >
           <TrashIcon size={16} aria-hidden />
           Delete project
@@ -212,7 +209,7 @@ function TaskRow({ task, handle }: { task: Task; handle?: ReactNode }) {
 
   return (
     <div className={isComplete ? 'task-row is-complete' : undefined}>
-      <div className="row-main">
+      <div className="row-main task-main">
         {handle}
         <input
           type="checkbox"
@@ -227,7 +224,7 @@ function TaskRow({ task, handle }: { task: Task; handle?: ReactNode }) {
         {isComplete ? (
           <span className="task-title is-done">{task.title}</span>
         ) : (
-          <InlineInput
+          <AutoGrowTextarea
             value={task.title}
             aria-label="Task"
             className="task-title"
@@ -277,7 +274,7 @@ function TaskRow({ task, handle }: { task: Task; handle?: ReactNode }) {
                 Clear date
               </button>
             )}
-            <button className="btn btn-ghost push-right muted" onClick={() => remove.mutate({ id: task.id })}>
+            <button className="btn btn-ghost push-right muted" onClick={() => remove(task)}>
               <TrashIcon size={16} aria-hidden />
               Delete
             </button>

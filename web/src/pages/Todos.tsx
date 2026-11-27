@@ -1,9 +1,10 @@
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ArrowClockwiseIcon,
   CalendarBlankIcon,
+  CheckCircleIcon,
   CheckIcon,
   DotsThreeIcon,
   FootprintsIcon,
@@ -14,7 +15,7 @@ import {
   WarningIcon,
 } from '@phosphor-icons/react'
 import HintCard from '../components/HintCard'
-import InlineInput from '../components/InlineInput'
+import AutoGrowTextarea from '../components/AutoGrowTextarea'
 import NotesField from '../components/NotesField'
 import SortableList from '../components/SortableList'
 import { completionToast, milestoneSentence } from '../lib/climb'
@@ -22,7 +23,7 @@ import { isOverdue, shortDate, todayISO } from '../lib/dates'
 import { activeOf, useGoals } from '../lib/goals'
 import { useAiOn } from '../lib/settings'
 import { isTemp, tempId } from '../lib/optimistic'
-import { statsKey, useCompletionStats, type CompletionStats } from '../lib/stats'
+import { bumpDoneToday, statsKey, useCompletionStats, useDoneTodayCount, type CompletionStats } from '../lib/stats'
 import { useToast } from '../lib/toast'
 import {
   useAddTodo,
@@ -36,13 +37,11 @@ import {
   useMoveTodo,
   useRecheckTodo,
   useReopenTodo,
-  useRestoreTodo,
   goesOffTrack,
-  todosKey,
   useTodos,
   useUpdateTodo,
 } from '../lib/todos'
-import type { LinkTarget, Placement, Todo } from '../lib/types'
+import type { LinkTarget, Todo } from '../lib/types'
 
 /** To-dos (README §3): one list, in the order you set. */
 export default function Todos() {
@@ -52,9 +51,14 @@ export default function Todos() {
   const aiOn = useAiOn()
   // Loaded here too, so completion toasts can tell when you reach a camp.
   useCompletionStats()
-  useFocusTarget(!!todos)
   const [draft, setDraft] = useState('')
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
+  const addRef = useRef<HTMLInputElement>(null)
+  useFocusTarget(
+    !!todos,
+    (id) => setExpanded((s) => ({ ...s, [id]: true })),
+    () => addRef.current?.focus()
+  )
   // Open "Help me start" cards (closing one discards it).
   const [hints, setHints] = useState<Record<number, boolean>>({})
 
@@ -102,7 +106,9 @@ export default function Todos() {
     <section data-screen-label="To-dos">
       <h1 className="page-title centered">To-dos</h1>
       <p className="page-subtitle centered">One list, in the order you set.</p>
+      <DoneToday />
       <input
+        ref={addRef}
         className="input quick-add"
         placeholder="Add a to-do and press Enter"
         aria-label="Add a to-do"
@@ -133,6 +139,30 @@ export default function Todos() {
   )
 }
 
+/** "N done today" (TODO-COMPLETE.md): shows once there's one, bumps on each change. */
+function DoneToday() {
+  const { data: count = 0 } = useDoneTodayCount()
+  const [bump, setBump] = useState(false)
+  const last = useRef(count)
+  useEffect(() => {
+    if (count === last.current) return
+    last.current = count
+    setBump(true)
+    const timer = window.setTimeout(() => setBump(false), 550)
+    return () => window.clearTimeout(timer)
+  }, [count])
+  if (count <= 0) return null
+  return (
+    <p className="done-today" role="status">
+      <CheckCircleIcon size={18} aria-hidden className="done-today-icon" />
+      <span className={`done-today-count${bump ? ' is-bump' : ''}`}>{count}</span>
+      done today
+    </p>
+  )
+}
+
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 /**
  * Row color (spec "How it's shown", multi-goal spec): red for unaligned;
  * light green when it serves 2+ goals but not all; green for every active
@@ -151,15 +181,25 @@ function rowTint(t: Todo, aiOn: boolean) {
 const MAX_CHIPS = 3
 
 /**
- * Coming from the Calendar: once the list has loaded, scroll to the to-do it
- * opened and flash that row.
+ * Coming from the Calendar or search: once the list has loaded, scroll to
+ * the to-do it opened and flash that row (search also expands it). Search's
+ * "New to-do" focuses the add field.
  */
-function useFocusTarget(loaded: boolean) {
+function useFocusTarget(loaded: boolean, expand: (id: number) => void, focusAdd: () => void) {
   const location = useLocation()
   const navigate = useNavigate()
-  const target = (location.state as { focusTodo?: number } | null)?.focusTodo
+  const state = location.state as { focusTodo?: number; expand?: boolean; focusAdd?: boolean } | null
+  const target = state?.focusTodo
+  const wantsExpand = !!state?.expand
+  const wantsAdd = !!state?.focusAdd
+  useEffect(() => {
+    if (!wantsAdd) return
+    focusAdd()
+    navigate('.', { replace: true, state: null })
+  }, [wantsAdd, navigate])
   useEffect(() => {
     if (!loaded || target === undefined) return
+    if (wantsExpand) expand(target)
     const el = document.getElementById(`todo-${target}`)
     if (el) {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -201,8 +241,27 @@ function TodoRow({
   const undoCompletion = useUndoCompletion()
   // A recurring check-off shows checked for 1 s, then clears itself.
   const [flash, setFlash] = useState(false)
+  // Completing (TODO-COMPLETE.md): struck, then folding away, then removed.
+  const [phase, setPhase] = useState<'struck' | 'fold' | null>(null)
+  // The "+1" over the checkbox; a new key replays it.
+  const [pop, setPop] = useState(0)
+  const timers = useRef<number[]>([])
+  // The completion still to send if the row unmounts mid-animation.
+  const pendingFinish = useRef<(() => void) | null>(null)
+  useEffect(
+    () => () => {
+      timers.current.forEach((t) => window.clearTimeout(t))
+      pendingFinish.current?.()
+    },
+    []
+  )
+  const later = (fn: () => void, ms: number) => timers.current.push(window.setTimeout(fn, ms))
+  const showPlusOne = () => {
+    if (reducedMotion()) return
+    setPop((n) => n + 1)
+    later(() => setPop(0), 950)
+  }
   const remove = useDeleteTodo()
-  const restore = useRestoreTodo()
   const qc = useQueryClient()
   const toast = useToast()
   const saved = !isTemp(todo.id)
@@ -214,32 +273,19 @@ function TodoRow({
   const recurring = todo.recurring
   const today = doneToday(todo, todayISO())
 
-  /** Delete now, with Undo putting it back between the same neighbours. */
-  function onDelete() {
-    const list = qc.getQueryData<Todo[]>(todosKey) ?? []
-    const at = list.findIndex((t) => t.id === todo.id)
-    const below = list[at + 1]
-    const above = list[at - 1]
-    const placement: Placement | null = below
-      ? { before_id: below.id }
-      : above
-        ? { after_id: above.id }
-        : null
-    remove.mutate({ id: todo.id })
-    toast('To-do deleted', () =>
-      restore.mutate({ todo, index: at, tempId: tempId(), placement })
-    )
-  }
+  /** Delete now; the toast's Undo puts it back where it was (UNDO.md). */
+  const onDelete = () => remove(todo)
 
   // A red to-do's checkbox moves it to the off-track backlog instead.
   const offTrack = goesOffTrack(todo, aiOn)
 
   function onComplete() {
-    if (flash) return // ignore clicks while the 1 s check shows
+    if (flash || phase) return // ignore clicks while the check or the fold-away shows
     // With the AI on, the completion counts toward the climb; say so when it
     // reaches a camp or tops a level.
     const before = aiOn ? qc.getQueryData<CompletionStats>(statsKey)?.total : undefined
     if (recurring && !offTrack) {
+      showPlusOne()
       onLogRecurring(before)
       return
     }
@@ -250,8 +296,27 @@ function TodoRow({
       : before === undefined
         ? 'To-do completed'
         : completionToast(before, before + 1)
-    complete.mutate({ todo })
-    toast(message, () => reopen.mutate({ todo, index }))
+    const finish = () => {
+      pendingFinish.current = null
+      complete.mutate({ todo })
+      toast(message, () => reopen.mutate({ todo, index }))
+    }
+    if (offTrack) {
+      finish()
+      return
+    }
+    // +1 rises, the title is struck, the row folds at 1 s and leaves at
+    // 1.35 s; then the toast. "Done today" goes up on the tick.
+    bumpDoneToday(qc, 1)
+    pendingFinish.current = finish
+    setPhase('struck')
+    if (reducedMotion()) {
+      later(finish, 600)
+      return
+    }
+    showPlusOne()
+    later(() => setPhase('fold'), 1000)
+    later(finish, 1350)
   }
 
   /** Recurring: log one completion; the row stays where it is. */
@@ -284,31 +349,45 @@ function TodoRow({
   const blurred = status === 'unaligned' && !expanded && !linking
 
   return (
-    <>
+    <div className={`todo-fold${phase === 'fold' ? ' is-folding' : ''}`}>
+      <div className="todo-fold-inner">
       <div className={`row-main todo-main${blurred ? ' is-blurred' : ''}`}>
         {handle}
-        <input
-          type="checkbox"
-          className="check check-18"
-          aria-label={offTrack ? 'Move to off-track' : 'Complete'}
-          title={offTrack ? 'Move to off-track.' : undefined}
-          checked={flash}
-          disabled={!saved}
-          onChange={onComplete}
-        />
+        <span className="check-wrap">
+          <input
+            type="checkbox"
+            className="check check-18"
+            aria-label={offTrack ? 'Move to off-track' : 'Complete'}
+            title={offTrack ? 'Move to off-track.' : undefined}
+            checked={flash || phase !== null}
+            disabled={!saved}
+            onChange={onComplete}
+          />
+          {pop > 0 && (
+            <span className="fx-plus" key={pop} aria-hidden>
+              +1
+            </span>
+          )}
+        </span>
         {recurring && (
           <RepeatIcon className="repeat-icon" size={16} aria-label="Repeats">
             <title>Repeats</title>
           </RepeatIcon>
         )}
-        <InlineInput
-          value={todo.title}
-          aria-label="To-do"
-          className="todo-title"
-          allowEmpty={false}
-          readOnly={!saved}
-          onCommit={(title) => update.mutate({ id: todo.id, patch: { title: title.trim() } })}
-        />
+        {phase ? (
+          <span className="todo-title is-struck">
+            <span className="struck-text">{todo.title}</span>
+          </span>
+        ) : (
+          <AutoGrowTextarea
+            value={todo.title}
+            aria-label="To-do"
+            className="todo-title"
+            allowEmpty={false}
+            readOnly={!saved}
+            onCommit={(title) => update.mutate({ id: todo.id, patch: { title: title.trim() } })}
+          />
+        )}
         {recurring && (
           <span className="tally" aria-label={`Done ${todo.completion_count} times${today ? ', done today' : ''}`}>
             <span aria-hidden>Done {todo.completion_count}×</span>
@@ -470,7 +549,8 @@ function TodoRow({
           )}
         </div>
       )}
-    </>
+      </div>
+    </div>
   )
 }
 

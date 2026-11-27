@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, get, patch, post } from './api'
 import { rootClient } from './queryClient'
-import { clearWorkspaceClients, type Workspace } from './workspace'
+import type { WorkspaceInfo } from './types'
+import { clearWorkspaceClients } from './workspace'
+import { workspacesKey } from './workspaces'
+import { flushPendingDeletes } from './pendingDeletes'
 
 export type User = {
   id: number
@@ -10,9 +13,11 @@ export type User = {
   focus_limit: 3 | 5 | 7
   /** Default length of the nav-bar timer, 1–180. */
   timer_minutes: number
-  /** The workspace the app opens in next time. */
-  last_workspace: Workspace
+  /** The workspace the app opens in next time (null: the first). */
+  last_workspace_id: number | null
 }
+
+type MeResponse = { user: User; workspaces: WorkspaceInfo[] }
 
 export const meKey = ['me'] as const
 
@@ -22,7 +27,9 @@ export function useMe() {
     queryKey: meKey,
     queryFn: async () => {
       try {
-        return (await get<{ user: User }>('/auth/me')).user
+        const me = await get<MeResponse>('/auth/me')
+        rootClient.setQueryData(workspacesKey, me.workspaces)
+        return me.user
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) return null
         throw e
@@ -33,17 +40,18 @@ export function useMe() {
   })
 }
 
-/** Signed in: the root client knows, and both workspaces start clean. */
-function signedIn(user: User) {
+/** Signed in: the root client knows, and every workspace starts clean. */
+function signedIn({ user, workspaces }: MeResponse) {
   clearWorkspaceClients()
+  rootClient.setQueryData(workspacesKey, workspaces)
   rootClient.setQueryData(meKey, user)
 }
 
 export function useLogin() {
   return useMutation({
     mutationFn: (input: { email: string; password: string }) =>
-      post<{ user: User }>('/auth/login', input),
-    onSuccess: ({ user }) => signedIn(user),
+      post<MeResponse>('/auth/login', input),
+    onSuccess: signedIn,
   })
 }
 
@@ -51,14 +59,18 @@ export function useLogin() {
 export function useSignup() {
   return useMutation({
     mutationFn: (input: { name: string; email: string; password: string }) =>
-      post<{ user: User }>('/auth/signup', input),
-    onSuccess: ({ user }) => signedIn(user),
+      post<MeResponse>('/auth/signup', input),
+    onSuccess: signedIn,
   })
 }
 
 export function useLogout() {
   return useMutation({
-    mutationFn: () => post('/auth/logout'),
+    mutationFn: async () => {
+      // Deletes waiting on their Undo go through before the session ends.
+      await flushPendingDeletes()
+      return post('/auth/logout')
+    },
     onSettled: () => {
       clearWorkspaceClients()
       rootClient.clear()

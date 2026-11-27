@@ -1,20 +1,19 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, ClockIcon, CloudArrowUpIcon, MagnifyingGlassIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react'
 import SortableList from '../components/SortableList'
 import { shortDay, todayISO } from '../lib/dates'
-import { isTemp, tempId } from '../lib/optimistic'
+import { isTemp } from '../lib/optimistic'
 import {
   notesKey,
   useCreateNote,
   useDeleteNote,
   useMoveNote,
   useNotes,
-  useRestoreNote,
   useUpdateNote,
 } from '../lib/notes'
-import { useToast } from '../lib/toast'
-import type { Note, Placement } from '../lib/types'
+import type { Note } from '../lib/types'
 
 const localDay = (iso: string) => {
   const d = new Date(iso)
@@ -32,11 +31,20 @@ export default function Notes() {
   const create = useCreateNote()
   const move = useMoveNote()
   const remove = useDeleteNote()
-  const restore = useRestoreNote()
-  const toast = useToast()
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [focusTitle, setFocusTitle] = useState<number | null>(null)
+  // From search: select that note (and focus its title for "New note").
+  const location = useLocation()
+  const navigate = useNavigate()
+  const fromSearch = location.state as { selectNote?: number; focusTitle?: boolean } | null
+  useEffect(() => {
+    if (fromSearch?.selectNote === undefined) return
+    setQuery('')
+    setSelectedId(fromSearch.selectNote)
+    if (fromSearch.focusTitle) setFocusTitle(fromSearch.selectNote)
+    navigate('.', { replace: true, state: null })
+  }, [fromSearch?.selectNote])
 
   const q = query.trim().toLowerCase()
   const visible = (notes ?? []).filter(
@@ -55,21 +63,11 @@ export default function Notes() {
     })
   }
 
+  /** Delete now; Undo puts it back where it was and selects it again (UNDO.md). */
   function onDelete(note: Note) {
-    const list = notes ?? []
-    const at = list.findIndex((n) => n.id === note.id)
-    const below = list[at + 1]
-    const above = list[at - 1]
-    const placement: Placement | null = below ? { before_id: below.id } : above ? { after_id: above.id } : null
-    remove.mutate({ id: note.id })
+    remove(note, () => setSelectedId(note.id))
     // Clear the selection (-1 = "nothing", not "the first one").
     setSelectedId(-1)
-    toast('Note deleted', () => {
-      restore
-        .mutateAsync({ note, index: at, tempId: tempId(), placement })
-        .then((saved) => setSelectedId(saved.id))
-        .catch(() => {})
-    })
   }
 
   const row = (note: Note, handle: ReactNode) => (

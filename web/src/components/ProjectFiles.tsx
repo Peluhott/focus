@@ -200,15 +200,6 @@ export default function ProjectFiles({ projectId }: { projectId: number }) {
     rename.mutate({ id: file.id, name })
   }
 
-  function askDelete(file: ProjectFile) {
-    setConfirm({
-      title: 'Delete this file?',
-      body: `“${file.name}” will be removed from this project and deleted from storage.`,
-      action: 'Delete file',
-      run: () => remove.mutate({ id: file.id }, { onSuccess: () => toast('File deleted') }),
-    })
-  }
-
   const count = files.length
 
   return (
@@ -353,7 +344,7 @@ export default function ProjectFiles({ projectId }: { projectId: number }) {
               <IconButton label="Rename" onClick={() => setRenaming(file.id)}>
                 <PencilSimpleIcon size={18} aria-hidden />
               </IconButton>
-              <IconButton label="Delete" onClick={() => askDelete(file)}>
+              <IconButton label="Delete" onClick={() => remove(file)}>
                 <TrashIcon size={18} aria-hidden />
               </IconButton>
             </div>

@@ -1,14 +1,32 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckIcon, DownloadSimpleIcon, SignOutIcon, WarningCircleIcon, WarningIcon } from '@phosphor-icons/react'
+import {
+  CheckIcon,
+  DownloadSimpleIcon,
+  PlusIcon,
+  SignOutIcon,
+  TrashIcon,
+  WarningCircleIcon,
+  WarningIcon,
+} from '@phosphor-icons/react'
 import ApiKeys from '../components/ApiKeys'
 import ConfirmDialog, { type ConfirmRequest } from '../components/ConfirmDialog'
+import InlineInput from '../components/InlineInput'
+import SortableList from '../components/SortableList'
 import { useLogout, useMe, useUpdateAccount, type AccountPatch, type User } from '../lib/auth'
 import { errorMessage } from '../lib/optimistic'
 import { useSetAiEnabled, useSetTimerMinutes, useSettings } from '../lib/settings'
-import { useWorkspace, WORKSPACE_LABEL } from '../lib/workspace'
+import { useToast } from '../lib/toast'
+import { useWorkspace } from '../lib/workspace'
+import {
+  useCreateWorkspace,
+  useCurrentWorkspaceInfo,
+  useMoveWorkspace,
+  useRenameWorkspace,
+  useWorkspaces,
+} from '../lib/workspaces'
 
-/** Settings (SETTINGS.md): Account, AI alignment check, Timer, API keys, Data. */
+/** Settings (SETTINGS.md): Account, Workspaces, AI alignment check, Timer, API keys, Data. */
 export default function Settings() {
   const { data: user } = useMe()
   return (
@@ -16,12 +34,13 @@ export default function Settings() {
       <h1 className="page-title">Settings</h1>
       <div className="settings">
         {user && <AccountSection user={user} />}
+        <WorkspacesSection />
         <AiSection />
         <TimerSection />
         <ApiKeys />
         <section>
           <h3>Data</h3>
-          <p className="settings-copy">Download goals, projects, to-dos and notes from Personal and Work as JSON.</p>
+          <p className="settings-copy">Download goals, projects, to-dos and notes from every workspace as JSON.</p>
           {/* The API sends it as an attachment; the session cookie rides along. */}
           <a className="btn btn-secondary" href="/api/v1/export" download>
             <DownloadSimpleIcon size={16} aria-hidden />
@@ -180,25 +199,123 @@ function AccountSection({ user }: { user: User }) {
 }
 
 /**
- * AI per workspace (WORK-MODE.md). In Work, On first shows the warning;
- * the setting only changes on "I understand", every time.
+ * Workspaces: any number, Personal and Work to start. Rename in place, drag
+ * to reorder, add at the bottom. Deleting asks first (it takes everything
+ * in the workspace, with no Undo); the last one can't be deleted.
+ */
+function WorkspacesSection() {
+  const { data: list = [] } = useWorkspaces()
+  const { workspace, remove } = useWorkspace()
+  const create = useCreateWorkspace()
+  const rename = useRenameWorkspace()
+  const move = useMoveWorkspace()
+  const toast = useToast()
+  const [name, setName] = useState('')
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
+  const only = list.length <= 1
+
+  function add(e: FormEvent) {
+    e.preventDefault()
+    const value = name.trim()
+    if (!value) return
+    create.mutate(value, {
+      onSuccess: () => setName(''),
+      onError: (error) => toast(errorMessage(error)),
+    })
+  }
+
+  function askDelete(id: number, label: string) {
+    setConfirm({
+      title: `Delete ${label}?`,
+      body: `Its goals, projects, to-dos, notes and files are deleted for good. This can't be undone.`,
+      action: `Delete ${label}`,
+      run: () => {
+        remove(id).catch((error) => toast(errorMessage(error)))
+      },
+    })
+  }
+
+  return (
+    <section>
+      <h3>Workspaces</h3>
+      <p className="settings-copy">
+        Each workspace has its own goals, projects, to-dos, notes and AI setting. Nothing is shared between them.
+      </p>
+      <SortableList
+        items={list}
+        noun="workspace"
+        className="ws-list"
+        itemClassName={() => 'ws-row'}
+        onMove={(id, _placement, order) => move.mutate({ id, ids: order.map((w) => w.id) })}
+        renderItem={(ws, handle) => (
+          <>
+            {handle}
+            <InlineInput
+              value={ws.name}
+              aria-label="Workspace name"
+              className="ws-name"
+              maxLength={40}
+              allowEmpty={false}
+              onCommit={(value) =>
+                rename.mutate(
+                  { id: ws.id, name: value.trim() },
+                  { onError: (error) => toast(errorMessage(error)) }
+                )
+              }
+            />
+            {ws.id === workspace && <span className="tag tag-neutral">Open</span>}
+            <button
+              className="btn btn-ghost btn-icon muted"
+              aria-label={`Delete ${ws.name}`}
+              title={only ? 'You need at least one workspace.' : `Delete ${ws.name}`}
+              disabled={only}
+              onClick={() => askDelete(ws.id, ws.name)}
+            >
+              <TrashIcon size={16} aria-hidden />
+            </button>
+          </>
+        )}
+      />
+      <form className="ws-add" onSubmit={add}>
+        <input
+          className="input"
+          placeholder="New workspace"
+          aria-label="New workspace name"
+          maxLength={40}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <button className="btn btn-secondary" type="submit" disabled={!name.trim() || create.isPending}>
+          <PlusIcon size={16} aria-hidden />
+          Add workspace
+        </button>
+      </form>
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
+    </section>
+  )
+}
+
+/**
+ * AI per workspace (WORK-MODE.md). Where the workspace asks for it (every
+ * one but the original Personal), On first shows the warning; the setting
+ * only changes on "I understand", every time.
  */
 function AiSection() {
   const { data: settings } = useSettings()
   const setAi = useSetAiEnabled()
-  const { workspace } = useWorkspace()
+  const info = useCurrentWorkspaceInfo()
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
   const available = !!settings?.ai_available
   const on = available && !!settings?.ai_enabled
-  const work = workspace === 'work'
+  const warn = !!settings?.ai_ack_required
+  const name = info?.name ?? settings?.workspace.name ?? 'this workspace'
 
   function choose(value: boolean) {
     if (value === on) return
-    if (value && work) {
+    if (value && warn) {
       setConfirm({
-        title: 'Turn on AI for Work?',
-        body:
-          "Your work to-dos, goals, projects and sub-goals will be sent to an AI service to check alignment and suggest first steps. Don't enter confidential, proprietary, client or personal data, or anything your employer doesn't allow in outside tools. You're responsible for what you add; Focus isn't responsible for work information you choose to share.",
+        title: `Turn on AI for ${name}?`,
+        body: `Your to-dos, goals, projects and sub-goals in ${name} will be sent to an AI service to check alignment and suggest first steps. Don't enter confidential, proprietary, client or personal data, or anything your employer doesn't allow in outside tools. You're responsible for what you add; Focus isn't responsible for work information you choose to share.`,
         action: 'I understand, turn on AI',
         run: () => setAi.mutate({ enabled: true, acknowledged: true }),
       })
@@ -211,22 +328,22 @@ function AiSection() {
     <section>
       <h3 className="settings-h3-tag">
         AI alignment check
-        <span className="tag tag-neutral">{WORKSPACE_LABEL[workspace]}</span>
+        <span className="tag tag-neutral">{name}</span>
       </h3>
       <p className="settings-copy">
         Compares each open to-do with your active goals, and blurs the ones that don't serve any of them. When it's
         off, nothing is checked and no chips or highlights show.
       </p>
-      {work && (
+      {warn && (
         <p className="settings-copy">
-          Personal and Work each have their own setting. AI is off by default in Work, so nothing from this workspace
-          leaves Focus unless you turn it on.
+          Each workspace has its own setting. AI is off by default in new workspaces, so nothing from {name} leaves
+          Focus unless you turn it on.
         </p>
       )}
-      {work && on && (
+      {warn && on && (
         <p className="settings-warning" role="note">
           <WarningIcon size={18} aria-hidden />
-          AI is on for Work. Keep confidential, client and other sensitive work information out of Focus.
+          AI is on for {name}. Keep confidential, client and other sensitive work information out of Focus.
         </p>
       )}
       <div className="seg" role="radiogroup" aria-label="AI alignment check">

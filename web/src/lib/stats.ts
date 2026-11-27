@@ -43,3 +43,32 @@ export function bumpStats(qc: QueryClient, goalIds: number[], delta: 1 | -1) {
 /** The goal ids a completion of this to-do counts toward. */
 export const goalIdsOf = (todo: { matches?: { id: number }[] }) =>
   (todo.matches ?? []).map((m) => m.id)
+
+/**
+ * "N done today" on the To-dos page (TODO-COMPLETE.md): check-offs since
+ * local midnight, normal and recurring, counted or not. Keyed by the day,
+ * so it starts over after midnight.
+ */
+export const doneTodayKey = ['stats', 'today'] as const
+
+const localMidnight = () => {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+export function useDoneTodayCount() {
+  const since = localMidnight()
+  return useQuery({
+    queryKey: [...doneTodayKey, since.getTime()],
+    queryFn: () => get<{ count: number }>(`/stats/today?since=${encodeURIComponent(since.toISOString())}`),
+    select: (d) => d.count,
+  })
+}
+
+/** Optimistic ±1 (the tick, or its Undo). */
+export function bumpDoneToday(qc: QueryClient, delta: 1 | -1) {
+  qc.setQueriesData<{ count: number }>({ queryKey: doneTodayKey }, (old) =>
+    old ? { count: Math.max(0, old.count + delta) } : old
+  )
+}

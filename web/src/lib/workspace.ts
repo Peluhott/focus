@@ -2,25 +2,31 @@ import { createContext, useContext } from 'react'
 import { QueryClient } from '@tanstack/react-query'
 
 /**
- * Personal / Work (WORK-MODE.md). Each workspace has its own goals,
- * projects, to-dos, notes and AI setting. The API picks it from the
- * X-Focus-Workspace header (api.ts reads `currentWorkspace()`).
+ * Workspaces (WORK-MODE.md, now any number: Personal and Work to start).
+ * Each has its own goals, projects, to-dos, notes and AI setting. The API
+ * picks it from the X-Focus-Workspace header, which carries the id
+ * (api.ts reads `currentWorkspace()`). The list itself is in workspaces.ts.
  *
  * Every workspace gets its own QueryClient, so every query key is per
- * workspace without spelling it out, and both caches stay warm across a
- * switch. The root client (auth) lives in queryClient.ts.
+ * workspace without spelling it out, and the caches stay warm across a
+ * switch. The root client (auth, the workspace list) lives in queryClient.ts.
  */
-export type Workspace = 'personal' | 'work'
-export const WORKSPACES: Workspace[] = ['personal', 'work']
-export const WORKSPACE_LABEL: Record<Workspace, string> = { personal: 'Personal', work: 'Work' }
+export type Workspace = number
 
-let current: Workspace = 'personal'
+/** null before sign-in: the API then picks the default workspace. */
+let current: Workspace | null = null
 export const currentWorkspace = () => current
 export const setCurrentWorkspace = (ws: Workspace) => {
   current = ws
 }
 
 const clients = new Map<Workspace, QueryClient>()
+
+/** A deleted workspace: forget its cache. */
+export function dropWorkspaceClient(ws: Workspace) {
+  clients.get(ws)?.clear()
+  clients.delete(ws)
+}
 
 export function workspaceClient(ws: Workspace): QueryClient {
   let client = clients.get(ws)
@@ -31,7 +37,7 @@ export function workspaceClient(ws: Workspace): QueryClient {
   return client
 }
 
-/** Sign-out: forget everything cached for both workspaces. */
+/** Sign-out: forget everything cached for every workspace. */
 export function clearWorkspaceClients() {
   for (const client of clients.values()) client.clear()
 }
@@ -55,13 +61,16 @@ export function whenIdle(client: QueryClient, timeoutMs = 8000): Promise<void> {
 export type WorkspaceState = {
   workspace: Workspace
   switching: boolean
-  switchTo: (ws: Workspace) => void
+  switchTo: (ws: Workspace) => Promise<void>
+  /** Delete a workspace and everything in it (switches away first if it's open). */
+  remove: (ws: Workspace) => Promise<void>
 }
 
 export const WorkspaceContext = createContext<WorkspaceState>({
-  workspace: 'personal',
+  workspace: 0,
   switching: false,
-  switchTo: () => {},
+  switchTo: async () => {},
+  remove: async () => {},
 })
 
 export const useWorkspace = () => useContext(WorkspaceContext)

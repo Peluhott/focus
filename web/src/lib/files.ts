@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, del, get, patch, post } from './api'
 import { useOptimisticMutation } from './optimistic'
+import { deferDelete, isHidden, useHiddenVersion } from './pendingDeletes'
 import type { FilesResponse, ProjectFile, UploadSignature } from './types'
 
 /** Project files (PROJECT-FILES.md). Uploads go straight to Cloudinary. */
@@ -8,9 +10,15 @@ import type { FilesResponse, ProjectFile, UploadSignature } from './types'
 export const filesKey = (projectId: number) => ['files', projectId] as const
 
 export function useProjectFiles(projectId: number) {
+  const v = useHiddenVersion()
+  const select = useCallback(
+    (res: FilesResponse) => ({ ...res, data: res.data.filter((f) => !isHidden('file', f.id)) }),
+    [v]
+  )
   return useQuery({
     queryKey: filesKey(projectId),
     queryFn: () => get<FilesResponse>(`/projects/${projectId}/files`),
+    select,
   })
 }
 
@@ -26,13 +34,20 @@ export function useRenameFile(projectId: number) {
   })
 }
 
+/**
+ * Delete with Undo (UNDO.md). Nothing leaves Focus or Cloudinary until the
+ * toast ends, so Undo needs no storage restore.
+ */
 export function useDeleteFile(projectId: number) {
-  return useOptimisticMutation<void, { id: number }, FilesResponse>({
-    scope: `files-${projectId}`,
-    queryKey: () => filesKey(projectId),
-    mutationFn: ({ id }) => del(`/files/${id}`),
-    apply: (old, { id }) => ({ ...old, data: old.data.filter((f) => f.id !== id) }),
-  })
+  const qc = useQueryClient()
+  return (file: ProjectFile) =>
+    deferDelete(qc, {
+      kind: 'file',
+      id: file.id,
+      title: file.name,
+      lists: [filesKey(projectId)],
+      commit: () => del(`/files/${file.id}`),
+    })
 }
 
 /** Signed URLs, valid 10 minutes. Ask on click, never in advance. */

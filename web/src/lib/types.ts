@@ -42,19 +42,32 @@ export type AlignmentStatus = 'pending' | 'aligned' | 'unaligned' | 'dismissed' 
 /** A goal a to-do can be linked to by hand ("Link to…"). */
 export type LinkTarget = { id: number; title: string }
 
+/** One of the user's workspaces (GET /workspaces, auth/me). */
+export type WorkspaceInfo = {
+  id: number
+  name: string
+  position: string | null
+  ai_enabled: boolean
+  /** Turning AI on asks for the warning (every workspace but the original Personal). */
+  ai_ack_required: boolean
+}
+
 /**
  * GET /settings for the request's workspace. focus_limit, timer_minutes and
- * last_workspace are the user's (shared); ai_enabled is this workspace's.
+ * last_workspace_id are the user's (shared); ai_enabled is this workspace's.
  */
 export type Settings = {
   focus_limit: 3 | 5 | 7
   timer_minutes: number
-  last_workspace: 'personal' | 'work'
-  workspace: 'personal' | 'work'
+  last_workspace_id: number | null
+  workspace: { id: number; name: string }
   ai_enabled: boolean
   ai_available: boolean
-  /** Last time AI was turned on in Work (the acknowledgement). */
-  work_ai_ack_at: string | null
+  ai_ack_required: boolean
+  /** Last time AI was turned on here after the warning. */
+  ai_ack_at: string | null
+  /** Uploads work (project files, feedback screenshots). */
+  storage_enabled: boolean
 }
 
 /** A note (NOTES.md). Markdown body, manual order. */

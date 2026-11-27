@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, fetchAll, get, patch, post } from './api'
 import { errorMessage, reorder, useOptimisticMutation } from './optimistic'
 import { useToast } from './toast'
+import { deferDelete, useVisible } from './pendingDeletes'
 import type { Placement, Project, Task } from './types'
 
 export const projectsRootKey = ['projects'] as const
@@ -18,9 +19,11 @@ export function useProjects(status: string, goal: string) {
   if (status !== 'open') qs.set('status', status)
   if (goal !== 'all') qs.set('goal_id', goal)
   const query = qs.toString()
+  const select = useVisible<Project>('project')
   return useQuery({
     queryKey: projectsKey(status, goal),
     queryFn: () => fetchAll<Project>(`/projects${query ? `?${query}` : ''}`),
+    select,
   })
 }
 
@@ -78,26 +81,32 @@ export function useMoveProject(status: string, goal: string) {
   })
 }
 
+/** Delete with Undo (UNDO.md): its tasks and files go with it when the toast ends. */
 export function useDeleteProject() {
   const qc = useQueryClient()
-  const toast = useToast()
-  return useMutation({
-    mutationFn: (id: number) => del(`/projects/${id}`),
-    onSuccess: (_d, id) => {
-      qc.removeQueries({ queryKey: projectKey(id) })
-      qc.invalidateQueries({ queryKey: projectsRootKey })
-      qc.invalidateQueries({ queryKey: ['goals'] })
-    },
-    onError: (e) => toast(errorMessage(e)),
-  })
+  return (project: Pick<Project, 'id' | 'title'>) =>
+    deferDelete(qc, {
+      kind: 'project',
+      id: project.id,
+      title: project.title,
+      lists: [projectsRootKey],
+      commit: () => del(`/projects/${project.id}`),
+      afterCommit: () => {
+        qc.removeQueries({ queryKey: projectKey(project.id) })
+        qc.invalidateQueries({ queryKey: projectsRootKey })
+        qc.invalidateQueries({ queryKey: ['goals'] })
+      },
+    })
 }
 
 // — tasks —
 
 export function useTasks(projectId: number) {
+  const select = useVisible<Task>('task')
   return useQuery({
     queryKey: tasksKey(projectId),
     queryFn: async () => (await get<{ data: Task[] }>(`/projects/${projectId}/tasks`)).data,
+    select,
   })
 }
 
@@ -170,11 +179,16 @@ export function useMoveTask(projectId: number) {
 }
 
 export function useDeleteTask(projectId: number) {
-  return useOptimisticMutation<void, { id: number }, Task[]>({
-    scope: `tasks:${projectId}`,
-    queryKey: () => tasksKey(projectId),
-    mutationFn: ({ id }) => del(`/tasks/${id}`),
-    apply: (old, { id }) => old.filter((t) => t.id !== id),
-    alsoInvalidate: () => afterTask(projectId),
-  })
+  const qc = useQueryClient()
+  return (task: Task) =>
+    deferDelete(qc, {
+      kind: 'task',
+      id: task.id,
+      title: task.title,
+      lists: [tasksKey(projectId)],
+      commit: () => del(`/tasks/${task.id}`),
+      afterCommit: () => {
+        for (const key of afterTask(projectId)) qc.invalidateQueries({ queryKey: key })
+      },
+    })
 }

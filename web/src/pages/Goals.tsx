@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ArchiveIcon,
@@ -71,6 +72,23 @@ export default function Goals() {
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [archivedOpen, setArchivedOpen] = useState(false)
+  // From search: open the archived section if needed, then scroll to the goal.
+  const location = useLocation()
+  const navigate = useNavigate()
+  const fromSearch = location.state as { focusGoal?: number; archived?: boolean } | null
+  const focusGoal = goals ? fromSearch?.focusGoal : undefined
+  useEffect(() => {
+    if (focusGoal === undefined) return
+    if (fromSearch?.archived) setArchivedOpen(true)
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`goal-${focusGoal}`)
+      if (!el) return
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      el.classList.add('is-target')
+      window.setTimeout(() => el.classList.remove('is-target'), 2000)
+    })
+    navigate('.', { replace: true, state: null })
+  }, [focusGoal])
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   const limit = user?.focus_limit ?? 3
@@ -116,18 +134,6 @@ export default function Goals() {
         return
       }
       setStatus.mutate({ id: goal.id, action: 'restore' })
-    })
-  }
-
-  function askDelete(goal: Goal) {
-    setConfirm({
-      title: 'Delete this goal?',
-      body:
-        goal.status === 'archived'
-          ? `“${goal.title}” will be deleted permanently.`
-          : `“${goal.title}” and its sub-goals will be deleted. Linked projects stay, without a goal.`,
-      action: 'Delete goal',
-      run: () => deleteGoal.mutate({ id: goal.id }),
     })
   }
 
@@ -244,6 +250,7 @@ export default function Goals() {
         noun="goal"
         layout="grid"
         className="goal-list"
+        itemId={(g) => `goal-${g.id}`}
         itemClassName={() => 'card goal-card'}
         isLocked={(g) => isTemp(g.id)}
         onMove={(id, placement, order) => moveGoal.mutate({ id, placement, order })}
@@ -253,7 +260,7 @@ export default function Goals() {
             handle={handle}
             onComplete={() => changeStatus(goal, 'complete')}
             onArchive={() => changeStatus(goal, 'archive')}
-            onDelete={() => askDelete(goal)}
+            onDelete={() => deleteGoal(goal)}
           />
         )}
       />
@@ -272,7 +279,7 @@ export default function Goals() {
           {archivedOpen && (
             <div className="archived-list">
               {archived.map((goal) => (
-                <div key={goal.id} className="archived-row">
+                <div key={goal.id} id={`goal-${goal.id}`} className="archived-row">
                   <span className="archived-title">{goal.title}</span>
                   <button
                     className="btn btn-ghost"
@@ -283,7 +290,7 @@ export default function Goals() {
                     <ArrowCounterClockwiseIcon size={16} aria-hidden />
                     Restore
                   </button>
-                  <button className="btn btn-ghost muted" onClick={() => askDelete(goal)}>
+                  <button className="btn btn-ghost muted" onClick={() => deleteGoal(goal)}>
                     <TrashIcon size={16} aria-hidden />
                     Delete
                   </button>
@@ -466,7 +473,7 @@ function SubGoalRow({ sub, handle }: { sub: SubGoal; handle: ReactNode }) {
           className="btn btn-ghost btn-icon tiny-icon muted"
           aria-label="Remove sub-goal"
           disabled={!saved}
-          onClick={() => remove.mutate({ goalId: sub.goal_id, id: sub.id })}
+          onClick={() => remove(sub)}
         >
           <XIcon aria-hidden />
         </button>

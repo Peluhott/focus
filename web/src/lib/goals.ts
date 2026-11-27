@@ -1,5 +1,7 @@
+import { useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, fetchAll, patch, post } from './api'
+import { deferDelete, flushPendingDeletes, isHidden, useHiddenVersion } from './pendingDeletes'
 import { meKey, type User } from './auth'
 import { reorder, useOptimisticMutation } from './optimistic'
 import { projectsRootKey } from './projects'
@@ -11,7 +13,20 @@ const alsoProjects = () => [projectsRootKey]
 
 /** Every goal (active, completed, archived) with its sub-goals. */
 export function useGoals() {
-  return useQuery({ queryKey: goalsKey, queryFn: () => fetchAll<Goal>('/goals') })
+  const v = useHiddenVersion()
+  // Goals and sub-goals whose delete is waiting on its Undo stay out of view.
+  const select = useCallback(
+    (list: Goal[]) =>
+      list
+        .filter((g) => !isHidden('goal', g.id))
+        .map((g) =>
+          g.sub_goals.some((s) => isHidden('subgoal', s.id))
+            ? { ...g, sub_goals: g.sub_goals.filter((s) => !isHidden('subgoal', s.id)) }
+            : g
+        ),
+    [v]
+  )
+  return useQuery({ queryKey: goalsKey, queryFn: () => fetchAll<Goal>('/goals'), select })
 }
 
 export const activeOf = (goals: Goal[] | undefined) =>
@@ -21,7 +36,11 @@ export function useCreateGoal() {
   return useOptimisticMutation<Goal, { tempId: number; title: string }, Goal[]>({
     scope: 'goals',
     queryKey: key,
-    mutationFn: ({ title }) => post<Goal>('/goals', { title }),
+    mutationFn: async ({ title }) => {
+      // A goal deleted a moment ago still counts toward the limit until it's sent.
+      await flushPendingDeletes('goal')
+      return post<Goal>('/goals', { title })
+    },
     apply: (old, { tempId, title }) => [
       ...old,
       {
@@ -74,7 +93,10 @@ export function useSetGoalStatus() {
   return useOptimisticMutation<Goal, { id: number; action: StatusAction }, Goal[]>({
     scope: 'goals',
     queryKey: key,
-    mutationFn: ({ id, action }) => post<Goal>(`/goals/${id}/${action}`),
+    mutationFn: async ({ id, action }) => {
+      if (action === 'restore') await flushPendingDeletes('goal')
+      return post<Goal>(`/goals/${id}/${action}`)
+    },
     apply: (old, { id, action }) => {
       const goal = old.find((g) => g.id === id)
       if (!goal) return old
@@ -85,14 +107,21 @@ export function useSetGoalStatus() {
   })
 }
 
+/** Delete with Undo (UNDO.md): gone now, sent when the toast ends. */
 export function useDeleteGoal() {
-  return useOptimisticMutation<void, { id: number }, Goal[]>({
-    scope: 'goals',
-    queryKey: key,
-    mutationFn: ({ id }) => del(`/goals/${id}`),
-    apply: (old, { id }) => old.filter((g) => g.id !== id),
-    alsoInvalidate: alsoProjects,
-  })
+  const qc = useQueryClient()
+  return (goal: Goal) =>
+    deferDelete(qc, {
+      kind: 'goal',
+      id: goal.id,
+      title: goal.title,
+      lists: [goalsKey],
+      commit: () => del(`/goals/${goal.id}`),
+      afterCommit: () => {
+        qc.invalidateQueries({ queryKey: projectsRootKey })
+        qc.invalidateQueries({ queryKey: ['todos'] })
+      },
+    })
 }
 
 // — sub-goals: edited inside the goals cache —
@@ -143,12 +172,42 @@ export function useMoveSubGoal() {
 }
 
 export function useDeleteSubGoal() {
-  return useOptimisticMutation<void, { goalId: number; id: number }, Goal[]>({
-    scope: 'goals',
-    queryKey: key,
-    mutationFn: ({ id }) => del(`/subgoals/${id}`),
-    apply: (old, { goalId, id }) => withSubs(old, goalId, (subs) => subs.filter((s) => s.id !== id)),
-  })
+  const qc = useQueryClient()
+  const remove = (goalId: number, id: number) => {
+    let index = -1
+    let sub: SubGoal | undefined
+    qc.setQueryData<Goal[]>(goalsKey, (old) =>
+      old
+        ? withSubs(old, goalId, (subs) => {
+            index = subs.findIndex((s) => s.id === id)
+            sub = subs[index]
+            return subs.filter((s) => s.id !== id)
+          })
+        : old
+    )
+    return () => {
+      if (!sub || index < 0) return
+      const back = sub
+      qc.setQueryData<Goal[]>(goalsKey, (old) =>
+        old
+          ? withSubs(old, goalId, (subs) => {
+              if (subs.some((s) => s.id === id)) return subs
+              const next = [...subs]
+              next.splice(Math.min(index, next.length), 0, back)
+              return next
+            })
+          : old
+      )
+    }
+  }
+  return (sub: SubGoal) =>
+    deferDelete(qc, {
+      kind: 'subgoal',
+      id: sub.id,
+      title: sub.title,
+      remove: () => remove(sub.goal_id, sub.id),
+      commit: () => del(`/subgoals/${sub.id}`),
+    })
 }
 
 // — focus limit (stored on the user) —

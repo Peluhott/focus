@@ -2,9 +2,10 @@ import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, fetchAll, patch, post } from './api'
 import { isTemp, useOptimisticMutation } from './optimistic'
+import { deferDelete, useVisible } from './pendingDeletes'
 import { useAiOn } from './settings'
 import { offTrackKey } from './backlog'
-import { bumpStats, goalIdsOf, statsKey } from './stats'
+import { bumpDoneToday, bumpStats, doneTodayKey, goalIdsOf, statsKey } from './stats'
 import type { LinkTarget, Placement, Todo } from './types'
 
 export const todosKey = ['todos'] as const
@@ -12,7 +13,8 @@ const key = () => todosKey
 
 /** Open to-dos, in your order. */
 export function useTodos() {
-  return useQuery({ queryKey: todosKey, queryFn: () => fetchAll<Todo>('/todos') })
+  const select = useVisible<Todo>('todo')
+  return useQuery({ queryKey: todosKey, queryFn: () => fetchAll<Todo>('/todos'), select })
 }
 
 export function useAddTodo() {
@@ -183,7 +185,8 @@ export function useCompleteTodo() {
     alsoApply: (qc, { todo }) => {
       if (aiOn && !goesOffTrack(todo, aiOn)) bumpStats(qc, goalIdsOf(todo), 1)
     },
-    alsoInvalidate: () => [statsKey, offTrackKey],
+    // "Done today" already went up on the tick (TodoRow).
+    alsoInvalidate: () => [statsKey, offTrackKey, doneTodayKey],
   })
 }
 
@@ -205,8 +208,9 @@ export function useReopenTodo() {
     },
     alsoApply: (qc, { todo }) => {
       if (aiOn && !goesOffTrack(todo, aiOn)) bumpStats(qc, goalIdsOf(todo), -1)
+      if (!goesOffTrack(todo, aiOn)) bumpDoneToday(qc, -1)
     },
-    alsoInvalidate: () => [statsKey, offTrackKey],
+    alsoInvalidate: () => [statsKey, offTrackKey, doneTodayKey],
   })
 }
 
@@ -220,37 +224,25 @@ export function useMoveTodo() {
 }
 
 /**
- * Undo a delete: re-create the to-do and put it back between the same
- * neighbours (it gets a new id; done state and manual links aren't kept).
+ * Delete with Undo (UNDO.md): gone now, sent when the toast ends. Undo
+ * puts the same to-do back where it was.
  */
-export function useRestoreTodo() {
-  return useOptimisticMutation<
-    Todo,
-    { todo: Todo; index: number; tempId: number; placement: Placement | null },
-    Todo[]
-  >({
-    scope: 'todos',
-    queryKey: key,
-    mutationFn: async ({ todo, placement }) => {
-      const created = await post<Todo>('/todos', { title: todo.title, notes: todo.notes, date: todo.date })
-      return placement ? patch<Todo>(`/todos/${created.id}`, placement) : created
-    },
-    apply: (old, { todo, index, tempId }) => {
-      const next = old.filter((t) => t.id !== todo.id)
-      next.splice(Math.min(index, next.length), 0, { ...todo, id: tempId })
-      return next
-    },
-    settle: (old, saved, { tempId }) => old.map((t) => (t.id === tempId ? saved : t)),
-  })
-}
-
 export function useDeleteTodo() {
-  return useOptimisticMutation<void, { id: number }, Todo[]>({
-    scope: 'todos',
-    queryKey: key,
-    mutationFn: ({ id }) => (isTemp(id) ? Promise.resolve() : del(`/todos/${id}`)),
-    apply: (old, { id }) => old.filter((t) => t.id !== id),
-  })
+  const qc = useQueryClient()
+  return (todo: Todo) => {
+    if (isTemp(todo.id)) {
+      qc.setQueryData<Todo[]>(todosKey, (old) => old?.filter((t) => t.id !== todo.id))
+      return
+    }
+    deferDelete(qc, {
+      kind: 'todo',
+      id: todo.id,
+      title: todo.title,
+      lists: [todosKey],
+      commit: () => del(`/todos/${todo.id}`),
+      afterCommit: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
+    })
+  }
 }
 
 /** Local "YYYY-MM-DD" of a timestamp, to compare with today. */
@@ -283,8 +275,9 @@ export function useLogCompletion() {
     settle: (old, saved) => old.map((t) => (t.id === saved.id ? { ...t, ...saved } : t)),
     alsoApply: (qc, { todo }) => {
       if (aiOn) bumpStats(qc, goalIdsOf(todo), 1)
+      bumpDoneToday(qc, 1)
     },
-    alsoInvalidate: () => [statsKey],
+    alsoInvalidate: () => [statsKey, doneTodayKey],
   })
 }
 
@@ -303,7 +296,8 @@ export function useUndoCompletion() {
       ),
     alsoApply: (qc, { todo }) => {
       if (aiOn) bumpStats(qc, goalIdsOf(todo), -1)
+      bumpDoneToday(qc, -1)
     },
-    alsoInvalidate: () => [statsKey],
+    alsoInvalidate: () => [statsKey, doneTodayKey],
   })
 }

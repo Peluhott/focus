@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Sent with feedback (FEEDBACK.md).
+  define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0') },
   server: {
     port: 5173,
     // Same origin for the browser: /api goes to the AdonisJS server, so the

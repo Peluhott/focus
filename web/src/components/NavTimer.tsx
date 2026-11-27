@@ -7,6 +7,7 @@ import {
   PlusIcon,
   TimerIcon,
 } from '@phosphor-icons/react'
+import { TIMER_START_EVENT } from '../lib/overlays'
 
 /**
  * The nav-bar timer (NAV-AND-TIMER.md). Runs in the browser only; the state
@@ -166,6 +167,19 @@ export default function NavTimer({ defaultMinutes }: { defaultMinutes: number | 
       start(state.lengthMin)
     }
   }
+
+  // Search's "Start the timer" quick action: start (or resume) it.
+  const playRef = useRef(onPlayPause)
+  playRef.current = onPlayPause
+  const statusRef = useRef(state.status)
+  statusRef.current = state.status
+  useEffect(() => {
+    const onStart = () => {
+      if (statusRef.current !== 'running') playRef.current()
+    }
+    window.addEventListener(TIMER_START_EVENT, onStart)
+    return () => window.removeEventListener(TIMER_START_EVENT, onStart)
+  }, [])
 
   function commitEdit() {
     setEditing(false)

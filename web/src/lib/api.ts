@@ -26,12 +26,17 @@ function readCookie(name: string): string | null {
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
+/** While true, requests use keepalive, so they finish after the tab closes. */
+let keepalive = false
+export const setKeepalive = (on: boolean) => {
+  keepalive = on
+}
+
 export async function api<T = unknown>(method: Method, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    // Which workspace the data routes act on (WORK-MODE.md).
-    'X-Focus-Workspace': currentWorkspace(),
-  }
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  // Which workspace the data routes act on (WORK-MODE.md): its id.
+  const ws = currentWorkspace()
+  if (ws !== null) headers['X-Focus-Workspace'] = String(ws)
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (method !== 'GET') {
     const xsrf = readCookie('XSRF-TOKEN')
@@ -44,6 +49,7 @@ export async function api<T = unknown>(method: Method, path: string, body?: unkn
       method,
       headers,
       credentials: 'same-origin',
+      keepalive,
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch {
@@ -68,6 +74,27 @@ export const get = <T>(path: string) => api<T>('GET', path)
 export const post = <T>(path: string, body?: unknown) => api<T>('POST', path, body ?? {})
 export const patch = <T>(path: string, body: unknown) => api<T>('PATCH', path, body)
 export const del = <T = void>(path: string) => api<T>('DELETE', path)
+
+/** POST multipart form data (e.g. feedback with a screenshot). */
+export async function postForm<T>(path: string, form: FormData): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  const ws = currentWorkspace()
+  if (ws !== null) headers['X-Focus-Workspace'] = String(ws)
+  const xsrf = readCookie('XSRF-TOKEN')
+  if (xsrf) headers['X-XSRF-TOKEN'] = xsrf
+  let response: Response
+  try {
+    response = await fetch(`/api/v1${path}`, { method: 'POST', headers, credentials: 'same-origin', body: form })
+  } catch {
+    throw new ApiError(0, 'network_error', "Can't reach the server.")
+  }
+  const data = await response.json().catch(() => null)
+  if (!response.ok) {
+    const err = data?.error
+    throw new ApiError(response.status, err?.code ?? 'server_error', err?.message ?? 'Request failed.', err?.fields)
+  }
+  return data as T
+}
 
 /** Read every page of a cursor-paginated list. */
 export async function fetchAll<T>(path: string): Promise<T[]> {

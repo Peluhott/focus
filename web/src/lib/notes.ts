@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, fetchAll, patch, post } from './api'
 import { errorMessage, reorder, useOptimisticMutation } from './optimistic'
 import { useToast } from './toast'
+import { deferDelete, useVisible } from './pendingDeletes'
 import type { Note, Placement } from './types'
 
 /** Notes (NOTES.md). One list per workspace, in your order. */
@@ -9,7 +10,8 @@ export const notesKey = ['notes'] as const
 const key = () => notesKey
 
 export function useNotes() {
-  return useQuery({ queryKey: notesKey, queryFn: () => fetchAll<Note>('/notes') })
+  const select = useVisible<Note>('note')
+  return useQuery({ queryKey: notesKey, queryFn: () => fetchAll<Note>('/notes'), select })
 }
 
 /** Waits for the server (the editor needs the real id before it can autosave). New notes go on top. */
@@ -49,31 +51,16 @@ export function useMoveNote() {
   })
 }
 
+/** Delete with Undo (UNDO.md). `onUndo` reselects the note. */
 export function useDeleteNote() {
-  return useOptimisticMutation<void, { id: number }, Note[]>({
-    scope: 'notes',
-    queryKey: key,
-    mutationFn: ({ id }) => del(`/notes/${id}`),
-    apply: (old, { id }) => old.filter((n) => n.id !== id),
-  })
-}
-
-/** Undo a delete: re-create it between the same neighbours (it gets a new id). */
-export function useRestoreNote() {
-  return useOptimisticMutation<
-    Note,
-    { note: Note; index: number; tempId: number; placement: Placement | null },
-    Note[]
-  >({
-    scope: 'notes',
-    queryKey: key,
-    mutationFn: ({ note, placement }) =>
-      post<Note>('/notes', { title: note.title, body: note.body, ...(placement ?? {}) }),
-    apply: (old, { note, index, tempId }) => {
-      const next = old.filter((n) => n.id !== note.id)
-      next.splice(Math.min(index, next.length), 0, { ...note, id: tempId })
-      return next
-    },
-    settle: (old, saved, { tempId }) => old.map((n) => (n.id === tempId ? saved : n)),
-  })
+  const qc = useQueryClient()
+  return (note: Note, onUndo?: () => void) =>
+    deferDelete(qc, {
+      kind: 'note',
+      id: note.id,
+      title: note.title || 'Untitled note',
+      lists: [notesKey],
+      commit: () => del(`/notes/${note.id}`),
+      afterUndo: onUndo,
+    })
 }
