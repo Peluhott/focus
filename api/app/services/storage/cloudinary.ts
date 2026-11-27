@@ -67,6 +67,34 @@ export function verifyUpload(projectId: number, result: UploadResult) {
   )
 }
 
+/**
+ * What Cloudinary itself says about an uploaded file (Admin API): its real
+ * size, format and resource type. The browser's copy of the upload result
+ * is never trusted for these. Null when there's no such file under that
+ * resource type.
+ */
+export async function fetchAsset(
+  publicId: string,
+  resourceType: string
+): Promise<Pick<UploadResult, 'public_id' | 'resource_type' | 'format' | 'bytes'> | null> {
+  try {
+    const asset = await client().api.resource(publicId, {
+      resource_type: resourceType,
+      type: 'authenticated',
+    })
+    return {
+      public_id: asset.public_id,
+      resource_type: asset.resource_type,
+      format: asset.format ?? null,
+      bytes: Number(asset.bytes),
+    }
+  } catch (error) {
+    const status = (error as { error?: { http_code?: number } })?.error?.http_code
+    if (status === 404) return null
+    throw error
+  }
+}
+
 /** Server-side upload (multipart from API clients). */
 export async function uploadFile(projectId: number, path: string): Promise<UploadResult> {
   const result = await client().uploader.upload(path, {

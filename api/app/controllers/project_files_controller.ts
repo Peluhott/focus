@@ -7,6 +7,7 @@ import Project from '#models/project'
 import ProjectFile from '#models/project_file'
 import { findFile, findInWs } from '#services/scoped'
 import {
+  fetchAsset,
   fileExpirySeconds,
   signUpload,
   signedUrl,
@@ -86,10 +87,32 @@ export default class ProjectFilesController {
     } else {
       const input = await request.validateUsing(saveUploadValidator)
       name = input.name
-      result = { ...input, format: input.format ?? null }
-      if (!verifyUpload(project.id, result)) {
+      const claimed = { ...input, format: input.format ?? null, bytes: input.bytes ?? 0 }
+      if (!verifyUpload(project.id, claimed)) {
         throw AppError.validation('That upload could not be verified.')
       }
+      // Only the public id and version are signed: size, type and format
+      // come from Cloudinary, not from what the browser sent.
+      let asset: Awaited<ReturnType<typeof fetchAsset>>
+      try {
+        asset = await fetchAsset(input.public_id, input.resource_type)
+      } catch (error) {
+        logger.error({ err: error }, 'cloudinary lookup failed')
+        throw new AppError('storage_error', "Couldn't reach file storage.", 502)
+      }
+      if (!asset) throw AppError.validation('That upload could not be verified.')
+      result = { ...claimed, ...asset }
+    }
+
+    // The same upload saved twice (a retry, or a replayed request) is one file.
+    const existing = await ProjectFile.query()
+      .where('cloudinary_public_id', result.public_id)
+      .first()
+    if (existing) {
+      if (existing.projectId !== project.id) {
+        throw AppError.validation('That upload could not be verified.')
+      }
+      return response.ok(view(existing))
     }
     if (result.bytes > maxBytes()) {
       await queueFileDeletes([
@@ -106,6 +129,10 @@ export default class ProjectFilesController {
       format: result.format || null,
       bytes: result.bytes,
       uploadedAt: DateTime.now(),
+    }).catch(async (error) => {
+      // Two saves of the same upload at once: the unique index keeps one.
+      if ((error as { code?: string })?.code !== '23505') throw error
+      return ProjectFile.query().where('cloudinary_public_id', result.public_id).firstOrFail()
     })
     return response.created(view(file))
   }
