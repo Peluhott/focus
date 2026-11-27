@@ -85,6 +85,21 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     return null
   }
 
+  /**
+   * Added to every reported error line, so a log entry names the request,
+   * user and workspace. Path only (no query string), no body or headers.
+   */
+  protected context(ctx: HttpContext) {
+    return {
+      ...super.context(ctx),
+      method: ctx.request.method(),
+      url: ctx.request.url(),
+      route: ctx.route?.pattern,
+      user_id: ctx.auth?.user?.id,
+      workspace_id: ctx.workspace?.id,
+    }
+  }
+
   async report(error: unknown, ctx: HttpContext) {
     return super.report(error, ctx)
   }

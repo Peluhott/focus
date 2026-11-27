@@ -23,6 +23,8 @@ const dbConfig = defineConfig({
       client: 'pg',
       connection: env.get('DATABASE_URL'),
       pool: { min: 0, max: 10 },
+      // Query errors keep the stack of the code that ran them (not just pg internals).
+      asyncStackTraces: true,
       migrations,
     },
 
