@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, fetchAll, patch, post } from './api'
 import { deferDelete, flushPendingDeletes, isHidden, useHiddenVersion } from './pendingDeletes'
+import { expectRecheck } from './recheckWatch'
 import { rootClient } from './queryClient'
 import { reorder, useOptimisticMutation } from './optimistic'
 import { projectsRootKey } from './projects'
@@ -56,6 +57,7 @@ export function useCreateGoal() {
       },
     ],
     settle: (old, goal, { tempId }) => old.map((g) => (g.id === tempId ? goal : g)),
+    onSuccess: expectRecheck,
   })
 }
 
@@ -105,6 +107,7 @@ export function useSetGoalStatus() {
       return [...old.filter((g) => g.id !== id), updated]
     },
     alsoInvalidate: alsoProjects,
+    onSuccess: expectRecheck,
   })
 }
 
@@ -119,6 +122,7 @@ export function useDeleteGoal() {
       lists: [goalsKey],
       commit: () => del(`/goals/${goal.id}`),
       afterCommit: () => {
+        if (goal.status === 'active') expectRecheck()
         qc.invalidateQueries({ queryKey: projectsRootKey })
         qc.invalidateQueries({ queryKey: ['todos'] })
       },
@@ -142,6 +146,7 @@ export function useAddSubGoal() {
       ]),
     settle: (old, sub, { goalId, tempId }) =>
       withSubs(old, goalId, (subs) => subs.map((s) => (s.id === tempId ? sub : s))),
+    onSuccess: expectRecheck,
   })
 }
 
@@ -208,6 +213,7 @@ export function useDeleteSubGoal() {
       title: sub.title,
       remove: () => remove(sub.goal_id, sub.id),
       commit: () => del(`/subgoals/${sub.id}`),
+      afterCommit: expectRecheck,
     })
 }
 

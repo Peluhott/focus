@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { del, fetchAll, patch, post } from './api'
 import { isTemp, useOptimisticMutation } from './optimistic'
 import { deferDelete, useVisible } from './pendingDeletes'
 import { settingsKey, useAiOn } from './settings'
+import { watchingRecheck } from './recheckWatch'
 import { offTrackKey } from './backlog'
 import { bumpDoneToday, bumpStats, doneTodayKey, goalIdsOf, statsKey } from './stats'
 import type { LinkTarget, Placement, Todo } from './types'
@@ -139,16 +140,34 @@ export function useLinkTodo() {
   })
 }
 
+/** A change of yours is on its way to the server. */
+const editing = (qc: QueryClient) => qc.isMutating({ mutationKey: ['focus-mutation'] }) > 0
+
+/** Polling while a to-do shows "checking": 2 s, slowing to 10 s, given up after 2 min. */
+const PENDING_FIRST_MS = 2_000
+const PENDING_MAX_MS = 10_000
+const PENDING_GIVE_UP_MS = 2 * 60_000
+/** While a background re-check may land (recheckWatch). */
+const WATCH_EVERY_MS = 5_000
+/** Coming back to the tab refetches if the list is older than this. */
+const FOCUS_STALE_MS = 30_000
+
 /**
- * While the AI is on, refresh the list so results show up: every 2 s while
- * any to-do is being checked, every 15 s otherwise (goal edits re-check in
- * the background). Skips a beat while you're editing, so a refresh never
- * lands between your change and the server's answer.
+ * Refresh the list only when a result may have changed: while any to-do
+ * shows "checking" (backing off, and giving up if the worker seems stuck),
+ * and for a minute around a background re-check after goal changes. Coming
+ * back to the tab refetches a list that's gone stale (other tabs, devices,
+ * a check that outlasted the polling). Skips a beat while you're editing,
+ * so a refresh never lands between your change and the server's answer.
  */
 export function useAlignmentPolling(todos: Todo[] | undefined) {
   const aiOn = useAiOn()
   const qc = useQueryClient()
-  const anyPending = !!todos?.some((t) => t.alignment_status === 'pending')
+  const pendingKey = (todos ?? [])
+    .filter((t) => t.alignment_status === 'pending')
+    .map((t) => t.id)
+    .sort((a, b) => a - b)
+    .join(',')
 
   // A check that ends in "error" may have hit an AI spend cap: refresh
   // settings so the notice (ai_limit) shows without waiting for staleTime.
@@ -160,18 +179,36 @@ export function useAlignmentPolling(todos: Todo[] | undefined) {
     if (failed) void qc.invalidateQueries({ queryKey: settingsKey })
   }, [todos, qc])
 
+  // Starts over whenever the set of checking to-dos changes (a result came
+  // in, or a new check started), so the 2 s pace is back for fresh checks.
   useEffect(() => {
     if (!aiOn) return
-    const timer = setInterval(
-      () => {
-        if (document.hidden) return
-        if (qc.isMutating({ mutationKey: ['focus-mutation'] }) > 0) return
-        qc.invalidateQueries({ queryKey: todosKey })
-      },
-      anyPending ? 2_000 : 15_000
-    )
+    const pending = pendingKey !== ''
+    const started = Date.now()
+    let delay = PENDING_FIRST_MS
+    let due = started + delay
+    const timer = setInterval(() => {
+      if (document.hidden || editing(qc)) return
+      const now = Date.now()
+      const waiting = pending && now - started < PENDING_GIVE_UP_MS
+      const watching = watchingRecheck(now)
+      if ((!waiting && !watching) || now < due) return
+      void qc.invalidateQueries({ queryKey: todosKey })
+      delay = waiting ? Math.min(delay * 1.5, PENDING_MAX_MS) : WATCH_EVERY_MS
+      due = now + delay
+    }, 1_000)
     return () => clearInterval(timer)
-  }, [aiOn, anyPending, qc])
+  }, [aiOn, pendingKey, qc])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.hidden || editing(qc)) return
+      const updated = qc.getQueryState(todosKey)?.dataUpdatedAt ?? 0
+      if (Date.now() - updated > FOCUS_STALE_MS) void qc.invalidateQueries({ queryKey: todosKey })
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [qc])
 }
 
 /** Check it off: it leaves the list (Undo puts it back with useReopenTodo). */
