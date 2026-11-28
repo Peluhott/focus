@@ -22,7 +22,6 @@ import {
   WarningCircleIcon,
   XIcon,
 } from '@phosphor-icons/react'
-import ConfirmDialog, { type ConfirmRequest } from './ConfirmDialog'
 import { shortDayMaybeYear } from '../lib/dates'
 import {
   fileType,
@@ -85,7 +84,6 @@ export default function ProjectFiles({ projectId }: { projectId: number }) {
   const [uploads, setUploads] = useState<Upload[]>([])
   const [rejections, setRejections] = useState<Rejection[]>([])
   const [renaming, setRenaming] = useState<number | null>(null)
-  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   if (!data) return <div className="files" />
 
@@ -355,7 +353,6 @@ export default function ProjectFiles({ projectId }: { projectId: number }) {
       <p className="files-footnote">
         Any file type, up to {maxMb} MB each. Files are private to your account.
       </p>
-      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

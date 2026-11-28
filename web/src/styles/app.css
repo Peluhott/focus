@@ -786,6 +786,16 @@ a:hover { color: var(--color-accent-800); }
 .hint-retry { font-size: 14px; color: var(--color-accent-700); }
 .hint-close { width: 28px; height: 28px; flex: none; color: var(--color-neutral-700); }
 
+/* — project detail: collapsed "Complete" list (V2-UI-CHANGES §8) — */
+.complete-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 4px; margin: var(--space-6) 0 var(--space-2) -4px;
+  border: 0; background: none; cursor: pointer; color: var(--color-neutral-700); border-radius: var(--radius-sm);
+}
+.complete-toggle:hover { color: var(--color-accent-700); }
+.complete-toggle .section-label { margin: 0; color: inherit; }
+.complete-caret { transition: transform 0.15s; }
+.complete-toggle[aria-expanded='true'] .complete-caret { transform: rotate(90deg); }
+
 /* — recurring band (RECURRING-TODOS.md) — */
 .quick-add { margin-bottom: var(--space-4); }
 .recurring-band {

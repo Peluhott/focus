@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { ArrowLeftIcon, CalendarBlankIcon, TrashIcon } from '@phosphor-icons/react'
+import { ArrowLeftIcon, CalendarBlankIcon, CaretRightIcon, TrashIcon } from '@phosphor-icons/react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import ConfirmDialog, { type ConfirmRequest } from '../components/ConfirmDialog'
 import AutoGrowTextarea from '../components/AutoGrowTextarea'
 import NotesField from '../components/NotesField'
 import ProjectFiles from '../components/ProjectFiles'
@@ -23,6 +22,10 @@ import {
 import { PROJECT_STATUS_LABEL, type ProjectStatus, type Task } from '../lib/types'
 
 /** Project detail (README §5): fields, details and the task list. */
+
+/** Projects whose "Complete" list is open (session only; collapsed by default). */
+const openComplete = new Set<number>()
+
 export default function ProjectDetail() {
   const id = Number(useParams().id)
   const location = useLocation()
@@ -37,7 +40,8 @@ export default function ProjectDetail() {
   const addTask = useAddTask(id)
   const moveTask = useMoveTask(id)
   const [taskDraft, setTaskDraft] = useState('')
-  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
+  const [, rerender] = useState(0)
+  const completeOpen = openComplete.has(id)
 
   if (isError) {
     return (
@@ -165,12 +169,27 @@ export default function ProjectDetail() {
       />
       {tasks && pending.length === 0 && <p className="muted" style={{ margin: 0, fontSize: 14 }}>Nothing pending.</p>}
 
-      <h6 className="section-label">Complete · {complete.length}</h6>
-      <div>
-        {complete.map((task) => (
-          <TaskRow key={task.id} task={task} />
-        ))}
-      </div>
+      <button
+        type="button"
+        className="complete-toggle"
+        aria-expanded={completeOpen}
+        onClick={() => {
+          const next = !completeOpen
+          if (next) openComplete.add(id)
+          else openComplete.delete(id)
+          rerender((n) => n + 1)
+        }}
+      >
+        <CaretRightIcon size={14} aria-hidden className="complete-caret" />
+        <h6 className="section-label">Complete · {complete.length}</h6>
+      </button>
+      {completeOpen && (
+        <div>
+          {complete.map((task) => (
+            <TaskRow key={task.id} task={task} />
+          ))}
+        </div>
+      )}
 
       <div style={{ marginTop: 'var(--space-8)' }}>
         <button
@@ -185,7 +204,6 @@ export default function ProjectDetail() {
           Delete project
         </button>
       </div>
-      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </section>
   )
 }
