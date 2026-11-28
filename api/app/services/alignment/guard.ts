@@ -28,6 +28,18 @@ export async function monthSpendUsd(userId?: number): Promise<number> {
   }, 0)
 }
 
+/** Which spend cap stops this user's AI calls right now, if any (global first, as in `blocked()`). */
+export async function aiLimit(userId: number): Promise<'user' | 'global' | null> {
+  if ((await monthSpendUsd()) >= aiConfig.monthlyBudgetUsd) return 'global'
+  if ((await monthSpendUsd(userId)) >= aiConfig.userMonthlyBudgetUsd) return 'user'
+  return null
+}
+
+/** When the caps reset: the 1st of next month, 00:00 UTC (the ledger counts by UTC month). */
+export function nextMonthStartUtc(now = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+}
+
 /**
  * Circuit breaker and spend caps (spec "Optional by design"). One per worker
  * process: after 5 outages in a row (network, timeout, 429, 5xx; never a

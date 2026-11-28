@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, fetchAll, patch, post } from './api'
 import { isTemp, useOptimisticMutation } from './optimistic'
 import { deferDelete, useVisible } from './pendingDeletes'
-import { useAiOn } from './settings'
+import { settingsKey, useAiOn } from './settings'
 import { offTrackKey } from './backlog'
 import { bumpDoneToday, bumpStats, doneTodayKey, goalIdsOf, statsKey } from './stats'
 import type { LinkTarget, Placement, Todo } from './types'
@@ -149,6 +149,17 @@ export function useAlignmentPolling(todos: Todo[] | undefined) {
   const aiOn = useAiOn()
   const qc = useQueryClient()
   const anyPending = !!todos?.some((t) => t.alignment_status === 'pending')
+
+  // A check that ends in "error" may have hit an AI spend cap: refresh
+  // settings so the notice (ai_limit) shows without waiting for staleTime.
+  const pendingIds = useRef(new Set<number>())
+  useEffect(() => {
+    if (!todos) return
+    const failed = todos.some((t) => t.alignment_status === 'error' && pendingIds.current.has(t.id))
+    pendingIds.current = new Set(todos.filter((t) => t.alignment_status === 'pending').map((t) => t.id))
+    if (failed) void qc.invalidateQueries({ queryKey: settingsKey })
+  }, [todos, qc])
+
   useEffect(() => {
     if (!aiOn) return
     const timer = setInterval(

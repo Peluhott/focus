@@ -50,3 +50,21 @@ export function useSetTimerMinutes() {
     },
   })
 }
+
+/**
+ * What to tell the user when a monthly AI spend cap has paused AI
+ * (settings.ai_limit), or null while AI can run.
+ */
+export function aiLimitMessage(settings: Settings | undefined): string | null {
+  if (!settings?.ai_limit) return null
+  const resets = settings.ai_limit_resets_at
+    ? new Date(settings.ai_limit_resets_at).toLocaleDateString(undefined, {
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      })
+    : 'next month'
+  return settings.ai_limit === 'user'
+    ? `You've used this month's AI allowance. Alignment checks, hints and goal suggestions pause until ${resets}. Everything else works as usual.`
+    : `AI is paused for everyone this month: Focus has used its AI budget. It's back on ${resets}. Everything else works as usual.`
+}

@@ -15,7 +15,7 @@ import InlineInput from '../components/InlineInput'
 import SortableList from '../components/SortableList'
 import { useLogout, useMe, useUpdateAccount, type AccountPatch, type User } from '../lib/auth'
 import { errorMessage } from '../lib/optimistic'
-import { useSetAiEnabled, useSetTimerMinutes, useSettings } from '../lib/settings'
+import { aiLimitMessage, useSetAiEnabled, useSetTimerMinutes, useSettings } from '../lib/settings'
 import { useToast } from '../lib/toast'
 import { useWorkspace } from '../lib/workspace'
 import {
@@ -309,6 +309,7 @@ function AiSection() {
   const on = available && !!settings?.ai_enabled
   const warn = !!settings?.ai_ack_required
   const name = info?.name ?? settings?.workspace.name ?? 'this workspace'
+  const limitMessage = aiLimitMessage(settings)
 
   function choose(value: boolean) {
     if (value === on) return
@@ -363,6 +364,12 @@ function AiSection() {
       {settings && !available && (
         <p className="muted" style={{ fontSize: 13, marginTop: 'var(--space-2)' }}>
           Not set up on the server. Set AI_ENABLED=true and GEMINI_API_KEY, then restart the API and worker.
+        </p>
+      )}
+      {available && limitMessage && (
+        <p className="settings-warning" role="note">
+          <WarningIcon size={18} aria-hidden />
+          {limitMessage}
         </p>
       )}
       {/* Cancel leaves the radio on Off: the setting never changed. */}

@@ -71,6 +71,10 @@ export type Settings = {
   ai_ack_at: string | null
   /** Uploads work (project files, feedback screenshots). */
   storage_enabled: boolean
+  /** A monthly AI spend cap is hit: this user's allowance, or everyone's. Null while AI can run. */
+  ai_limit: 'user' | 'global' | null
+  /** When the cap lifts (1st of next month, UTC). */
+  ai_limit_resets_at: string | null
 }
 
 /** A note (NOTES.md). Markdown body, manual order. */

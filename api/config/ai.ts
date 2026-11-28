@@ -21,9 +21,9 @@ const aiConfig = {
   apiKey: env.get('GEMINI_API_KEY'),
   model: env.get('AI_MODEL') ?? 'gemini-3.1-flash-lite',
   /** Cap for all users together. */
-  monthlyBudgetUsd: env.get('AI_MONTHLY_BUDGET_USD') ?? 5,
+  monthlyBudgetUsd: env.get('AI_MONTHLY_BUDGET_USD') ?? 25,
   /** Cap for one user (both workspaces), so one account can't use up everyone's. */
-  userMonthlyBudgetUsd: env.get('AI_USER_MONTHLY_BUDGET_USD') ?? 1,
+  userMonthlyBudgetUsd: env.get('AI_USER_MONTHLY_BUDGET_USD') ?? 0.25,
 
   /** Each model call: 10 s timeout, 3 attempts (2 retries) with backoff. */
   timeoutMs: 10_000,

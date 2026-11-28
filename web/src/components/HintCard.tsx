@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ArrowClockwiseIcon, CheckIcon, FootprintsIcon, PlusIcon, WarningCircleIcon, XIcon } from '@phosphor-icons/react'
 import { del, get, post } from '../lib/api'
 import { errorMessage } from '../lib/optimistic'
+import { settingsKey } from '../lib/settings'
 import { useToast } from '../lib/toast'
 import { todosKey } from '../lib/todos'
 import type { Todo, TodoHintRun } from '../lib/types'
@@ -29,10 +30,15 @@ export default function HintCard({ todo, onClose }: { todo: Todo; onClose: () =>
   // Bumped on every request and on unmount, so a stale answer is ignored.
   const generation = useRef(0)
 
-  const settle = useCallback((run: TodoHintRun) => {
-    if (run.status === 'ready' && run.text) setState({ phase: 'ready', text: run.text })
-    else setState({ phase: 'error', message: run.error ?? FAILED })
-  }, [])
+  const settle = useCallback(
+    (run: TodoHintRun) => {
+      if (run.status === 'ready' && run.text) return setState({ phase: 'ready', text: run.text })
+      setState({ phase: 'error', message: run.error ?? FAILED })
+      // It may have hit an AI spend cap: refresh settings so the notice shows.
+      void qc.invalidateQueries({ queryKey: settingsKey })
+    },
+    [qc]
+  )
 
   const ask = useCallback(
     async (force: boolean) => {

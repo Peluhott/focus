@@ -5,6 +5,7 @@ import AppError from '#exceptions/app_error'
 import type User from '#models/user'
 import Workspace from '#models/workspace'
 import { storageConfigured } from '#config/storage'
+import { aiLimit, nextMonthStartUtc } from '#services/alignment/guard'
 import { aiConfigured, queueContextRecheck } from '#services/alignment/triggers'
 import { activeGoalCount } from '#services/goal_limit'
 import { inWs } from '#services/scoped'
@@ -19,18 +20,26 @@ import { updateSettingsValidator } from '#validators/settings'
  * off by default except in the original Personal). ai_available says whether the server can run checks at all
  * (AI_ENABLED and GEMINI_API_KEY): the check runs only when both are true.
  * storage_enabled says whether uploads (files, feedback screenshots) work.
+ * ai_limit says which monthly spend cap has paused AI for this user ('user'
+ * for their own allowance, 'global' for everyone's), with ai_limit_resets_at
+ * when it lifts; both null while AI can run.
  */
-const view = (user: User, workspace: Workspace) => ({
-  focus_limit: workspace.focusLimit,
-  timer_minutes: user.timerMinutes,
-  last_workspace_id: user.lastWorkspaceId,
-  workspace: { id: workspace.id, name: workspace.displayName },
-  ai_enabled: workspace.aiEnabled,
-  ai_available: aiConfigured(),
-  ai_ack_required: workspace.aiAckRequired,
-  ai_ack_at: workspace.workAiAckAt?.toISO() ?? null,
-  storage_enabled: storageConfigured(),
-})
+const view = async (user: User, workspace: Workspace) => {
+  const limit = aiConfigured() ? await aiLimit(user.id) : null
+  return {
+    focus_limit: workspace.focusLimit,
+    timer_minutes: user.timerMinutes,
+    last_workspace_id: user.lastWorkspaceId,
+    workspace: { id: workspace.id, name: workspace.displayName },
+    ai_enabled: workspace.aiEnabled,
+    ai_available: aiConfigured(),
+    ai_ack_required: workspace.aiAckRequired,
+    ai_ack_at: workspace.workAiAckAt?.toISO() ?? null,
+    storage_enabled: storageConfigured(),
+    ai_limit: limit,
+    ai_limit_resets_at: limit ? nextMonthStartUtc().toISOString() : null,
+  }
+}
 
 export default class SettingsController {
   async show({ auth, workspace }: HttpContext) {
@@ -126,6 +135,6 @@ export default class SettingsController {
     }
     // Raising the limit opens spots: queue goal suggestions (after saving).
     const suggestionRunId = raised ? await startSuggestionRun(workspace.id, 'limit_raised') : null
-    return { ...view(user, workspace), suggestion_run_id: suggestionRunId }
+    return { ...(await view(user, workspace)), suggestion_run_id: suggestionRunId }
   }
 }

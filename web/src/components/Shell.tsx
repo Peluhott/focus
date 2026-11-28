@@ -11,6 +11,7 @@ import { useToast } from '../lib/toast'
 import { useWorkspace } from '../lib/workspace'
 import { useCreateWorkspace, useWorkspaces } from '../lib/workspaces'
 import AccountMenu from './AccountMenu'
+import AiLimitNotice from './AiLimitNotice'
 import Feedback from './Feedback'
 import NavTimer from './NavTimer'
 import SearchPalette from './SearchPalette'
@@ -100,6 +101,7 @@ export default function Shell({ children }: { children: ReactNode }) {
           <AccountMenu />
         </div>
         <div className="shell-rule" />
+        <AiLimitNotice />
       </header>
       <main className="shell-main">{children}</main>
       <SearchPalette />
