@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/broadsheet-acaa9821-8bb4-43a7-9e1b-f85d9d70fd94/styles.css">
+  <script src="_ds/broadsheet-acaa9821-8bb4-43a7-9e1b-f85d9d70fd94/_ds_bundle.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+  <style>
+    body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+    a { color: var(--color-accent-700); }
+    a:hover { color: var(--color-accent-800); }
+  </style>
+</helmet>
+<div style="min-height: 100vh; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); overflow-x: hidden;">
+
+  <sc-if value="{{ stickyNav }}" hint-placeholder-val="{{ true }}">
+    <header data-sticky="1" data-screen-label="Sticky nav" style="position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: 12px clamp(20px, 6vw, 112px); background: var(--color-bg); box-shadow: var(--shadow-sm); transform: translateY(-110%); transition: transform 420ms cubic-bezier(.2,.7,.2,1);">
+      <span style="font-family: var(--font-heading); font-weight: 600; font-size: 26px; line-height: 1; letter-spacing: -0.03em;">Focus</span>
+      <div style="display: flex; gap: var(--space-2);">
+        <a class="btn btn-ghost" href="Focus App v2.dc.html" style="min-height: 40px; padding: 0 18px; text-decoration: none;">Log in</a>
+        <a class="btn btn-primary" href="Focus App v2.dc.html" style="min-height: 40px; padding: 0 18px; text-decoration: none;">Sign up</a>
+      </div>
+    </header>
+  </sc-if>
+
+  <main data-screen-label="Hero" style="position: relative; min-height: 100vh; box-sizing: border-box; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 64px clamp(20px, 5vw, 64px);">
+    <div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; user-select: none; white-space: nowrap;">
+      <span data-drift="0.5" data-blur="5" style="position: absolute; left: 5.6%; top: 10.5%; font-size: max(20px, 2.65vw); font-style: italic; color: var(--color-neutral-600); filter: blur(5px);">Reorganize bookmarks</span>
+      <span data-drift="0.25" data-blur="0" style="position: absolute; left: 36%; top: 6%; font-size: max(15px, 1.72vw); color: var(--color-neutral-600);">Reply to Sam about dinner</span>
+      <span data-drift="0.7" data-blur="7" style="position: absolute; right: 7.5%; top: 13.75%; font-size: max(24px, 3.1vw); color: var(--color-neutral-500); filter: blur(7px);">Browse flights</span>
+      <span data-drift="0.35" data-blur="0" style="position: absolute; left: 11.7%; top: 31%; font-size: max(16px, 1.88vw); color: var(--color-neutral-600);">Clean out the inbox</span>
+      <span data-drift="0.45" data-blur="3.5" style="position: absolute; right: 9.4%; top: 36%; font-size: max(17px, 2.03vw); font-style: italic; color: var(--color-neutral-600); filter: blur(3.5px);">New video game?</span>
+      <span data-drift="0.8" data-blur="8" style="position: absolute; left: 3.75%; top: 59%; font-size: max(26px, 3.44vw); color: var(--color-neutral-500); filter: blur(8px);">Rearrange the desk</span>
+      <span data-drift="0.3" data-blur="0" style="position: absolute; right: 5%; top: 62.5%; font-size: max(15px, 1.72vw); color: var(--color-neutral-600);">Watch that documentary</span>
+      <span data-drift="0.4" data-blur="1" style="position: absolute; left: 11%; bottom: 10%; font-size: max(17px, 2.03vw); font-style: italic; color: var(--color-neutral-600); filter: blur(1px);">Sort old photos</span>
+      <span data-drift="0.65" data-blur="6" style="position: absolute; right: 14%; bottom: 7.5%; font-size: max(20px, 2.5vw); color: var(--color-neutral-500); filter: blur(6px);">Price new headphones</span>
+    </div>
+    <div data-hero="1" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; max-width: 760px;">
+      <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 600; font-size: clamp(96px, 13vw, 168px); line-height: 0.85; letter-spacing: -0.05em;">Focus</h1>
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px; font-size: 16px; margin-top: 8px;">
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i class="ph-duotone ph-target" style="color: var(--color-accent-700);"></i>Ship Focus v1</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i class="ph-duotone ph-target" style="color: var(--color-accent-700);"></i>Run a half marathon</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i class="ph-duotone ph-target" style="color: var(--color-accent-700);"></i>Build an emergency fund</span>
+      </div>
+      <p style="margin: 0; font-size: 19px; font-style: italic; color: var(--color-neutral-800); text-wrap: balance;">A few goals at a time. Every project and to-do traces back to one.</p>
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: 20px;">
+        <a class="btn btn-primary" href="Focus App v2.dc.html" style="min-height: 44px; padding: 0 28px; text-decoration: none;">Log in</a>
+        <a class="btn btn-secondary" href="Focus App v2.dc.html" style="min-height: 44px; padding: 0 28px; text-decoration: none;">Sign up</a>
+      </div>
+    </div>
+    <sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}">
+      <p style="position: absolute; left: clamp(20px, 6vw, 112px); bottom: 24px; margin: 0; max-width: 46ch; font-size: 14px; font-style: italic; color: var(--color-accent-2-800);"><i class="ph-duotone ph-film-strip" style="margin-right: 6px;"></i>Scroll: the background to-dos drift up at different speeds and blur further while the wordmark stays sharp. Past the hero, a slim nav bar slides down from the top.</p>
+    </sc-if>
+  </main>
+
+  <section data-screen-label="Purpose" style="padding: clamp(96px, 14vw, 180px) clamp(20px, 6vw, 112px) 0; display: grid; gap: var(--space-4);">
+    <h6 data-rv="up" style="margin: 0; color: var(--color-accent-700);">Why Focus</h6>
+    <h2 data-rv="focus" data-d="100" style="margin: 0; max-width: 17ch; font-size: clamp(40px, 5vw, 64px); font-style: italic; font-weight: 400; line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance;">Most to-do lists grow faster than the goals behind them.</h2>
+    <p data-rv="up" data-d="350" style="margin: var(--space-2) 0 0; max-width: 52ch; font-size: clamp(18px, 1.6vw, 21px); line-height: 1.55; color: var(--color-neutral-800);">Focus starts from the other end. You name the few things you're working toward. Projects, to-dos and notes each point back to one of them, and anything that doesn't gets flagged.</p>
+    <sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: 14px; font-style: italic; color: var(--color-accent-2-800);"><i class="ph-duotone ph-film-strip" style="margin-right: 6px;"></i>The headline sharpens out of a 10px blur as it enters, the same move as the hero. The paragraph fades up 250ms later.</p></sc-if>
+  </section>
+
+  <section data-screen-label="Features" style="padding: clamp(120px, 16vw, 200px) clamp(20px, 6vw, 112px) 0; display: grid; gap: clamp(80px, 10vw, 120px);">
+    <div style="display: grid; gap: var(--space-2);">
+      <h6 data-rv="up" style="margin: 0; color: var(--color-accent-700);">What's inside</h6>
+      <h2 data-rv="up" data-d="100" style="margin: 0; font-size: clamp(32px, 3.6vw, 44px); letter-spacing: -0.015em;">Three habits, built in.</h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: var(--space-6) clamp(40px, 7vw, 96px); align-items: center;">
+      <div style="display: grid; gap: var(--space-2); align-content: start;">
+        <i data-rv="up" class="ph-duotone ph-target" style="font-size: 32px; color: var(--color-accent-700);"></i>
+        <h3 data-rv="up" data-d="80" style="margin: 0; font-size: 30px;">A cap on active goals</h3>
+        <p data-rv="up" data-d="160" style="margin: 0; font-size: 18px; line-height: 1.55; color: var(--color-neutral-800);">Choose how many goals can be active at once. Three is the default. A new goal waits until there's room.</p>
+        <sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}"><p style="margin: var(--space-2) 0 0; font-size: 14px; font-style: italic; color: var(--color-accent-2-800);"><i class="ph-duotone ph-film-strip" style="margin-right: 6px;"></i>The card rises in. Each bar fills to its progress, one after another, and the greyed-out Add goal shows up last.</p></sc-if>
+      </div>
+      <div data-rv="card" data-d="150" class="card elev-sm" aria-hidden="true" style="min-width: 0; display: grid; gap: 22px; padding: var(--space-6);">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;"><span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-700);">Goals</span><span data-rv="fade" data-d="1500" style="font-size: 14px; color: var(--color-accent-700);">3 of 3 active</span></div>
+        <div style="display: grid; gap: 8px;"><div style="display: flex; justify-content: space-between; gap: 12px;"><span style="font-family: var(--font-heading); font-size: 21px; font-weight: 600;">Ship Focus v1</span><span style="font-size: 14px; color: var(--color-neutral-700);">62%</span></div><div style="height: 4px; background: var(--color-neutral-200);"><div data-rv="bar" data-w="62%" data-d="500" style="width: 62%; height: 100%; background: var(--color-accent);"></div></div></div>
+        <div style="display: grid; gap: 8px;"><div style="display: flex; justify-content: space-between; gap: 12px;"><span style="font-family: var(--font-heading); font-size: 21px; font-weight: 600;">Run a half marathon</span><span style="font-size: 14px; color: var(--color-neutral-700);">40%</span></div><div style="height: 4px; background: var(--color-neutral-200);"><div data-rv="bar" data-w="40%" data-d="750" style="width: 40%; height: 100%; background: var(--color-accent);"></div></div></div>
+        <div style="display: grid; gap: 8px;"><div style="display: flex; justify-content: space-between; gap: 12px;"><span style="font-family: var(--font-heading); font-size: 21px; font-weight: 600;">Build an emergency fund</span><span style="font-size: 14px; color: var(--color-neutral-700);">25%</span></div><div style="height: 4px; background: var(--color-neutral-200);"><div data-rv="bar" data-w="25%" data-d="1000" style="width: 25%; height: 100%; background: var(--color-accent);"></div></div></div>
+        <div data-rv="up" data-d="1700" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--color-neutral-700); font-size: 15px;"><span class="btn btn-secondary" style="opacity: 0.45; padding: 6px 12px; font-size: 14px;"><i class="ph-duotone ph-plus"></i>Add goal</span>Finish or pause one to make room.</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: var(--space-6) clamp(40px, 7vw, 96px); align-items: center;">
+      <div style="display: grid; gap: var(--space-2); align-content: start;">
+        <i data-rv="up" class="ph-duotone ph-link-simple" style="font-size: 32px; color: var(--color-accent-700);"></i>
+        <h3 data-rv="up" data-d="80" style="margin: 0; font-size: 30px;">Every to-do checked</h3>
+        <p data-rv="up" data-d="160" style="margin: 0; font-size: 18px; line-height: 1.55; color: var(--color-neutral-800);">Each new to-do is matched to the goal or project it serves. Anything that doesn’t fit gets flagged, so you can relink it or let it go.</p>
+        <sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}"><p style="margin: var(--space-2) 0 0; font-size: 14px; font-style: italic; color: var(--color-accent-2-800);"><i class="ph-duotone ph-film-strip" style="margin-right: 6px;"></i>Goal tags pop in beside each to-do as if they were just matched. The unrelated to-do then goes out of focus and its warning fades in.</p></sc-if>
+      </div>
+      <div data-rv="card" data-d="150" class="card elev-sm" aria-hidden="true" style="min-width: 0; display: grid; gap: 14px; padding: var(--space-6);">
+        <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-700);">To-dos</span>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;"><i class="ph-duotone ph-circle" style="font-size: 20px; color: var(--color-neutral-600);"></i><span style="flex: 1 1 140px;">Easy 5 km run</span><span data-rv="pop" data-d="650" class="tag tag-accent" style="gap: 5px;"><i class="ph-duotone ph-target"></i>Run a half marathon</span></div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;"><i class="ph-duotone ph-circle" style="font-size: 20px; color: var(--color-neutral-600);"></i><span style="flex: 1 1 140px;">Transfer $20 to savings</span><span data-rv="pop" data-d="950" class="tag tag-accent" style="gap: 5px;"><i class="ph-duotone ph-target"></i>Build an emergency fund</span></div>
+        <div style="display: grid; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 12px;"><i class="ph-duotone ph-circle" style="font-size: 20px; color: var(--color-neutral-600);"></i><span data-rv="blur" data-d="1450" style="flex: 1; filter: blur(1.5px); opacity: 0.7;">Research a new video game to play</span></div>
+          <span data-rv="up" data-d="1800" style="display: inline-flex; align-items: center; gap: 6px; padding-left: 32px; font-size: 13px; color: var(--color-accent-2-800);"><i class="ph-duotone ph-warning" style="font-size: 16px;"></i>Doesn't relate to any active goal.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: var(--space-6) clamp(40px, 7vw, 96px); align-items: center;">
+      <div style="display: grid; gap: var(--space-2); align-content: start;">
+        <i data-rv="up" class="ph-duotone ph-footprints" style="font-size: 32px; color: var(--color-accent-700);"></i>
+        <h3 data-rv="up" data-d="80" style="margin: 0; font-size: 30px;">Help me start</h3>
+        <p data-rv="up" data-d="160" style="margin: 0; font-size: 18px; line-height: 1.55; color: var(--color-neutral-800);">Stuck on a to-do? Get a small first step you can add to the list.</p>
+        <sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}"><p style="margin: var(--space-2) 0 0; font-size: 14px; font-style: italic; color: var(--color-accent-2-800);"><i class="ph-duotone ph-film-strip" style="margin-right: 6px;"></i>The footprints button lights up, then the Start here suggestion drops in underneath it, as if it had been pressed.</p></sc-if>
+      </div>
+      <div data-rv="card" data-d="150" class="card elev-sm" aria-hidden="true" style="min-width: 0; display: grid; gap: 12px; padding: var(--space-6);">
+        <div style="display: flex; align-items: center; gap: 12px;"><i class="ph-duotone ph-circle" style="font-size: 20px; color: var(--color-neutral-600);"></i><span style="flex: 1;">Plan the Japan trip</span><span data-rv="pop" data-d="600" class="btn btn-ghost btn-icon" style="width: 32px; height: 32px; color: var(--color-accent-700); background: var(--color-accent-100);"><i class="ph-duotone ph-footprints" style="font-size: 18px;"></i></span></div>
+        <div data-rv="slide" data-d="950" style="display: flex; align-items: flex-start; gap: 12px; margin-left: 32px; padding: 12px 14px; background: var(--color-neutral-100); border-radius: var(--radius-md);">
+          <i class="ph-duotone ph-footprints" style="font-size: 20px; flex: none; margin-top: 2px; color: var(--color-accent-700);"></i>
+          <div style="display: grid; gap: 10px; min-width: 0;">
+            <div style="display: grid; gap: 4px;"><span style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent-800);">Start here</span><p style="margin: 0; font-size: 16px; line-height: 1.45;">Open a note and list three cities you want to see.</p></div>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);"><span class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;"><i class="ph-duotone ph-plus"></i>Add as to-do</span><span class="btn btn-ghost" style="padding: 6px 10px; font-size: 14px;"><i class="ph-duotone ph-arrows-clockwise"></i>Another idea</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; gap: var(--space-4);">
+      <h4 data-rv="up" style="margin: 0; color: var(--color-neutral-800);">Also in Focus</h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--space-6) var(--space-8);">
+        <div data-rv="up" data-d="0" style="display: grid; gap: 4px;"><span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px;"><i class="ph-duotone ph-timer" style="font-size: 22px; color: var(--color-accent-700);"></i>Focus timer</span><span style="font-size: 15px; color: var(--color-neutral-800);">Sits in the nav bar. 25 minutes unless you change it.</span></div>
+        <div data-rv="up" data-d="60" style="display: grid; gap: 4px;"><span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px;"><i class="ph-duotone ph-briefcase" style="font-size: 22px; color: var(--color-accent-700);"></i>Personal and Work</span><span style="font-size: 15px; color: var(--color-neutral-800);">Separate goals, lists and settings for each workspace.</span></div>
+        <div data-rv="up" data-d="120" style="display: grid; gap: 4px;"><span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px;"><i class="ph-duotone ph-folder-simple" style="font-size: 22px; color: var(--color-accent-700);"></i>Projects and files</span><span style="font-size: 15px; color: var(--color-neutral-800);">Tasks and attachments, grouped under a goal.</span></div>
+        <div data-rv="up" data-d="180" style="display: grid; gap: 4px;"><span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px;"><i class="ph-duotone ph-note" style="font-size: 22px; color: var(--color-accent-700);"></i>Notes</span><span style="font-size: 15px; color: var(--color-neutral-800);">Plain writing space, searchable with everything else.</span></div>
+        <div data-rv="up" data-d="240" style="display: grid; gap: 4px;"><span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px;"><i class="ph-duotone ph-calendar-blank" style="font-size: 22px; color: var(--color-accent-700);"></i>Calendar</span><span style="font-size: 15px; color: var(--color-neutral-800);">Dated to-dos and deadlines by month.</span></div>
+        <div data-rv="up" data-d="300" style="display: grid; gap: 4px;"><span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px;"><i class="ph-duotone ph-magnifying-glass" style="font-size: 22px; color: var(--color-accent-700);"></i>Search with ⌘K</span><span style="font-size: 15px; color: var(--color-neutral-800);">Find any goal, to-do, note or file, or add a new to-do.</span></div>
+      </div>
+      <sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: 14px; font-style: italic; color: var(--color-accent-2-800);"><i class="ph-duotone ph-film-strip" style="margin-right: 6px;"></i>Items fade up in reading order, 60ms apart.</p></sc-if>
+    </div>
+  </section>
+
+  <section data-screen-label="Different" style="padding: clamp(120px, 16vw, 200px) clamp(20px, 6vw, 112px) 0; display: grid; gap: var(--space-8);">
+    <div style="display: grid; gap: var(--space-2);">
+      <h6 data-rv="up" style="margin: 0; color: var(--color-accent-700);">What makes it different</h6>
+      <h2 data-rv="up" data-d="100" style="margin: 0; max-width: 20ch; font-size: clamp(32px, 3.6vw, 44px); letter-spacing: -0.015em;">Most apps help you add more. Focus helps you choose.</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--space-8);">
+      <div data-rv="up" data-d="0" style="display: grid; gap: var(--space-2); align-content: start;"><span style="font-family: var(--font-heading); font-size: 56px; font-style: italic; line-height: 1; color: var(--color-accent-700);">1</span><h4 style="margin: 0; font-size: 22px;">Goals come first</h4><p style="margin: 0; font-size: 16px; line-height: 1.55; color: var(--color-neutral-800);">You set what you're working toward before you write a single task. Lists stay in service of it.</p></div>
+      <div data-rv="up" data-d="180" style="display: grid; gap: var(--space-2); align-content: start;"><span style="font-family: var(--font-heading); font-size: 56px; font-style: italic; line-height: 1; color: var(--color-accent-700);">2</span><h4 style="margin: 0; font-size: 22px;">It says no for you</h4><p style="margin: 0; font-size: 16px; line-height: 1.55; color: var(--color-neutral-800);">A limit on active goals and a flag on to-dos that don't serve one. Taking on everything stops being the default.</p></div>
+      <div data-rv="up" data-d="360" style="display: grid; gap: var(--space-2); align-content: start;"><span style="font-family: var(--font-heading); font-size: 56px; font-style: italic; line-height: 1; color: var(--color-accent-700);">3</span><h4 style="margin: 0; font-size: 22px;">It helps you begin</h4><p style="margin: 0; font-size: 16px; line-height: 1.55; color: var(--color-neutral-800);">When a to-do feels too big, Focus offers one small first step instead of another reminder.</p></div>
+    </div>
+    <sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: 14px; font-style: italic; color: var(--color-accent-2-800);"><i class="ph-duotone ph-film-strip" style="margin-right: 6px;"></i>One column at a time, left to right, 180ms apart.</p></sc-if>
+  </section>
+
+  <section data-screen-label="Close" style="padding: clamp(140px, 18vw, 220px) clamp(20px, 6vw, 112px) clamp(100px, 12vw, 160px); display: grid; gap: var(--space-4); justify-items: start;">
+    <h2 data-rv="focus" style="margin: 0; font-size: clamp(56px, 7vw, 88px); font-weight: 600; line-height: 0.95; letter-spacing: -0.04em;">Pick your three.</h2>
+    <p data-rv="up" data-d="300" style="margin: 0; font-size: 21px; font-style: italic; color: var(--color-neutral-800);">Start with one goal. Add the rest when you need them.</p>
+    <div data-rv="up" data-d="450" style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2);">
+      <a class="btn btn-primary" href="Focus App v2.dc.html" style="min-height: 44px; padding: 0 28px; text-decoration: none;">Sign up</a>
+      <a class="btn btn-secondary" href="Focus App v2.dc.html" style="min-height: 44px; padding: 0 28px; text-decoration: none;">Log in</a>
+    </div>
+    <sc-if value="{{ notes }}" hint-placeholder-val="{{ true }}"><p style="margin: var(--space-2) 0 0; font-size: 14px; font-style: italic; color: var(--color-accent-2-800);"><i class="ph-duotone ph-film-strip" style="margin-right: 6px;"></i>The headline sharpens from blur, then the line and buttons fade up. The sticky nav stays, so sign-up is always one click away.</p></sc-if>
+  </section>
+  <footer style="padding: 0 clamp(20px, 6vw, 112px) 48px; display: flex; justify-content: space-between; font-size: 14px; color: var(--color-neutral-700);"><span style="font-family: var(--font-heading); font-weight: 600; font-size: 20px; color: var(--color-text);">Focus</span><span>© 2026</span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;notes&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;stickyNav&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+const EASE = 'cubic-bezier(.2,.7,.2,1)';
+const FROM = {
+  up: { opacity: '0', transform: 'translateY(28px)' },
+  card: { opacity: '0', transform: 'translateY(56px) scale(0.98)' },
+  focus: { opacity: '0.2', filter: 'blur(10px)' },
+  fade: { opacity: '0' },
+  pop: { opacity: '0', transform: 'scale(0.8)' },
+  slide: { opacity: '0', transform: 'translateY(-12px)' },
+  blur: { opacity: '1', filter: 'blur(0px)' },
+  bar: { width: '0%' },
+};
+const TO = {
+  up: { opacity: '1', transform: 'none' }, card: { opacity: '1', transform: 'none' },
+  focus: { opacity: '1', filter: 'blur(0px)' }, fade: { opacity: '1' },
+  pop: { opacity: '1', transform: 'none' }, slide: { opacity: '1', transform: 'none' },
+  blur: { opacity: '0.7', filter: 'blur(1.5px)' },
+};
+class Component extends DCLogic {
+  componentDidMount() {
+    this.onScroll = () => { if (!this.raf) this.raf = requestAnimationFrame(() => { this.raf = null; this.tick(); }); };
+    window.addEventListener('scroll', this.onScroll, { passive: true });
+    window.addEventListener('resize', this.onScroll);
+    this.setup(); this.tick();
+  }
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this.onScroll); window.removeEventListener('resize', this.onScroll);
+    if (this.io) this.io.disconnect(); cancelAnimationFrame(this.raf);
+  }
+  componentDidUpdate(prev) {
+    if (prev.motion !== this.props.motion) this.setup();
+    this.tick();
+  }
+  motionOn() { return this.props.motion !== false && !window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  hide(el) { el.style.transition = 'none'; Object.assign(el.style, FROM[el.dataset.rv] || {}); }
+  show(el, instant) {
+    const d = +(el.dataset.d || 0), t = el.dataset.rv;
+    el.style.transition = instant ? 'none' : ['opacity 800ms', 'transform 800ms', 'filter 1000ms', 'width 1300ms'].map(p => `${p} ${EASE} ${d}ms`).join(', ');
+    if (t === 'bar') el.style.width = el.dataset.w; else Object.assign(el.style, TO[t] || {});
+  }
+  setup() {
+    if (this.io) this.io.disconnect();
+    const els = Array.from(document.querySelectorAll('[data-rv]'));
+    if (!this.motionOn()) { els.forEach(el => this.show(el, true)); return; }
+    els.forEach(el => this.hide(el));
+    this.io = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return;
+      const card = e.target.closest('[data-rv="card"]');
+      const group = card && card !== e.target ? [] : [e.target, ...(e.target.dataset.rv === 'card' ? e.target.querySelectorAll('[data-rv]') : [])];
+      group.forEach(el => { this.show(el); this.io.unobserve(el); });
+    }), { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
+    els.forEach(el => this.io.observe(el));
+  }
+  tick() {
+    const y = window.scrollY, h = window.innerHeight || 800, on = this.motionOn();
+    document.querySelectorAll('[data-drift]').forEach(el => {
+      if (!on) { el.style.transform = ''; el.style.opacity = ''; el.style.filter = `blur(${el.dataset.blur}px)`; return; }
+      el.style.transform = `translateY(${-y * +el.dataset.drift}px)`;
+      el.style.filter = `blur(${+el.dataset.blur + y / 45}px)`;
+      el.style.opacity = String(Math.max(0, 1 - y / (h * 0.7)));
+    });
+    const hero = document.querySelector('[data-hero]');
+    if (hero) { hero.style.transform = on ? `translateY(${y * 0.2}px)` : ''; hero.style.opacity = on ? String(Math.max(0, 1 - y / (h * 0.85))) : ''; }
+    const nav = document.querySelector('[data-sticky]');
+    if (nav) nav.style.transform = y > h * 0.8 ? 'none' : 'translateY(-110%)';
+  }
+  renderVals() {
+    return { notes: this.props.notes ?? true, stickyNav: this.props.stickyNav ?? true };
+  }
+}
+</script>
+</body>
+</html>
