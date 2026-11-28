@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeftIcon,
@@ -11,6 +11,7 @@ import {
   WarningCircleIcon,
   WarningIcon,
 } from '@phosphor-icons/react'
+import Landing from '../components/Landing'
 import { ApiError } from '../lib/api'
 import { useLogin, useMe, useSignup } from '../lib/auth'
 
@@ -33,27 +34,9 @@ function errorText(error: unknown, mode: Mode): string {
 }
 
 /**
- * Background distractions, out of focus around the wordmark (LOGIN.md).
- * Positions are percentages of the viewport; sizes scale with its width.
- */
-const WORDS: { text: string; style: CSSProperties }[] = [
-  { text: 'Reorganize bookmarks', style: { left: '5.6%', top: '10.5%', fontSize: 'max(20px, 2.65vw)', fontStyle: 'italic', color: 'var(--color-neutral-600)', filter: 'blur(5px)' } },
-  { text: 'Reply to Sam about dinner', style: { left: '36%', top: '6%', fontSize: 'max(15px, 1.72vw)', color: 'var(--color-neutral-600)' } },
-  { text: 'Browse flights', style: { right: '7.5%', top: '13.75%', fontSize: 'max(24px, 3.1vw)', color: 'var(--color-neutral-500)', filter: 'blur(7px)' } },
-  { text: 'Clean out the inbox', style: { left: '11.7%', top: '31%', fontSize: 'max(16px, 1.88vw)', color: 'var(--color-neutral-600)' } },
-  { text: 'New video game?', style: { right: '9.4%', top: '36%', fontSize: 'max(17px, 2.03vw)', fontStyle: 'italic', color: 'var(--color-neutral-600)', filter: 'blur(3.5px)' } },
-  { text: 'Rearrange the desk', style: { left: '3.75%', top: '59%', fontSize: 'max(26px, 3.44vw)', color: 'var(--color-neutral-500)', filter: 'blur(8px)' } },
-  { text: 'Watch that documentary', style: { right: '5%', top: '62.5%', fontSize: 'max(15px, 1.72vw)', color: 'var(--color-neutral-600)' } },
-  { text: 'Sort old photos', style: { left: '11%', bottom: '10%', fontSize: 'max(17px, 2.03vw)', fontStyle: 'italic', color: 'var(--color-neutral-600)', filter: 'blur(1px)' } },
-  { text: 'Price new headphones', style: { right: '14%', bottom: '7.5%', fontSize: 'max(20px, 2.5vw)', color: 'var(--color-neutral-500)', filter: 'blur(6px)' } },
-]
-
-/** Fixed illustrative copy: shown before sign-in, so never the user's real goals. */
-const SAMPLE_GOALS = ['Ship Focus v1', 'Run a half marathon', 'Build an emergency fund']
-
-/**
- * Login and sign-up (LOGIN.md + LOGIN-SIGNUP.md): the "depth of field"
- * splash with Log in / Sign up, then a split auth panel. Email only: no
+ * Login and sign-up: the landing page (design_handoff_focus_landing, with
+ * the "depth of field" splash as its hero), then a split auth panel
+ * (LOGIN-SIGNUP.md). Email only: no
  * single sign-on, and "Forgot it?" stays hidden until there's a reset flow.
  */
 export default function Login() {
@@ -67,35 +50,12 @@ export default function Login() {
   if (mode) return <AuthPanel mode={mode} setMode={setMode} from={from} />
 
   return (
-    <main className="login" data-screen-label="Login">
-      <div className="login-words" aria-hidden="true">
-        {WORDS.map((w) => (
-          <span key={w.text} className="login-word" style={w.style}>
-            {w.text}
-          </span>
-        ))}
-      </div>
-      <div className="login-center">
-        <h1 className="login-wordmark">Focus</h1>
-        <div className="login-goals">
-          {SAMPLE_GOALS.map((g) => (
-            <span key={g} className="login-goal">
-              <TargetIcon aria-hidden />
-              {g}
-            </span>
-          ))}
-        </div>
-        <p className="login-tagline">A few goals at a time. Every project and to-do traces back to one.</p>
-        <div className="login-buttons">
-          <button type="button" className="btn btn-primary login-cta" onClick={() => setMode('login')}>
-            Log in
-          </button>
-          <button type="button" className="btn btn-secondary login-cta" onClick={() => setMode('signup')}>
-            Sign up
-          </button>
-        </div>
-      </div>
-    </main>
+    <Landing
+      onAuth={(m) => {
+        setMode(m)
+        window.scrollTo(0, 0)
+      }}
+    />
   )
 }
 
