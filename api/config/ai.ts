@@ -36,9 +36,14 @@ const aiConfig = {
   /** Below this, an "unaligned" verdict is treated as unsure: no red. */
   flagConfidence: 0.6,
 
-  /** Queue delays: a to-do edit waits 1.5 s; goal/project edits batch for 5 s. */
+  /**
+   * Queue delays: a to-do edit waits 1.5 s. A full re-check waits 5 s
+   * (turning the AI on), or, after goal edits, until they've been quiet for
+   * 60 s, so an editing session re-grades the to-dos once.
+   */
   todoDelayMs: 1_500,
   contextDelayMs: 5_000,
+  contextQuietMs: 60_000,
 
   /**
    * What the model sees is trimmed to these sizes (characters, or counts for

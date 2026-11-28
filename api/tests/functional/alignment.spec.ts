@@ -368,7 +368,7 @@ test.group('AI alignment check', (group) => {
     ;(await as(client.post(`/api/v1/todos/${todo.id}/recheck`))).assertStatus(422)
   })
 
-  test('goal and project edits queue one batched re-check; drags do not', async ({
+  test('new goals and sub-goals queue a re-check; renames, drags and projects do not', async ({
     client,
     assert,
   }) => {
@@ -378,14 +378,14 @@ test.group('AI alignment check', (group) => {
     assert.equal(queue.all, 2)
 
     await as(client.patch(`/api/v1/goals/${b.body().id}`).json({ before_id: a.body().id }))
+    await as(client.patch(`/api/v1/goals/${a.body().id}`).json({ title: 'A, renamed' }))
+    await as(client.post('/api/v1/projects').json({ title: 'P' }))
     await tick(50)
     assert.equal(queue.all, 2)
 
-    await as(client.patch(`/api/v1/goals/${a.body().id}`).json({ details: 'why' }))
     await as(client.post(`/api/v1/goals/${a.body().id}/subgoals`).json({ title: 'step' }))
-    await as(client.post('/api/v1/projects').json({ title: 'P' }))
     await tick(50)
-    assert.equal(queue.all, 5)
+    assert.equal(queue.all, 3)
   })
 
   test('turning the AI off clears pending; on re-checks everything', async ({ client, assert }) => {

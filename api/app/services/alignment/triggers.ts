@@ -47,15 +47,49 @@ export async function queueTodoCheck(todoId: number) {
   }
 }
 
-/** A workspace's goals or projects changed: re-check its open to-dos (batched by the queue). */
+/**
+ * A workspace's goals changed in a way that can change verdicts (the active
+ * set, or a sub-goal added or removed): re-check its open to-dos once the
+ * edits have been quiet for `contextQuietMs`. Each change moves
+ * context_changed_at forward; the worker waits until it's that old, so an
+ * editing session ends in one re-check (see align_work).
+ */
 export async function queueContextRecheck(workspaceId: number | null | undefined) {
   try {
     if (workspaceId && (await aiActive(workspaceId))) {
-      await alignmentQueue().checkAll(workspaceId)
+      await db
+        .from('workspaces')
+        .where('id', workspaceId)
+        .update({ context_changed_at: new Date() })
+      await alignmentQueue().checkAll(workspaceId, aiConfig.contextQuietMs)
     }
   } catch (error) {
     logger.error({ err: error, workspaceId }, 'could not queue an alignment re-check')
   }
+}
+
+/**
+ * Re-check a workspace's open to-dos soon, without waiting for goal edits to
+ * settle (the AI was just turned on, so its to-dos already show as checking).
+ */
+export async function queueRecheckNow(workspaceId: number) {
+  try {
+    await alignmentQueue().checkAll(workspaceId)
+  } catch (error) {
+    logger.error({ err: error, workspaceId }, 'could not queue an alignment re-check')
+  }
+}
+
+/** How long the worker should still wait before re-checking (0: go now). */
+export async function quietRemainingMs(workspaceId: number) {
+  const row = await db
+    .from('workspaces')
+    .where('id', workspaceId)
+    .select('context_changed_at')
+    .first()
+  if (!row?.context_changed_at) return 0
+  const changed = new Date(row.context_changed_at).getTime()
+  return Math.max(0, changed + aiConfig.contextQuietMs - Date.now())
 }
 
 /** The workspace of a goal or project, for child rows (sub-goals, tasks). */
@@ -65,16 +99,13 @@ export async function workspaceOf(table: 'goals' | 'projects', id: number) {
 }
 
 /**
- * Model hooks: remember in beforeSave whether a field the model sees
- * changed (Lucid clears $dirty before afterSave), then queue in afterSave.
+ * Model hooks: decide in beforeSave whether the change can affect verdicts
+ * (Lucid clears $dirty before afterSave), then queue in afterSave.
  */
 const touched = new WeakSet<object>()
 
-export function noteContextChange(
-  model: { $isPersisted: boolean; $dirty: Record<string, unknown> },
-  fields: string[]
-) {
-  if (!model.$isPersisted || fields.some((f) => f in model.$dirty)) touched.add(model)
+export function noteContextChange(model: object, changed: boolean) {
+  if (changed) touched.add(model)
 }
 
 /** `workspace` is the id, or a lookup for rows that only know their parent. */

@@ -36,10 +36,13 @@ export default class SubGoal extends AppBaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
 
-  /** What the AI check sees changed: re-check open to-dos (Phase 6). */
+  /**
+   * Re-check open to-dos when a sub-goal is added, moved to another goal or
+   * removed. A renamed sub-goal doesn't re-grade everything.
+   */
   @beforeSave()
   static noteAlignmentContext(row: SubGoal) {
-    noteContextChange(row, ['title', 'goalId'])
+    noteContextChange(row, !row.$isPersisted || 'goalId' in row.$dirty)
   }
 
   @afterSave()

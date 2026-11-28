@@ -53,10 +53,18 @@ export default class Goal extends AppBaseModel {
   @hasMany(() => Project)
   declare projects: HasMany<typeof Project>
 
-  /** What the AI check sees changed: re-check open to-dos (Phase 6). */
+  /**
+   * Re-check open to-dos when the set of active goals changes (a new goal,
+   * or one completed, archived or restored). A renamed goal doesn't
+   * re-grade everything: the next check of each to-do sees the new title.
+   */
   @beforeSave()
   static noteAlignmentContext(row: Goal) {
-    noteContextChange(row, ['title', 'status'])
+    const statusChanged =
+      row.$isPersisted &&
+      'status' in row.$dirty &&
+      (row.$original.status === 'active' || row.status === 'active')
+    noteContextChange(row, !row.$isPersisted || statusChanged)
     if (row.$isPersisted && 'status' in row.$dirty && row.$original.status === 'active') {
       leftActive.add(row)
     }
@@ -77,6 +85,7 @@ export default class Goal extends AppBaseModel {
   static async recheckAlignmentOnDelete(row: Goal) {
     await releaseManualLinks(row.id, row.workspaceId)
     await TodoMatch.query().where('target_type', 'goal').where('target_id', row.id).delete()
-    void queueContextRecheck(row.workspaceId)
+    // Only an active goal was in what the AI sees.
+    if (row.status === 'active') void queueContextRecheck(row.workspaceId)
   }
 }

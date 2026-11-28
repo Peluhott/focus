@@ -76,6 +76,8 @@ export default class AlignWork extends BaseCommand {
           .select('id')
         return rows.map((r) => r.id)
       }
+      const { quietRemainingMs } = await import('#services/alignment/triggers')
+      const { alignmentVersion } = await import('#services/alignment/gemini')
       await boss.work<{ workspaceId?: number }>(
         QUEUES.all,
         { pollingIntervalSeconds: 2 },
@@ -83,8 +85,29 @@ export default class AlignWork extends BaseCommand {
           // Jobs queued before workspaces existed have no id: run every AI-on workspace.
           const ids = job.data.workspaceId ? [job.data.workspaceId] : await aiWorkspaces()
           for (const id of ids) {
+            // Goals were edited again since this was queued: wait until the
+            // edits have been quiet, so the session ends in one re-check.
+            // (The queue keeps one waiting job per workspace; this one is
+            // active, so the new one is accepted unless another is waiting.)
+            const wait = await quietRemainingMs(id)
+            if (wait > 0) {
+              await boss.send(
+                QUEUES.all,
+                { workspaceId: id },
+                { singletonKey: String(id), startAfter: new Date(Date.now() + wait) }
+              )
+              continue
+            }
             const counts = await checker.checkAll(id)
             logger.info(`re-checked workspace ${id}: ${JSON.stringify(counts)}`)
+            // Every to-do was graded with this model and prompt (unless the AI
+            // paused part-way), so a restart needn't redo this workspace.
+            if (counts.paused === 0 && counts.failed === 0) {
+              await db
+                .from('workspaces')
+                .where('id', id)
+                .update({ alignment_version: alignmentVersion() })
+            }
           }
         })
       )
@@ -104,11 +127,24 @@ export default class AlignWork extends BaseCommand {
           logger.info(`to-do hint run ${job.data.runId}: ${status}`)
         })
       )
-      // Re-check open to-dos on start, so a new model, prompt or context shape
-      // applies to existing results. Unchanged ones hit the cache.
-      for (const workspaceId of await aiWorkspaces()) {
+      // A new model or prompt: re-grade existing results, but only in
+      // workspaces whose last full re-check used something else, most
+      // recently used first. The queue runs one workspace at a time.
+      // Otherwise a restart (every deploy) makes no AI calls.
+      const stale: { id: number }[] = await db
+        .from('workspaces')
+        .where('ai_enabled', true)
+        .where((q) =>
+          q.whereNull('alignment_version').orWhereNot('alignment_version', alignmentVersion())
+        )
+        .orderByRaw(
+          '(SELECT max(updated_at) FROM todos WHERE todos.workspace_id = workspaces.id) DESC NULLS LAST'
+        )
+        .select('id')
+      for (const { id: workspaceId } of stale) {
         await boss.send(QUEUES.all, { workspaceId }, { singletonKey: String(workspaceId) })
       }
+      if (stale.length) logger.info(`re-checking ${stale.length} workspaces for ${alignmentVersion()}`)
       logger.info(`Alignment worker running on ${aiConfig.model}`)
     }
 

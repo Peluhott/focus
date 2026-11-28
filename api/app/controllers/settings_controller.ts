@@ -6,7 +6,7 @@ import type User from '#models/user'
 import Workspace from '#models/workspace'
 import { storageConfigured } from '#config/storage'
 import { aiLimit, nextMonthStartUtc } from '#services/alignment/guard'
-import { aiConfigured, queueContextRecheck } from '#services/alignment/triggers'
+import { aiConfigured, queueRecheckNow } from '#services/alignment/triggers'
 import { activeGoalCount } from '#services/goal_limit'
 import { inWs } from '#services/scoped'
 import { startSuggestionRun } from '#services/suggestions/triggers'
@@ -126,7 +126,7 @@ export default class SettingsController {
         .where((q) => q.whereNull('alignment_source').orWhere('alignment_source', 'ai'))
         .where((q) => q.whereNull('alignment_status').orWhereNot('alignment_status', 'dismissed'))
         .update({ alignment_status: 'pending', alignment_reason: null })
-      await queueContextRecheck(workspace.id)
+      await queueRecheckNow(workspace.id)
     } else if (turningOff) {
       // Turned off: nothing waits on a check any more.
       await inWs(Todo, workspace)

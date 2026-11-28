@@ -1,12 +1,7 @@
 import { DateTime } from 'luxon'
-import { belongsTo, column, hasMany, afterDelete, afterSave, beforeSave } from '@adonisjs/lucid/orm'
+import { belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import AppBaseModel from '#models/app_base_model'
-import {
-  noteContextChange,
-  queueContextRecheck,
-  recheckIfContextChanged,
-} from '#services/alignment/triggers'
 import Goal from '#models/goal'
 import Task from '#models/task'
 import ProjectFile from '#models/project_file'
@@ -56,22 +51,7 @@ export default class Project extends AppBaseModel {
   @hasMany(() => ProjectFile)
   declare files: HasMany<typeof ProjectFile>
 
-  /**
-   * What the AI check sees changed: re-check open to-dos (Phase 6). Only
-   * the title, status and goal are sent, so editing details doesn't count.
-   */
-  @beforeSave()
-  static noteAlignmentContext(row: Project) {
-    noteContextChange(row, ['title', 'status', 'goalId'])
-  }
-
-  @afterSave()
-  static recheckAlignment(row: Project) {
-    recheckIfContextChanged(row, row.workspaceId)
-  }
-
-  @afterDelete()
-  static recheckAlignmentOnDelete(row: Project) {
-    void queueContextRecheck(row.workspaceId)
-  }
+  // Project edits don't trigger a re-check: their titles are in what the AI
+  // sees, but rarely change a verdict. The next check of each to-do (or the
+  // next goal change) picks them up.
 }
