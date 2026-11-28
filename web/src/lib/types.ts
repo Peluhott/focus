@@ -50,11 +50,14 @@ export type WorkspaceInfo = {
   ai_enabled: boolean
   /** Turning AI on asks for the warning (every workspace but the original Personal). */
   ai_ack_required: boolean
+  /** How many goals can be active here at once. */
+  focus_limit: 3 | 5 | 7
 }
 
 /**
- * GET /settings for the request's workspace. focus_limit, timer_minutes and
- * last_workspace_id are the user's (shared); ai_enabled is this workspace's.
+ * GET /settings for the request's workspace. timer_minutes and
+ * last_workspace_id are the user's (shared); focus_limit and ai_enabled are
+ * this workspace's.
  */
 export type Settings = {
   focus_limit: 3 | 5 | 7

@@ -10,7 +10,6 @@ export type User = {
   id: number
   email: string
   display_name: string | null
-  focus_limit: 3 | 5 | 7
   /** Default length of the nav-bar timer, 1–180. */
   timer_minutes: number
   /** The workspace the app opens in next time (null: the first). */

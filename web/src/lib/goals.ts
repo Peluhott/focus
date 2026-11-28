@@ -1,11 +1,13 @@
 import { useCallback } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, fetchAll, patch, post } from './api'
 import { deferDelete, flushPendingDeletes, isHidden, useHiddenVersion } from './pendingDeletes'
-import { meKey, type User } from './auth'
+import { rootClient } from './queryClient'
 import { reorder, useOptimisticMutation } from './optimistic'
 import { projectsRootKey } from './projects'
-import type { Goal, GoalStatus, Placement, SubGoal } from './types'
+import type { Goal, GoalStatus, Placement, Settings, SubGoal, WorkspaceInfo } from './types'
+import { useWorkspace } from './workspace'
+import { patchWorkspaceInList, useCurrentWorkspaceInfo, workspacesKey } from './workspaces'
 
 export const goalsKey = ['goals'] as const
 const key = () => goalsKey
@@ -209,23 +211,45 @@ export function useDeleteSubGoal() {
     })
 }
 
-// — focus limit (stored on the user) —
+// — focus limit (per workspace, kept in the root workspace list) —
 
+/** This workspace's goal limit (3 until the list has loaded). */
+export function useFocusLimit(): 3 | 5 | 7 {
+  return useCurrentWorkspaceInfo()?.focus_limit ?? 3
+}
+
+/**
+ * PATCH /settings { focus_limit } for the current workspace. Optimistic on
+ * the workspace list; resolves with the settings (suggestion_run_id when raised).
+ */
 export function useSetFocusLimit() {
-  return useOptimisticMutation<unknown, { limit: 3 | 5 | 7 }, User | null>({
-    scope: 'settings',
-    queryKey: () => meKey,
-    mutationFn: ({ limit }) => patch('/settings', { focus_limit: limit }),
-    apply: (old, { limit }) => (old ? { ...old, focus_limit: limit } : old),
-  })
+  const { workspace } = useWorkspace()
+  return useMutation(
+    {
+      mutationFn: ({ limit }: { limit: 3 | 5 | 7 }) =>
+        patch<Settings & { suggestion_run_id: number | null }>('/settings', { focus_limit: limit }),
+      onMutate: ({ limit }) => {
+        const before = rootClient
+          .getQueryData<WorkspaceInfo[]>(workspacesKey)
+          ?.find((w) => w.id === workspace)?.focus_limit
+        patchWorkspaceInList(workspace, { focus_limit: limit })
+        return { before }
+      },
+      onError: (_e, _v, ctx) => {
+        if (ctx?.before) patchWorkspaceInList(workspace, { focus_limit: ctx.before })
+      },
+    },
+    rootClient
+  )
 }
 
 /** Read the latest goals and limit at call time (for Undo callbacks). */
 export function useLimitSnapshot() {
   const qc = useQueryClient()
+  const { workspace } = useWorkspace()
   return () => {
     const goals = qc.getQueryData<Goal[]>(goalsKey)
-    const user = qc.getQueryData<User | null>(meKey)
-    return { active: activeOf(goals).length, limit: user?.focus_limit ?? 3 }
+    const ws = rootClient.getQueryData<WorkspaceInfo[]>(workspacesKey)?.find((w) => w.id === workspace)
+    return { active: activeOf(goals).length, limit: ws?.focus_limit ?? 3 }
   }
 }

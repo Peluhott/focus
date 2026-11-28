@@ -66,7 +66,7 @@ function WorkspaceShell({ user }: { user: User }) {
       await whenIdle(from)
       const to = workspaceClient(next)
       to.setQueryData(meKey, from.getQueryData(meKey) ?? user)
-      // User-level settings (limit, timer) may have changed in the other one.
+      // User-level settings (the timer) may have changed in the other one.
       to.invalidateQueries({ queryKey: settingsKey })
       setCurrentWorkspace(next)
       setWorkspace(next)

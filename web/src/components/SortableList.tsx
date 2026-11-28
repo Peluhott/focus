@@ -42,6 +42,8 @@ type Props<T extends Item> = {
   isLocked?: (item: T) => boolean
   /** "grid" for cards laid out in rows (goal cards): the drop line runs down the side. */
   layout?: 'list' | 'grid'
+  /** Rendered in the same container after the items (e.g. the Goals page's open slots). */
+  after?: ReactNode
 }
 
 /**
@@ -115,6 +117,7 @@ export default function SortableList<T extends Item>(props: Props<T>) {
               />
             )
           })}
+          {props.after}
         </div>
       </SortableContext>
       <DragOverlay dropAnimation={null}>
