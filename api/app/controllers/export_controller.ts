@@ -26,6 +26,7 @@ async function dump(ws: Workspace) {
     id: ws.id,
     name: ws.displayName,
     ai_enabled: ws.aiEnabled,
+    focus_limit: ws.focusLimit,
     goals: goals.map((g) => g.serialize()),
     projects: projects.map((p) => p.serialize()),
     todos: todos.map((t) => t.serialize()),
@@ -51,7 +52,7 @@ export default class ExportController {
     for (const ws of workspaces) dumps.push(await dump(ws))
     return {
       exported_at: now.toISO(),
-      settings: { focus_limit: user.focusLimit, timer_minutes: user.timerMinutes },
+      settings: { timer_minutes: user.timerMinutes },
       workspaces: dumps,
     }
   }

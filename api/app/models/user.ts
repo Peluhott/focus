@@ -31,7 +31,8 @@ export default class User extends compose(AppBaseModel, AuthFinder) {
   @column()
   declare displayName: string | null
 
-  @column()
+  /** Old account-wide goal limit; each workspace has its own now (workspaces.focus_limit). */
+  @column({ serializeAs: null })
   declare focusLimit: FocusLimit
 
   /** Default length of the nav-bar focus timer (the countdown runs in the browser). */

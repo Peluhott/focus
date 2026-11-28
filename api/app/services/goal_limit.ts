@@ -1,13 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import AppError from '#exceptions/app_error'
 import Goal from '#models/goal'
-import User from '#models/user'
 import Workspace from '#models/workspace'
 
 /**
  * The focus limit: only `active` goals count, and a workspace can't have
- * more of them than users.focus_limit (3, 5 or 7). The limit is the user's,
- * applied to Personal and Work separately.
+ * more of them than its own focus_limit (3, 5 or 7).
  */
 export async function activeGoalCount(
   workspaceId: number,
@@ -30,8 +28,7 @@ export async function assertCanActivate(workspaceId: number, trx: TransactionCli
     .where('id', workspaceId)
     .forUpdate()
     .firstOrFail()
-  const user = await User.query({ client: trx }).where('id', workspace.userId).firstOrFail()
-  if ((await activeGoalCount(workspaceId, trx)) >= user.focusLimit) {
+  if ((await activeGoalCount(workspaceId, trx)) >= workspace.focusLimit) {
     throw AppError.goalLimitReached()
   }
 }

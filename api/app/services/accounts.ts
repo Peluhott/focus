@@ -1,7 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { generateKeyBetween } from 'fractional-indexing'
-import User from '#models/user'
+import User, { type FocusLimit } from '#models/user'
 import Workspace, { workspaceView } from '#models/workspace'
 import { legacyEmail } from '#validators/auth'
 
@@ -10,7 +10,11 @@ import { legacyEmail } from '#validators/auth'
  * and Work (AI off, warning before turning it on). The user can rename,
  * reorder and delete them later; they always keep at least one.
  */
-export async function createDefaultWorkspaces(userId: number, trx?: TransactionClientContract) {
+export async function createDefaultWorkspaces(
+  userId: number,
+  trx?: TransactionClientContract,
+  focusLimit: FocusLimit = 3
+) {
   const first = generateKeyBetween(null, null)
   const second = generateKeyBetween(first, null)
   return Workspace.createMany(
@@ -22,6 +26,7 @@ export async function createDefaultWorkspaces(userId: number, trx?: TransactionC
         position: first,
         aiEnabled: true,
         aiAckRequired: false,
+        focusLimit,
       },
       {
         userId,
@@ -30,6 +35,7 @@ export async function createDefaultWorkspaces(userId: number, trx?: TransactionC
         position: second,
         aiEnabled: false,
         aiAckRequired: true,
+        focusLimit,
       },
     ],
     { client: trx }
@@ -44,7 +50,7 @@ export async function createAccount(input: {
   email: string
   password: string
   displayName?: string | null
-  focusLimit?: 3 | 5 | 7
+  focusLimit?: FocusLimit
 }) {
   return db.transaction(async (trx) => {
     const user = await User.create(
@@ -57,7 +63,7 @@ export async function createAccount(input: {
       },
       { client: trx }
     )
-    const [personal] = await createDefaultWorkspaces(user.id, trx)
+    const [personal] = await createDefaultWorkspaces(user.id, trx, input.focusLimit ?? 3)
     user.lastWorkspaceId = personal.id
     await user.save()
     return user

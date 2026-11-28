@@ -13,15 +13,15 @@ import Todo from '#models/todo'
 import { updateSettingsValidator } from '#validators/settings'
 
 /**
- * Settings for the request's workspace (X-Focus-Workspace). focus_limit,
- * timer_minutes and last_workspace_id are the user's and shared by every
- * workspace; ai_enabled is this workspace's toggle (off by default except
- * in Personal). ai_available says whether the server can run checks at all
+ * Settings for the request's workspace (X-Focus-Workspace). timer_minutes
+ * and last_workspace_id are the user's and shared by every workspace;
+ * focus_limit (the goal limit) and ai_enabled are this workspace's (AI is
+ * off by default except in the original Personal). ai_available says whether the server can run checks at all
  * (AI_ENABLED and GEMINI_API_KEY): the check runs only when both are true.
  * storage_enabled says whether uploads (files, feedback screenshots) work.
  */
 const view = (user: User, workspace: Workspace) => ({
-  focus_limit: user.focusLimit,
+  focus_limit: workspace.focusLimit,
   timer_minutes: user.timerMinutes,
   last_workspace_id: user.lastWorkspaceId,
   workspace: { id: workspace.id, name: workspace.displayName },
@@ -38,8 +38,8 @@ export default class SettingsController {
   }
 
   /**
-   * PATCH /settings. Lowering focus_limit below the active goals of any
-   * workspace is refused: archive or complete goals first. Raising it
+   * PATCH /settings. focus_limit is this workspace's goal limit; lowering
+   * it below its active goals is refused: archive or complete goals first. Raising it
    * returns a suggestion_run_id for this workspace (null otherwise).
    *
    * Turning AI on where the workspace asks for the warning (every one but
@@ -49,7 +49,7 @@ export default class SettingsController {
   async update({ auth, request, workspace }: HttpContext) {
     const user = auth.getUserOrFail()
     const input = await request.validateUsing(updateSettingsValidator)
-    const raised = input.focus_limit !== undefined && input.focus_limit > user.focusLimit
+    const raised = input.focus_limit !== undefined && input.focus_limit > workspace.focusLimit
     const turningOn = input.ai_enabled === true && !workspace.aiEnabled
     const turningOff = input.ai_enabled === false && workspace.aiEnabled
 
@@ -61,17 +61,25 @@ export default class SettingsController {
       )
     }
 
-    if (input.focus_limit !== undefined) {
-      const workspaces = await Workspace.query().where('user_id', user.id)
-      const counts = await Promise.all(workspaces.map((w) => activeGoalCount(w.id)))
-      const active = Math.max(0, ...counts)
-      if (input.focus_limit < active) {
-        const over = active - input.focus_limit
-        throw AppError.validation(
-          `Archive ${over} ${over === 1 ? 'goal' : 'goals'} to drop to ${input.focus_limit}.`
-        )
-      }
-      user.focusLimit = input.focus_limit
+    if (input.focus_limit !== undefined && input.focus_limit !== workspace.focusLimit) {
+      const limit = input.focus_limit
+      await db.transaction(async (trx) => {
+        // Lock the workspace so a goal can't be activated between the count and the save.
+        const locked = await Workspace.query({ client: trx })
+          .where('id', workspace.id)
+          .forUpdate()
+          .firstOrFail()
+        const active = await activeGoalCount(workspace.id, trx)
+        if (limit < active) {
+          const over = active - limit
+          throw AppError.validation(
+            `Archive ${over} ${over === 1 ? 'goal' : 'goals'} to drop to ${limit}.`
+          )
+        }
+        locked.focusLimit = limit
+        await locked.save()
+      })
+      workspace.focusLimit = limit
     }
     if (input.timer_minutes !== undefined) user.timerMinutes = input.timer_minutes
     if (input.last_workspace_id !== undefined) {

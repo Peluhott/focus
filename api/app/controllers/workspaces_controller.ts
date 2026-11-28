@@ -35,7 +35,11 @@ export default class WorkspacesController {
     return { data: rows.map(workspaceView) }
   }
 
-  /** POST /workspaces { name }: at the bottom, AI off until turned on with the warning. */
+  /**
+   * POST /workspaces { name }: at the bottom, goal limit 3, AI off until
+   * turned on with the warning (not copied from the current workspace, so
+   * the warning is never skipped).
+   */
   async store({ auth, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
     const { name } = await request.validateUsing(createWorkspaceValidator)
@@ -54,6 +58,7 @@ export default class WorkspacesController {
           position: generateKeyBetween(rows.at(-1)?.position ?? null, null),
           aiEnabled: false,
           aiAckRequired: true,
+          focusLimit: 3,
         },
         { client: trx }
       )

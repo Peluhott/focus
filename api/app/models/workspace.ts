@@ -2,7 +2,7 @@ import { DateTime } from 'luxon'
 import { belongsTo, column, computed } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import AppBaseModel from '#models/app_base_model'
-import User from '#models/user'
+import User, { type FocusLimit } from '#models/user'
 
 /** The two workspaces every account starts with; their kind doubles as a header alias. */
 export const WORKSPACE_KINDS = ['personal', 'work'] as const
@@ -40,6 +40,10 @@ export default class Workspace extends AppBaseModel {
   @column()
   declare aiAckRequired: boolean
 
+  /** How many goals can be active here at once (3, 5 or 7). */
+  @column()
+  declare focusLimit: FocusLimit
+
   /** Latest acknowledgement of the AI warning (every one is in ai_consents). */
   @column.dateTime({ serializeAs: null })
   declare workAiAckAt: DateTime | null
@@ -75,5 +79,6 @@ export function workspaceView(ws: Workspace) {
     position: ws.position,
     ai_enabled: ws.aiEnabled,
     ai_ack_required: ws.aiAckRequired,
+    focus_limit: ws.focusLimit,
   }
 }
