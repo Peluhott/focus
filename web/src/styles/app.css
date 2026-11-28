@@ -225,7 +225,7 @@ a:hover { color: var(--color-accent-800); }
 .todo-row:has(> .todo-fold.is-folding) { padding-block: 0; transition: padding 350ms ease; }
 .done-today {
   display: flex; justify-content: center; align-items: center; gap: 8px;
-  margin: calc(-1 * var(--space-3)) 0 var(--space-4); font-size: 15px; color: var(--color-neutral-800);
+  margin: -20px 0 20px; font-size: 15px; color: var(--color-neutral-800);
 }
 .done-today-icon { color: var(--color-accent-700); }
 .done-today-count { display: inline-block; font-weight: 600; color: var(--color-text); }
@@ -801,7 +801,20 @@ a:hover { color: var(--color-accent-800); }
 .recurring-sub { font-size: 13px; line-height: 1.35; color: var(--color-neutral-700); }
 .recurring-list { display: flex; flex-direction: column; gap: 2px; }
 .todo-list { margin-top: 0; }
-.todo-list.after-band { margin-top: var(--space-4); }
+/* One-time and Set aside groups (V2-UI-CHANGES §7): 30px between groups. */
+.todo-group { max-width: 720px; margin: 0 auto; display: grid; gap: 10px; }
+.todo-group.after-band { margin-top: 30px; }
+.todo-group-label {
+  font-family: var(--font-heading); font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--color-neutral-700); padding-left: 4px;
+}
+.set-aside-head { display: grid; gap: 4px; padding-left: 4px; }
+.set-aside-kicker {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-heading); font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--color-accent-2-800);
+}
+.set-aside-sub { font-size: 13px; line-height: 1.35; color: var(--color-neutral-700); }
 
 /* — settings (SETTINGS.md, WORK-MODE.md) — */
 .settings { display: grid; gap: var(--space-8); max-width: 720px; margin-top: var(--space-6); }

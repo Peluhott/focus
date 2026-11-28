@@ -7,6 +7,7 @@ import {
   CheckCircleIcon,
   CheckIcon,
   DotsThreeIcon,
+  EyeSlashIcon,
   FootprintsIcon,
   LinkIcon,
   RepeatIcon,
@@ -63,9 +64,17 @@ export default function Todos() {
   const [hints, setHints] = useState<Record<number, boolean>>({})
 
   // Recurring to-dos sit in their own band above the one-time list
-  // (RECURRING-TODOS.md "Recurring band"); each group reorders on its own.
-  const recurring = todos?.filter((t) => t.recurring) ?? []
-  const oneTime = todos?.filter((t) => !t.recurring) ?? []
+  // (RECURRING-TODOS.md "Recurring band"); with the AI on, unaligned ones
+  // move to "Set aside" at the bottom (V2-UI-CHANGES §7). Each group
+  // reorders on its own.
+  const setAsideIds = new Set(
+    aiOn ? (todos ?? []).filter((t) => t.alignment_status === 'unaligned').map((t) => t.id) : []
+  )
+  const rest = (todos ?? []).filter((t) => !setAsideIds.has(t.id))
+  const recurring = rest.filter((t) => t.recurring)
+  const oneTime = rest.filter((t) => !t.recurring)
+  const setAside = (todos ?? []).filter((t) => setAsideIds.has(t.id))
+  const others = (group: Todo[]) => (todos ?? []).filter((t) => !group.includes(t))
 
   function renderGroup(items: Todo[], others: Todo[], className: string) {
     if (items.length === 0) return null
@@ -128,10 +137,29 @@ export default function Todos() {
                 </span>
                 <span className="recurring-sub">Always on your list. Check off each time.</span>
               </div>
-              {renderGroup(recurring, oneTime, 'recurring-list')}
+              {renderGroup(recurring, others(recurring), 'recurring-list')}
             </div>
           )}
-          {renderGroup(oneTime, recurring, `todo-list${recurring.length > 0 ? ' after-band' : ''}`)}
+          {oneTime.length > 0 && (
+            <div className={`todo-group${recurring.length > 0 ? ' after-band' : ''}`}>
+              {(recurring.length > 0 || setAside.length > 0) && (
+                <div className="todo-group-label">One-time</div>
+              )}
+              {renderGroup(oneTime, others(oneTime), 'todo-list')}
+            </div>
+          )}
+          {setAside.length > 0 && (
+            <div className={`todo-group set-aside${rest.length > 0 ? ' after-band' : ''}`}>
+              <div className="set-aside-head">
+                <span className="set-aside-kicker">
+                  <EyeSlashIcon aria-hidden />
+                  Set aside · {setAside.length}
+                </span>
+                <span className="set-aside-sub">Not tied to any of your goals. Link one, keep it, or delete it.</span>
+              </div>
+              {renderGroup(setAside, others(setAside), 'todo-list')}
+            </div>
+          )}
         </>
       )}
       {!isPending && todos?.length === 0 && <p className="empty muted centered">Nothing on the list.</p>}
@@ -306,14 +334,15 @@ function TodoRow({
       return
     }
     // +1 rises, the title is struck, the row folds at 1 s and leaves at
-    // 1.35 s; then the toast. "Done today" goes up on the tick.
+    // 1.35 s; then the toast. "Done today" goes up on the tick. Reduced
+    // motion: it just leaves.
     bumpDoneToday(qc, 1)
-    pendingFinish.current = finish
-    setPhase('struck')
     if (reducedMotion()) {
-      later(finish, 600)
+      finish()
       return
     }
+    pendingFinish.current = finish
+    setPhase('struck')
     showPlusOne()
     later(() => setPhase('fold'), 1000)
     later(finish, 1350)
