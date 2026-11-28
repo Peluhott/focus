@@ -282,6 +282,9 @@ export default class SearchController {
     dated.sort((a, b) => a.date!.localeCompare(b.date!))
     groups.push({ key: 'calendar', label: 'Calendar', items: dated.slice(0, PER_GROUP) })
 
+    // V2-UI-CHANGES §4: To-dos, Goals, Projects, Notes, Files, Calendar.
+    const order = ['todos', 'goals', 'projects', 'notes', 'files', 'calendar']
+    groups.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
     return { query: q, groups: groups.filter((g) => g.items.length > 0) }
   }
 }

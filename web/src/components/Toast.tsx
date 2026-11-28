@@ -6,14 +6,7 @@ import {
   runUndo,
   useToastState,
 } from '../lib/toast'
-
-const inTextField = (el: Element | null) =>
-  el instanceof HTMLElement &&
-  (el.isContentEditable ||
-    el.tagName === 'TEXTAREA' ||
-    el.tagName === 'SELECT' ||
-    (el.tagName === 'INPUT' &&
-      !['checkbox', 'radio', 'button', 'submit'].includes((el as HTMLInputElement).type)))
+import { inTextField, isMac } from '../lib/dom'
 
 /**
  * The toast (UNDO.md, option 1b): bottom-left at the page gutter. Deletes
@@ -55,7 +48,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       )
     undoLabel = n === 1 ? 'Undo' : 'Undo all'
   }
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
   return (
     <>

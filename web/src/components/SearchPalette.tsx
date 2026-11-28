@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboa
 import { useNavigate } from 'react-router-dom'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
+  ArrowElbowDownLeftIcon,
   CalendarBlankIcon,
   ChatCircleTextIcon,
   CheckSquareIcon,
@@ -17,6 +18,7 @@ import {
   TimerIcon,
 } from '@phosphor-icons/react'
 import { get } from '../lib/api'
+import { inTextField } from '../lib/dom'
 import { useCreateNote } from '../lib/notes'
 import { tempId } from '../lib/optimistic'
 import { closeOverlay, openFeedback, openSearch, startTimer, useOverlay } from '../lib/overlays'
@@ -36,6 +38,8 @@ type Hit = {
   project_id?: number
   note_id?: number
   archived?: boolean
+  /** Calendar hits: the day it's on (YYYY-MM-DD). */
+  date?: string
 }
 type SearchResponse = { query: string; groups: { key: string; label: string; items: Hit[] }[] }
 
@@ -60,14 +64,6 @@ const ICONS: Record<Hit['type'], ReactNode> = {
   calendar: <CalendarBlankIcon aria-hidden />,
 }
 
-const inTextField = (el: Element | null) =>
-  el instanceof HTMLElement &&
-  (el.isContentEditable ||
-    el.tagName === 'TEXTAREA' ||
-    el.tagName === 'SELECT' ||
-    (el.tagName === 'INPUT' &&
-      !['checkbox', 'radio', 'button', 'submit'].includes((el as HTMLInputElement).type)))
-
 /** The part of `title` matching `q`, set apart (SEARCH.md "Match highlight"). */
 function Highlight({ title, q }: { title: string; q: string }) {
   const at = q ? title.toLowerCase().indexOf(q.toLowerCase()) : -1
@@ -78,18 +74,6 @@ function Highlight({ title, q }: { title: string; q: string }) {
       <mark className="search-hit">{title.slice(at, at + q.length)}</mark>
       {title.slice(at + q.length)}
     </>
-  )
-}
-
-/** "Search everything" in the date line (SEARCH.md trigger 3c). */
-export function SearchTrigger() {
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
-  return (
-    <button type="button" className="search-trigger" onClick={openSearch}>
-      <MagnifyingGlassIcon size={15} aria-hidden />
-      <span className="search-trigger-label">Search everything</span>
-      <span className="search-trigger-kbd">{isMac ? '⌘K' : 'Ctrl K'}</span>
-    </button>
   )
 }
 
@@ -151,6 +135,11 @@ function Palette() {
   }
 
   const open = (hit: Hit): (() => void) => {
+    // Calendar hits open the Calendar on their month (V2-UI-CHANGES §4).
+    if (hit.type === 'calendar' && hit.date) {
+      const month = hit.date.slice(0, 7)
+      return go(() => navigate('/calendar', { state: { month } }))
+    }
     if (hit.todo_id !== undefined) {
       return go(() => navigate('/todos', { state: { focusTodo: hit.todo_id, expand: true } }))
     }
@@ -232,6 +221,7 @@ function Palette() {
           id: 'add-todo',
           icon: <PlusIcon aria-hidden />,
           title: `Add “${q}” as a to-do`,
+          sub: 'Goes to the top of To-dos',
           run: go(() => {
             addTodo.mutate({ tempId: tempId(), title: q })
             toast('Added to To-dos')
@@ -263,11 +253,19 @@ function Palette() {
     } else if (e.key === 'Enter') {
       e.preventDefault()
       rows[current]?.run()
-    } else if (e.key === 'Escape') {
+    }
+  }
+
+  // Esc closes from anywhere in the dialog, not just the input.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
       e.preventDefault()
       closeOverlay()
     }
-  }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   let index = -1
   return (
@@ -317,7 +315,11 @@ function Palette() {
                       </span>
                       {row.sub && <span className="search-row-sub">{row.sub}</span>}
                     </span>
-                    {i === current && <span className="search-row-open">Open ↵</span>}
+                    {i === current && (
+                      <span className="search-row-open">
+                        Open <ArrowElbowDownLeftIcon aria-hidden />
+                      </span>
+                    )}
                   </div>
                 )
               })}

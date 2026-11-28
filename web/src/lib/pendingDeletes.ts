@@ -92,6 +92,17 @@ export type DeferOptions = {
   afterUndo?: () => void
 }
 
+/** What the toast calls an item with no title (V2-UI-CHANGES §10). */
+const UNTITLED: Record<DeleteKind, string> = {
+  goal: 'Untitled goal',
+  subgoal: 'Sub-goal',
+  todo: 'Untitled to-do',
+  project: 'Untitled project',
+  task: 'Untitled task',
+  file: 'Untitled file',
+  note: 'Untitled note',
+}
+
 /** Delete with Undo: hide now, delete when the toast ends. */
 export function deferDelete(qc: QueryClient, opts: DeferOptions) {
   const tag = `${opts.kind}:${opts.id}`
@@ -101,7 +112,7 @@ export function deferDelete(qc: QueryClient, opts: DeferOptions) {
   bump()
   showDeleteToast({
     key: tag,
-    title: opts.title,
+    title: opts.title.trim() || UNTITLED[opts.kind],
     restore: () => {
       putBack(qc, snaps)
       undoNested?.()

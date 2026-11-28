@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { CaretLeftIcon, CaretRightIcon, CheckSquareIcon } from '@phosphor-icons/react'
 import { useCalendar } from '../lib/calendar'
 import { todayISO } from '../lib/dates'
@@ -19,7 +19,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 /**
  * Calendar (docs "Calendar view"): one month, Sunday to Saturday, with
  * every open dated to-do on its day. Opens on the current month; ‹ › step
- * through months and "Today" jumps back. Read-only; a to-do opens on the
+ * through months and "Today" jumps back (search can open it on a month). Read-only; a to-do opens on the
  * To-dos page. No AI state.
  */
 export default function Calendar() {
@@ -29,6 +29,16 @@ export default function Calendar() {
   const thisMonth = ty * 12 + tm - 1
   // The month shown, as a count of months (year * 12 + month index).
   const [shown, setShown] = useState(thisMonth)
+  // From search: open on a given month ({ month: 'YYYY-MM' }).
+  const location = useLocation()
+  const navigate = useNavigate()
+  const asked = (location.state as { month?: string } | null)?.month
+  useEffect(() => {
+    if (!asked) return
+    const [ay, am] = asked.split('-').map(Number)
+    if (ay && am) setShown(ay * 12 + am - 1)
+    navigate('.', { replace: true, state: null })
+  }, [asked])
   const y = Math.floor(shown / 12)
   const m = (shown % 12) + 1
   const month = `${y}-${pad(m)}`
